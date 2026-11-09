@@ -11,3 +11,6 @@ local.properties
 .cursor
 .history
 .kotlin
+# 星汐签名金钥（只放在 GitHub Secrets，不要提交）
+*.jks
+*.keystore

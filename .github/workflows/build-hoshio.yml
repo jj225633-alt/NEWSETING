@@ -1,0 +1,115 @@
+name: Build Hoshio APK
+
+# 每次推送到 master/main 或在 Actions 页面手动点击「Run workflow」时编译星汐 APK，
+# 并发布到 Releases 的「latest-build」，手机打开链接即可下载，无需登录。
+on:
+  push:
+    branches: [master, main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: build-hoshio
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 发布 Release 需要写权限
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 签名金钥放在仓库的 Settings → Secrets and variables → Actions，不会出现在源码里。
+      # 固定使用同一把金钥，新版 APK 才能直接覆盖安装、保留资料。
+      - name: Check signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.HOSHIO_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.HOSHIO_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.HOSHIO_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.HOSHIO_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -z "$KEYSTORE_BASE64" ] && missing="$missing HOSHIO_KEYSTORE_BASE64"
+          [ -z "$KEYSTORE_PASSWORD" ] && missing="$missing HOSHIO_KEYSTORE_PASSWORD"
+          [ -z "$KEY_ALIAS" ] && missing="$missing HOSHIO_KEY_ALIAS"
+          [ -z "$KEY_PASSWORD" ] && missing="$missing HOSHIO_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::缺少签名 Secrets:$missing。请到 Settings → Secrets and variables → Actions 新增后重新执行。"
+            exit 1
+          fi
+
+      - name: Prepare signing config
+        env:
+          KEYSTORE_BASE64: ${{ secrets.HOSHIO_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.HOSHIO_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.HOSHIO_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.HOSHIO_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > app/hoshio.jks
+          {
+            echo "storeFile=hoshio.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > local.properties
+
+      # 与 Android Studio 自带的 JetBrains Runtime 21 保持一致
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'jetbrains'
+          java-version: '21'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # web 模块的 preBuild 会执行 `pnpm run build` 构建网页版（电脑浏览器使用的界面）
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web-ui/pnpm-lock.yaml
+
+      - name: Install web-ui dependencies
+        working-directory: web-ui
+        run: pnpm install --frozen-lockfile
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Gradle Build
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleGithubRelease
+
+      - name: Publish latest build
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-build
+          name: 星汐 最新构建
+          prerelease: true
+          make_latest: false
+          body: |
+            星汐（Hoshio）自动构建，commit `${{ github.sha }}`。
+
+            手机一般下载 `arm64-v8a` 的 APK；不确定就下载 `universal` 版。
+          files: |
+            app/build/outputs/apk/github/release/*.apk
+
+      - name: Clean up signing files
+        if: always()
+        run: rm -f app/hoshio.jks local.properties

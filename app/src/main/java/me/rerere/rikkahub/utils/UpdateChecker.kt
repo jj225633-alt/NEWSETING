@@ -22,6 +22,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 private const val API_URL = "https://updates.rikka-ai.com/"
+private const val UPDATE_CHECK_ENABLED = false
 
 class UpdateChecker(
     private val client: OkHttpClient,
@@ -35,8 +36,11 @@ class UpdateChecker(
         initialValue = UiState.Loading,
     )
 
+    // 星汐: RikkaHub 的更新服务器只提供 RikkaHub 本体的安装包，不能用来更新星汐，
+    // 所以这里关闭自动检查，避免提示用户「更新」成别的 App。
     private fun checkUpdate(): Flow<UiState<UpdateInfo>> = flow {
         emit(UiState.Loading)
+        if (!UPDATE_CHECK_ENABLED) return@flow
         emit(
             UiState.Success(
                 data = try {
