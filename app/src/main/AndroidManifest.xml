@@ -25,6 +25,8 @@
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <!-- 星汐: 地点提醒需要在背景判断是否到家／出门 -->
+  <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
   <uses-feature
     android:name="android.hardware.camera"

@@ -2,7 +2,28 @@ package me.rerere.rikkahub.hoshio.care
 
 import android.content.Context
 import androidx.core.content.edit
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
+
+/** 用户设定的地点，例如家、公司 */
+@Serializable
+data class CarePlace(
+    val id: String,
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    val radiusMeters: Int = CarePrefs.DEFAULT_PLACE_RADIUS,
+)
+
+/** 每个地点目前判断在里面还是外面，以及上次触发时间（避免在边界来回跳） */
+@Serializable
+data class CarePlaceState(
+    val inside: Boolean,
+    val lastEventAt: Long = 0L,
+)
+
+private val careJson = Json { ignoreUnknownKeys = true }
 
 /**
  * 星汐「主动关心」的设定与状态，存在独立的 SharedPreferences，不动 RikkaHub 的设定档。
@@ -27,7 +48,17 @@ class CarePrefs(context: Context) {
         get() = prefs.getBoolean(KEY_WAKE_UP, false)
         set(value) = prefs.edit { putBoolean(KEY_WAKE_UP, value) }
 
-    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled
+    var placesEnabled: Boolean
+        get() = prefs.getBoolean(KEY_PLACES_ENABLED, false)
+        set(value) = prefs.edit { putBoolean(KEY_PLACES_ENABLED, value) }
+
+    var places: List<CarePlace>
+        get() = prefs.getString(KEY_PLACES, null)
+            ?.let { runCatching { careJson.decodeFromString<List<CarePlace>>(it) }.getOrNull() }
+            .orEmpty()
+        set(value) = prefs.edit { putString(KEY_PLACES, careJson.encodeToString(value)) }
+
+    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled
 
     // ---- 运行状态 ----
 
@@ -51,6 +82,12 @@ class CarePrefs(context: Context) {
         get() = prefs.getString(KEY_WAKE_GREETED_FOR, null)
         set(value) = prefs.edit { putString(KEY_WAKE_GREETED_FOR, value) }
 
+    var placeStates: Map<String, CarePlaceState>
+        get() = prefs.getString(KEY_PLACE_STATES, null)
+            ?.let { runCatching { careJson.decodeFromString<Map<String, CarePlaceState>>(it) }.getOrNull() }
+            .orEmpty()
+        set(value) = prefs.edit { putString(KEY_PLACE_STATES, careJson.encodeToString(value)) }
+
     var lastResult: String?
         get() = prefs.getString(KEY_LAST_RESULT, null)
         set(value) = prefs.edit { putString(KEY_LAST_RESULT, value) }
@@ -65,6 +102,20 @@ class CarePrefs(context: Context) {
         private const val KEY_LAST_RESULT = "last_result"
         private const val KEY_WAKE_UP = "wake_up_enabled"
         private const val KEY_WAKE_GREETED_FOR = "wake_greeted_for"
+        private const val KEY_PLACES_ENABLED = "places_enabled"
+        private const val KEY_PLACES = "places"
+        private const val KEY_PLACE_STATES = "place_states"
+
+        const val DEFAULT_PLACE_RADIUS = 200
+
+        /** 离开要超出半径这么多才算，避免定位误差造成来回跳 */
+        const val PLACE_EXIT_MARGIN_METERS = 150
+
+        /** 定位误差大于这个值时不判断进出 */
+        const val PLACE_MAX_ACCURACY_METERS = 500f
+
+        /** 同一个地点两次提醒至少间隔 */
+        const val PLACE_COOLDOWN_MINUTES = 30L
 
         const val LOW_BATTERY_PERCENT = 20
         const val LOW_BATTERY_RESET_PERCENT = 30

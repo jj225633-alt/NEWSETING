@@ -6,6 +6,7 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.location.Location
 import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
@@ -26,6 +27,7 @@ import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.CHAT_COMPLETED_NOTIFICATION_CHANNEL_ID
 import me.rerere.rikkahub.conversationIntent
+import me.rerere.rikkahub.data.ai.tools.local.currentLocationOrNull
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.repository.ConversationRepository
 import me.rerere.rikkahub.service.ChatService
@@ -87,7 +89,7 @@ class CareWorker(
         return Result.success()
     }
 
-    private fun detectEvents(prefs: CarePrefs): List<CareEvent> {
+    private suspend fun detectEvents(prefs: CarePrefs): List<CareEvent> {
         val events = mutableListOf<CareEvent>()
         val now = LocalDateTime.now()
 
@@ -135,6 +137,66 @@ class CareWorker(
             }
         }
         if (prefs.wakeUpEnabled) detectWakeUp(prefs)?.let { events += it }
+        if (prefs.placesEnabled) events += detectPlaces(prefs)
+        return events
+    }
+
+    /**
+     * 地点进出：取得一次目前位置，和设定的地点比较距离。
+     * 第一次看到某个地点只记录状态、不提醒；离开要超出半径一段距离才算，避免定位误差来回跳。
+     */
+    private suspend fun detectPlaces(prefs: CarePrefs): List<CareEvent> {
+        val places = prefs.places
+        if (places.isEmpty()) return emptyList()
+        val location = applicationContext.currentLocationOrNull()
+        if (location == null) {
+            prefs.lastResult = "地點提醒：暫時拿不到位置（需要「一律允許」定位，並開啟定位服務）"
+            return emptyList()
+        }
+        if (location.hasAccuracy() && location.accuracy > CarePrefs.PLACE_MAX_ACCURACY_METERS) return emptyList()
+        // 太旧的位置不能代表现在
+        if (System.currentTimeMillis() - location.time > TimeUnit.MINUTES.toMillis(30)) return emptyList()
+
+        val nowMs = System.currentTimeMillis()
+        val states = prefs.placeStates.toMutableMap()
+        val events = mutableListOf<CareEvent>()
+        val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+        for (place in places) {
+            val result = FloatArray(1)
+            Location.distanceBetween(location.latitude, location.longitude, place.latitude, place.longitude, result)
+            val distance = result[0]
+            val previous = states[place.id]
+            val inside = when {
+                distance <= place.radiusMeters -> true
+                distance > place.radiusMeters + CarePrefs.PLACE_EXIT_MARGIN_METERS -> false
+                else -> previous?.inside ?: false // 在缓冲区里：维持原状态
+            }
+            if (previous == null) {
+                states[place.id] = CarePlaceState(inside = inside)
+                continue
+            }
+            if (inside == previous.inside) continue
+            val cooledDown = nowMs - previous.lastEventAt >= TimeUnit.MINUTES.toMillis(CarePrefs.PLACE_COOLDOWN_MINUTES)
+            states[place.id] = CarePlaceState(inside = inside, lastEventAt = if (cooledDown) nowMs else previous.lastEventAt)
+            if (!cooledDown) continue
+            events += if (inside) {
+                CareEvent(
+                    key = "place_arrive_${place.id}",
+                    title = "到達「${place.name}」",
+                    text = "Automatic phone event (not typed by the user): at about $time the user arrived at the place they named " +
+                        "\"${place.name}\". Greet them about arriving in one or two sentences, in character.",
+                )
+            } else {
+                CareEvent(
+                    key = "place_leave_${place.id}",
+                    title = "離開「${place.name}」",
+                    text = "Automatic phone event (not typed by the user): at about $time the user left the place they named " +
+                        "\"${place.name}\". Send one or two sentences in character (for example wishing them a safe trip). " +
+                        "Location checks run only every 15 minutes or so, so the time is approximate.",
+                )
+            }
+        }
+        prefs.placeStates = states
         return events
     }
 

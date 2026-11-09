@@ -37,6 +37,14 @@ internal fun Settings.withBuiltInDefaults(): Settings {
             assistants.add(defaultAssistant.copy())
         }
     }
+    // 星汐: 内建角色的设定使用者没改过时，升级成最新版本
+    assistants.replaceAll { assistant ->
+        if (assistant.id == HOSHIO_ASSISTANT_ID && assistant.systemPrompt.isOutdatedHoshioPrompt()) {
+            assistant.copy(systemPrompt = HOSHIO_SYSTEM_PROMPT)
+        } else {
+            assistant
+        }
+    }
     val ttsProviders = this.ttsProviders.ifEmpty { DEFAULT_TTS_PROVIDERS }.toMutableList()
     DEFAULT_TTS_PROVIDERS.forEach { defaultTTSProvider ->
         if (ttsProviders.none { provider -> provider.id == defaultTTSProvider.id }) {
@@ -100,3 +108,16 @@ private fun Settings.withValuesInRange(): Settings = copy(
     searchServiceSelected = searchServiceSelected.coerceIn(0, (searchServices.size - 1).coerceAtLeast(0)),
     defaultTTSPlaybackSpeed = defaultTTSPlaybackSpeed.coerceIn(0.5f, 2.0f),
 )
+
+// 星汐: 曾经内建过的旧版设定。只存 SHA-256，旧版里含个人称呼，不放原文
+private val OUTDATED_HOSHIO_PROMPT_HASHES = setOf(
+    "9757f747f89f190abe9defd5233afc551ff47d1d75b5e665a98e13911126f44d",
+)
+
+private fun String.isOutdatedHoshioPrompt(): Boolean {
+    if (this == HOSHIO_SYSTEM_PROMPT_V1) return true
+    val hash = java.security.MessageDigest.getInstance("SHA-256")
+        .digest(toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+    return hash in OUTDATED_HOSHIO_PROMPT_HASHES
+}

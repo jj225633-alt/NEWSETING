@@ -49,7 +49,7 @@ internal fun buildLocationTool(context: Context): Tool = Tool(
     }
 )
 
-private fun Context.hasLocationPermission(): Boolean =
+internal fun Context.hasLocationPermission(): Boolean =
     ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
@@ -73,23 +73,7 @@ private suspend fun readLocation(context: Context): JsonObject {
         return locationError("location_disabled", "Location services are turned off on the phone. Ask the user to turn on location.")
     }
 
-    val preferred = listOf(
-        LocationManager.FUSED_PROVIDER.takeIf { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S },
-        LocationManager.GPS_PROVIDER,
-        LocationManager.NETWORK_PROVIDER,
-    ).filterNotNull().filter { it in enabledProviders }
-
-    var location: Location? = null
-    for (provider in preferred) {
-        location = withTimeoutOrNull(20_000) { manager.currentLocation(provider) }
-        if (location != null) break
-    }
-    if (location == null) {
-        // 拿不到即时位置时，退而使用最近一次已知的位置
-        location = enabledProviders
-            .mapNotNull { runCatching { manager.getLastKnownLocation(it) }.getOrNull() }
-            .maxByOrNull { it.time }
-    }
+    val location = obtainLocation(manager)
     if (location == null) {
         return locationError("no_fix", "Could not get a location fix right now (e.g. indoors or no signal). Try again later.")
     }
@@ -161,4 +145,32 @@ private suspend fun reverseGeocode(context: Context, location: Location): Addres
             }
         }
     }
+}
+
+/** 取得目前位置：依序尝试 fused/GPS/网络即时定位，都拿不到时用最近一次已知位置。调用前需确认已有定位权限 */
+@SuppressLint("MissingPermission")
+internal suspend fun obtainLocation(manager: LocationManager): Location? {
+    val enabledProviders = manager.getProviders(true)
+    val preferred = listOf(
+        LocationManager.FUSED_PROVIDER.takeIf { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S },
+        LocationManager.GPS_PROVIDER,
+        LocationManager.NETWORK_PROVIDER,
+    ).filterNotNull().filter { it in enabledProviders }
+
+    for (provider in preferred) {
+        val location = withTimeoutOrNull(20_000) { manager.currentLocation(provider) }
+        if (location != null) return location
+    }
+    // 拿不到即时位置时，退而使用最近一次已知的位置
+    return enabledProviders
+        .mapNotNull { runCatching { manager.getLastKnownLocation(it) }.getOrNull() }
+        .maxByOrNull { it.time }
+}
+
+/** 给背景检查用：有权限且定位开着时取得一次位置，否则回传 null */
+internal suspend fun Context.currentLocationOrNull(): Location? {
+    if (!hasLocationPermission()) return null
+    val manager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+    if (manager.getProviders(true).isEmpty()) return null
+    return obtainLocation(manager)
 }
