@@ -87,14 +87,58 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Gradle 安装包放在 GitHub Releases，从 Actions 下载时常出现 504 / 超时，
-      # 而 gradlew 自己只试一次。这里先用 curl 多次重试下载好，再让 wrapper 改读本地文件。
-      - name: Download Gradle distribution
+      # Gradle 安装包放在 GitHub Releases，从 Actions 下载时常常整段时间都 504。
+      # 下载成功一次后存进 Actions 快取，之后直接用快取，不再依赖这个下载点。
+      - name: Resolve Gradle version
+        id: gradle-dist
         run: |
           url=$(grep '^distributionUrl=' gradle/wrapper/gradle-wrapper.properties | cut -d= -f2- | sed 's/\\:/:/g')
-          dest="$RUNNER_TEMP/$(basename "$url")"
-          echo "Downloading $url"
-          curl -fL --retry 10 --retry-all-errors --retry-delay 15 --connect-timeout 30 -o "$dest" "$url"
+          name=$(basename "$url")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$(echo "$name" | sed -E 's/^gradle-(.*)-(bin|all)\.zip$/\1/')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Gradle distribution
+        uses: actions/cache@v4
+        with:
+          path: ~/hoshio-gradle-dist
+          key: hoshio-gradle-dist-${{ steps.gradle-dist.outputs.name }}
+
+      # 依序尝试：官方下载点 → 国内镜像 → Docker Hub 上的官方 gradle 映像（不经过 GitHub Releases）
+      - name: Download Gradle distribution
+        env:
+          URL: ${{ steps.gradle-dist.outputs.url }}
+          NAME: ${{ steps.gradle-dist.outputs.name }}
+          VERSION: ${{ steps.gradle-dist.outputs.version }}
+        run: |
+          mkdir -p ~/hoshio-gradle-dist
+          dest=~/hoshio-gradle-dist/$NAME
+          valid() { [ -s "$1" ] && unzip -tq "$1" >/dev/null 2>&1; }
+          if valid "$dest"; then
+            echo "Using cached $NAME"
+          else
+            for src in "$URL" \
+                       "https://mirrors.cloud.tencent.com/gradle/$NAME" \
+                       "https://mirrors.huaweicloud.com/gradle/$NAME"; do
+              echo "Trying $src"
+              if curl -fL --retry 3 --retry-all-errors --retry-delay 10 --connect-timeout 30 -o "$dest" "$src" && valid "$dest"; then
+                echo "Downloaded from $src"
+                break
+              fi
+              rm -f "$dest"
+            done
+          fi
+          if ! valid "$dest"; then
+            echo "Falling back to Docker image gradle:$VERSION-jdk21"
+            docker pull "gradle:$VERSION-jdk21"
+            cid=$(docker create "gradle:$VERSION-jdk21")
+            work="$RUNNER_TEMP/gradle-docker"
+            rm -rf "$work" && mkdir -p "$work/gradle-$VERSION"
+            docker cp "$cid:/opt/gradle/." "$work/gradle-$VERSION/"
+            docker rm "$cid" >/dev/null
+            (cd "$work" && zip -qr "$dest" "gradle-$VERSION")
+          fi
+          valid "$dest" || { echo "::error::无法取得 $NAME"; exit 1; }
           sed -i "s|^distributionUrl=.*|distributionUrl=file\\\\:$dest|" gradle/wrapper/gradle-wrapper.properties
           grep '^distributionUrl=' gradle/wrapper/gradle-wrapper.properties
 
