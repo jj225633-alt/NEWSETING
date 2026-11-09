@@ -83,18 +83,15 @@ jobs:
         working-directory: web-ui
         run: pnpm install --frozen-lockfile
 
-      - name: Gradle cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+      # 官方 Gradle Action：快取 Gradle 与依赖，并处理 wrapper 下载
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Gradle Build
         run: |
           chmod +x gradlew
-          ./gradlew assembleGithubRelease
+          # 偶尔会遇到下载 Gradle 或依赖时网络中断，失败就再试一次
+          ./gradlew assembleGithubRelease || ./gradlew assembleGithubRelease
 
       - name: Publish latest build
         uses: softprops/action-gh-release@v2
