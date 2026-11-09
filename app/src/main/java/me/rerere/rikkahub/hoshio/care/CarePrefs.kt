@@ -23,7 +23,11 @@ class CarePrefs(context: Context) {
         get() = prefs.getBoolean(KEY_NIGHT_USAGE, false)
         set(value) = prefs.edit { putBoolean(KEY_NIGHT_USAGE, value) }
 
-    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled
+    var wakeUpEnabled: Boolean
+        get() = prefs.getBoolean(KEY_WAKE_UP, false)
+        set(value) = prefs.edit { putBoolean(KEY_WAKE_UP, value) }
+
+    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled
 
     // ---- 运行状态 ----
 
@@ -42,6 +46,11 @@ class CarePrefs(context: Context) {
         get() = prefs.getString(KEY_NIGHT_ALERTED_FOR, null)
         set(value) = prefs.edit { putString(KEY_NIGHT_ALERTED_FOR, value) }
 
+    /** 最近一次早安问候是哪一天，一天只问候一次 */
+    var wakeGreetedFor: String?
+        get() = prefs.getString(KEY_WAKE_GREETED_FOR, null)
+        set(value) = prefs.edit { putString(KEY_WAKE_GREETED_FOR, value) }
+
     var lastResult: String?
         get() = prefs.getString(KEY_LAST_RESULT, null)
         set(value) = prefs.edit { putString(KEY_LAST_RESULT, value) }
@@ -54,6 +63,8 @@ class CarePrefs(context: Context) {
         private const val KEY_NIGHT_SINCE = "night_screen_on_since"
         private const val KEY_NIGHT_ALERTED_FOR = "night_alerted_for"
         private const val KEY_LAST_RESULT = "last_result"
+        private const val KEY_WAKE_UP = "wake_up_enabled"
+        private const val KEY_WAKE_GREETED_FOR = "wake_greeted_for"
 
         const val LOW_BATTERY_PERCENT = 20
         const val LOW_BATTERY_RESET_PERCENT = 30
@@ -64,5 +75,13 @@ class CarePrefs(context: Context) {
 
         /** 深夜连续亮屏超过这么久才提醒 */
         const val NIGHT_USAGE_MINUTES = 20L
+
+        /** 起床判断：螢幕关闭至少这么久（睡眠），并在这个时段内第一次亮起 */
+        const val WAKE_MIN_SLEEP_HOURS = 4L
+        const val WAKE_START_HOUR = 4
+        const val WAKE_END_HOUR = 13
+
+        /** 起床超过这么久才检查到，就不再补问早安 */
+        const val WAKE_MAX_DELAY_MINUTES = 90L
     }
 }

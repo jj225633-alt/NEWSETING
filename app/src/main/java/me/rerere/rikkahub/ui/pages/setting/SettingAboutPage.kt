@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toOffset
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Code
-import me.rerere.hugeicons.stroke.Earth
 import me.rerere.hugeicons.stroke.File02
+import me.rerere.hugeicons.stroke.GitFork
 import me.rerere.hugeicons.stroke.Github
 import me.rerere.hugeicons.stroke.SmartPhone01
 import me.rerere.rikkahub.BuildConfig
@@ -166,7 +166,7 @@ fun SettingAboutPage() {
                         )
 
                         Text(
-                            text = "RikkaHub",
+                            text = stringResource(R.string.app_name),
                             style = MaterialTheme.typography.headlineLargeEmphasized.copy(
                                 fontWeight = FontWeight.Black,
                             ),
@@ -204,16 +204,17 @@ fun SettingAboutPage() {
                     val contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                     CardGroup {
                         item(
-                            onClick = { context.openUrl("https://rikka-ai.com/") },
-                            leadingContent = { CardGroupIcon(HugeIcons.Earth, containerColor = containerColor, contentColor = contentColor) },
-                            supportingContent = { Text("https://rikka-ai.com") },
-                            headlineContent = { Text(stringResource(R.string.about_page_website)) },
+                            onClick = { context.openUrl("https://github.com/jj225633-alt/NEWSETING") },
+                            leadingContent = { CardGroupIcon(HugeIcons.Github, containerColor = containerColor, contentColor = contentColor) },
+                            supportingContent = { Text("https://github.com/jj225633-alt/NEWSETING") },
+                            headlineContent = { Text(stringResource(R.string.about_page_github)) },
                         )
+                        // 星汐基于 RikkaHub 修改；按 AGPL-3.0 保留原作者的来源与授权标示
                         item(
                             onClick = { context.openUrl("https://github.com/rikkahub/rikkahub") },
-                            leadingContent = { CardGroupIcon(HugeIcons.Github, containerColor = containerColor, contentColor = contentColor) },
-                            supportingContent = { Text("https://github.com/rikkahub/rikkahub") },
-                            headlineContent = { Text(stringResource(R.string.about_page_github)) },
+                            leadingContent = { CardGroupIcon(HugeIcons.GitFork, containerColor = containerColor, contentColor = contentColor) },
+                            supportingContent = { Text("RikkaHub by re-ovo and contributors · https://github.com/rikkahub/rikkahub") },
+                            headlineContent = { Text("Based on RikkaHub") },
                         )
                         item(
                             onClick = { context.openUrl("https://github.com/rikkahub/rikkahub/blob/master/LICENSE") },

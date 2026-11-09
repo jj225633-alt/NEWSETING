@@ -38,6 +38,7 @@ import me.rerere.hugeicons.stroke.JavaScript
 import me.rerere.hugeicons.stroke.MessageQuestion
 import me.rerere.hugeicons.stroke.Moon02
 import me.rerere.hugeicons.stroke.Notification01
+import me.rerere.hugeicons.stroke.Sun01
 import me.rerere.hugeicons.stroke.Zap
 import me.rerere.hugeicons.stroke.Route01
 import me.rerere.hugeicons.stroke.SmartPhone01
@@ -283,6 +284,7 @@ private fun HoshioCareSection(assistant: Assistant) {
     val prefs = remember { CarePrefs(context) }
     var lowBattery by remember { mutableStateOf(prefs.lowBatteryEnabled) }
     var nightUsage by remember { mutableStateOf(prefs.nightUsageEnabled) }
+    var wakeUp by remember { mutableStateOf(prefs.wakeUpEnabled) }
     var ownerId by remember { mutableStateOf(prefs.assistantId) }
     var lastResult by remember { mutableStateOf(prefs.lastResult) }
 
@@ -302,22 +304,29 @@ private fun HoshioCareSection(assistant: Assistant) {
     )
     PermissionManager(permissionState = notificationPermissionState)
 
-    fun update(lowBatteryValue: Boolean, nightUsageValue: Boolean) {
-        if ((lowBatteryValue || nightUsageValue) && !notificationPermissionState.allRequiredPermissionsGranted) {
+    fun update(lowBatteryValue: Boolean, nightUsageValue: Boolean, wakeUpValue: Boolean) {
+        val any = lowBatteryValue || nightUsageValue || wakeUpValue
+        if (any && !notificationPermissionState.allRequiredPermissionsGranted) {
             notificationPermissionState.requestPermissions()
+        }
+        if (wakeUpValue && !wakeUp && !context.hasUsageStatsPermission()) {
+            toaster.show(message = "起床問候需要「使用情況存取」權限，請在接下來的頁面允許星汐", type = ToastType.Warning)
+            context.openUsageAccessSettings()
         }
         prefs.lowBatteryEnabled = lowBatteryValue
         prefs.nightUsageEnabled = nightUsageValue
-        if (lowBatteryValue || nightUsageValue) {
+        prefs.wakeUpEnabled = wakeUpValue
+        if (any) {
             prefs.assistantId = assistant.id
             ownerId = assistant.id
         }
         lowBattery = lowBatteryValue
         nightUsage = nightUsageValue
+        wakeUp = wakeUpValue
         CareWorker.sync(context)
     }
 
-    val ownedByOther = ownerId != null && ownerId != assistant.id && (lowBattery || nightUsage)
+    val ownedByOther = ownerId != null && ownerId != assistant.id && (lowBattery || nightUsage || wakeUp)
 
     CardGroup(title = { Text("主動關心") }) {
         item(
@@ -335,17 +344,29 @@ private fun HoshioCareSection(assistant: Assistant) {
         )
         switchItem(
             checked = lowBattery && !ownedByOther,
-            onCheckedChange = { update(it, nightUsage) },
+            onCheckedChange = { update(it, nightUsage, wakeUp) },
             leadingContent = { CardGroupIcon(icon = HugeIcons.Zap) },
             supportingContent = { Text("電量低於 ${CarePrefs.LOW_BATTERY_PERCENT}% 且沒在充電時提醒你充電；充電後才會再提醒") },
             headlineContent = { Text("電量低") },
         )
         switchItem(
             checked = nightUsage && !ownedByOther,
-            onCheckedChange = { update(lowBattery, it) },
+            onCheckedChange = { update(lowBattery, it, wakeUp) },
             leadingContent = { CardGroupIcon(icon = HugeIcons.Moon02) },
             supportingContent = { Text("凌晨 0:00–5:00 連續亮著螢幕超過約 ${CarePrefs.NIGHT_USAGE_MINUTES} 分鐘時，提醒你休息；一晚最多一次") },
             headlineContent = { Text("深夜還在滑手機") },
+        )
+        switchItem(
+            checked = wakeUp && !ownedByOther,
+            onCheckedChange = { update(lowBattery, nightUsage, it) },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Sun01) },
+            supportingContent = {
+                Text(
+                    "螢幕關了 ${CarePrefs.WAKE_MIN_SLEEP_HOURS} 小時以上、早上（${CarePrefs.WAKE_START_HOUR}:00–${CarePrefs.WAKE_END_HOUR}:00）第一次打開手機時，" +
+                        "當作你起床了，跟你說早安；一天一次，可能晚 15–30 分鐘。需要「使用情況存取」權限"
+                )
+            },
+            headlineContent = { Text("起床打招呼") },
         )
         item(
             onClick = {

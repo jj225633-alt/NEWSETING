@@ -1,10 +1,13 @@
 package me.rerere.rikkahub.hoshio.care
 
 import android.app.PendingIntent
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
+import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -26,10 +29,13 @@ import me.rerere.rikkahub.conversationIntent
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.repository.ConversationRepository
 import me.rerere.rikkahub.service.ChatService
+import me.rerere.rikkahub.utils.hasUsageStatsPermission
 import me.rerere.rikkahub.utils.sendNotification
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
@@ -128,7 +134,67 @@ class CareWorker(
                 prefs.nightScreenOnSince = 0L
             }
         }
+        if (prefs.wakeUpEnabled) detectWakeUp(prefs)?.let { events += it }
         return events
+    }
+
+    /**
+     * 用「使用情况」里的螢幕亮/灭记录判断起床：螢幕关了至少几小时（睡觉），
+     * 然后在早上第一次亮起，就当作刚起床。需要「使用情况存取」权限。
+     */
+    private fun detectWakeUp(prefs: CarePrefs): CareEvent? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+        if (!applicationContext.hasUsageStatsPermission()) {
+            prefs.lastResult = "起床問候需要「使用情況存取」權限"
+            return null
+        }
+        val zone = ZoneId.systemDefault()
+        val today = LocalDateTime.now().toLocalDate().toString()
+        if (prefs.wakeGreetedFor == today) return null
+
+        val usage = applicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return null
+        val nowMs = System.currentTimeMillis()
+        val events = usage.queryEvents(nowMs - TimeUnit.HOURS.toMillis(24), nowMs)
+        val event = UsageEvents.Event()
+        var screenOffAt = 0L
+        var wake: Pair<Long, Long>? = null // (螢幕关闭时间, 起床亮起时间)
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            when (event.eventType) {
+                UsageEvents.Event.SCREEN_NON_INTERACTIVE -> screenOffAt = event.timeStamp
+                UsageEvents.Event.SCREEN_INTERACTIVE -> {
+                    if (screenOffAt > 0) {
+                        val sleptMs = event.timeStamp - screenOffAt
+                        val onAt = Instant.ofEpochMilli(event.timeStamp).atZone(zone)
+                        if (sleptMs >= TimeUnit.HOURS.toMillis(CarePrefs.WAKE_MIN_SLEEP_HOURS) &&
+                            onAt.toLocalDate().toString() == today &&
+                            onAt.hour >= CarePrefs.WAKE_START_HOUR && onAt.hour < CarePrefs.WAKE_END_HOUR
+                        ) {
+                            wake = screenOffAt to event.timeStamp
+                        }
+                    }
+                    screenOffAt = 0L
+                }
+            }
+        }
+        val (sleptAt, wokeAt) = wake ?: return null
+        if (nowMs - wokeAt > TimeUnit.MINUTES.toMillis(CarePrefs.WAKE_MAX_DELAY_MINUTES)) {
+            // 太晚才检查到，今天就不补问了
+            prefs.wakeGreetedFor = today
+            return null
+        }
+        prefs.wakeGreetedFor = today
+        val fmt = DateTimeFormatter.ofPattern("HH:mm")
+        val sleptMinutes = (wokeAt - sleptAt) / 60_000
+        return CareEvent(
+            key = "wake_up",
+            title = "起床了",
+            text = "Automatic phone event (not typed by the user): the user seems to have just woken up. " +
+                "The phone screen was off from ${Instant.ofEpochMilli(sleptAt).atZone(zone).format(fmt)} " +
+                "until ${Instant.ofEpochMilli(wokeAt).atZone(zone).format(fmt)} (about ${sleptMinutes / 60}h ${sleptMinutes % 60}m). " +
+                "Greet them good morning in one or two warm sentences. You may mention roughly how long they slept, " +
+                "but the screen-off time is only an estimate of sleep, so do not state it as fact.",
+        )
     }
 
     private suspend fun dispatch(prefs: CarePrefs, event: CareEvent) {
