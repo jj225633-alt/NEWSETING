@@ -4,9 +4,9 @@
 
 ## 下載
 
-到 [Releases → 星汐 最新構建](../../releases/tag/latest-build) 下載 APK：
-- 一般手機選 `arm64-v8a`
-- 不確定就選 `universal`
+- Pixel／一般手機：[hoshio-arm64-v8a.apk](https://raw.githubusercontent.com/jj225633-alt/NEWSETING/apk/hoshio-arm64-v8a.apk)
+- 通用版：[hoshio-universal.apk](https://raw.githubusercontent.com/jj225633-alt/NEWSETING/apk/hoshio-universal.apk)
+- 也可以到 [Releases → 星汐 最新構建](../../releases/tag/latest-build) 下載（偶爾會出現 504，重新整理即可）
 
 每次推送程式碼到 `master`，GitHub Actions 會自動重新編譯（見 `.github/workflows/build-hoshio.yml`）。
 
