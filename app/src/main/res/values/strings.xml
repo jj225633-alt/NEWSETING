@@ -1373,6 +1373,10 @@
   <string name="skills_page_search_no_result">No matching skills</string>
   <string name="assistant_page_local_tools_chart_display_title">Chart Display</string>
   <string name="assistant_page_local_tools_chart_display_desc">Let the AI display line, bar, and scatter charts</string>
+  <string name="assistant_page_local_tools_device_status_title">Phone Status</string>
+  <string name="assistant_page_local_tools_device_status_desc">Let the AI read battery, charging, network, silent mode and do-not-disturb</string>
+  <string name="assistant_page_local_tools_location_title">Location</string>
+  <string name="assistant_page_local_tools_location_desc">Let the AI look up where the phone is when needed (requires location permission, no background tracking)</string>
   <string name="chat_message_tool_chart_display">Display chart</string>
   <string name="chat_message_tool_chart_display_with_title">Display chart: %1$s</string>
   <string name="error_fast_model_not_found">Fast model not found. Please select one in settings.</string>

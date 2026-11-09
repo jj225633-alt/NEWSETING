@@ -21,12 +21,19 @@
     tools:ignore="ProtectedPermissions" />
   <uses-permission android:name="android.permission.READ_CALENDAR" />
   <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+  <!-- 星汐: 手机状态与定位工具 -->
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
   <uses-feature
     android:name="android.hardware.camera"
     android:required="false" />
   <uses-feature
     android:name="android.hardware.camera.autofocus"
+    android:required="false" />
+  <uses-feature
+    android:name="android.hardware.location.gps"
     android:required="false" />
 
   <queries>

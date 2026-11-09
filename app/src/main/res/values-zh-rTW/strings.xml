@@ -1368,6 +1368,10 @@
   <string name="skills_page_search_no_result">找不到符合的技能</string>
   <string name="assistant_page_local_tools_chart_display_title">圖表顯示</string>
   <string name="assistant_page_local_tools_chart_display_desc">讓 AI 顯示折線圖、長條圖和散佈圖</string>
+  <string name="assistant_page_local_tools_device_status_title">手機狀態</string>
+  <string name="assistant_page_local_tools_device_status_desc">讓 AI 讀取電量、充電、網路、靜音與勿擾狀態</string>
+  <string name="assistant_page_local_tools_location_title">目前位置</string>
+  <string name="assistant_page_local_tools_location_desc">讓 AI 在需要時查詢手機所在位置（需要定位權限，不會在背景追蹤）</string>
   <string name="chat_message_tool_chart_display">顯示圖表</string>
   <string name="chat_message_tool_chart_display_with_title">顯示圖表：%1$s</string>
   <string name="error_fast_model_not_found">找不到快速模型。請在設定中選擇一個。</string>

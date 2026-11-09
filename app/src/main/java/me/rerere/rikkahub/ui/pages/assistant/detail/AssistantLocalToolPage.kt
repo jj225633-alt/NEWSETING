@@ -30,8 +30,10 @@ import me.rerere.hugeicons.stroke.Calendar03
 import me.rerere.hugeicons.stroke.ChartLineData01
 import me.rerere.hugeicons.stroke.ClipboardPaste
 import me.rerere.hugeicons.stroke.Clock01
+import me.rerere.hugeicons.stroke.DashboardSpeed02
 import me.rerere.hugeicons.stroke.JavaScript
 import me.rerere.hugeicons.stroke.MessageQuestion
+import me.rerere.hugeicons.stroke.Route01
 import me.rerere.hugeicons.stroke.SmartPhone01
 import me.rerere.hugeicons.stroke.VolumeHigh
 import me.rerere.rikkahub.R
@@ -115,6 +117,25 @@ private fun AssistantLocalToolContent(
     )
     PermissionManager(permissionState = calendarPermissionState)
 
+    // 星汐: 定位工具。大致位置为必需，精确位置可选（用户可以只给大致位置）
+    val locationPermissionState = rememberPermissionState(
+        permissions = setOf(
+            PermissionInfo(
+                permission = Manifest.permission.ACCESS_COARSE_LOCATION,
+                displayName = { Text("大致位置") },
+                usage = { Text("讓 AI 在你詢問時知道你大概在哪個區域") },
+                required = true
+            ),
+            PermissionInfo(
+                permission = Manifest.permission.ACCESS_FINE_LOCATION,
+                displayName = { Text("精確位置") },
+                usage = { Text("讓位置更準確（可不允許，只用大致位置）") },
+                required = false
+            ),
+        )
+    )
+    PermissionManager(permissionState = locationPermissionState)
+
     fun toggleLocalTool(option: LocalToolOption, enabled: Boolean) {
         if (enabled && option == LocalToolOption.ScreenTime && !context.hasUsageStatsPermission()) {
             toaster.show(message = permissionRequiredText, type = ToastType.Warning)
@@ -122,6 +143,10 @@ private fun AssistantLocalToolContent(
         }
         if (enabled && option == LocalToolOption.Calendar && !calendarPermissionState.allPermissionsGranted) {
             calendarPermissionState.requestPermissions()
+            return
+        }
+        if (enabled && option == LocalToolOption.Location && !locationPermissionState.allRequiredPermissionsGranted) {
+            locationPermissionState.requestPermissions()
             return
         }
         val newLocalTools = if (enabled) {
@@ -221,6 +246,18 @@ private fun AssistantLocalToolContent(
                 icon = HugeIcons.ChartLineData01,
                 title = R.string.assistant_page_local_tools_chart_display_title,
                 description = R.string.assistant_page_local_tools_chart_display_desc,
+            )
+            toolItem(
+                option = LocalToolOption.DeviceStatus,
+                icon = HugeIcons.DashboardSpeed02,
+                title = R.string.assistant_page_local_tools_device_status_title,
+                description = R.string.assistant_page_local_tools_device_status_desc,
+            )
+            toolItem(
+                option = LocalToolOption.Location,
+                icon = HugeIcons.Route01,
+                title = R.string.assistant_page_local_tools_location_title,
+                description = R.string.assistant_page_local_tools_location_desc,
             )
         }
     }

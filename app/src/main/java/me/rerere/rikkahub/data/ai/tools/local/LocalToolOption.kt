@@ -36,4 +36,14 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("chart_display")
     data object ChartDisplay : LocalToolOption()
+
+    // 星汐: 手机状态（电量、网络、静音等）
+    @Serializable
+    @SerialName("device_status")
+    data object DeviceStatus : LocalToolOption()
+
+    // 星汐: 查询当前位置（需要定位权限）
+    @Serializable
+    @SerialName("location")
+    data object Location : LocalToolOption()
 }

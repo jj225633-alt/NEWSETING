@@ -1374,6 +1374,10 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="skills_page_search_no_result">没有匹配的技能</string>
   <string name="assistant_page_local_tools_chart_display_title">图表显示</string>
   <string name="assistant_page_local_tools_chart_display_desc">让 AI 显示折线图、柱状图和散点图</string>
+  <string name="assistant_page_local_tools_device_status_title">手机状态</string>
+  <string name="assistant_page_local_tools_device_status_desc">让 AI 读取电量、充电、网络、静音与勿扰状态</string>
+  <string name="assistant_page_local_tools_location_title">当前位置</string>
+  <string name="assistant_page_local_tools_location_desc">让 AI 在需要时查询手机所在位置（需要定位权限，不会在后台追踪）</string>
   <string name="chat_message_tool_chart_display">显示图表</string>
   <string name="chat_message_tool_chart_display_with_title">显示图表：%1$s</string>
   <string name="error_fast_model_not_found">未找到快速模型。请在设置中选择一个。</string>
