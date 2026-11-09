@@ -98,6 +98,25 @@ jobs:
           sed -i "s|^distributionUrl=.*|distributionUrl=file\\\\:$dest|" gradle/wrapper/gradle-wrapper.properties
           grep '^distributionUrl=' gradle/wrapper/gradle-wrapper.properties
 
+      # Maven Central 的大文件会被转到 GitHub Releases 下载，从 Actions 上常常 504。
+      # 用 Gradle init 脚本把 Google 提供的 Maven Central 镜像放在最前面（只影响 CI，不改项目设置）；
+      # 镜像里没有的套件会照常往下找 google()、mavenCentral() 等原本的仓库。
+      - name: Use Maven Central mirror
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/hoshio-mirror.gradle <<'EOF'
+          def mirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+          beforeSettings { settings ->
+              settings.pluginManagement.repositories {
+                  maven { url = mirror; name = 'MavenCentralGoogleMirror' }
+              }
+              settings.dependencyResolutionManagement.repositories {
+                  maven { url = mirror; name = 'MavenCentralGoogleMirror' }
+              }
+          }
+          EOF
+          cat ~/.gradle/init.d/hoshio-mirror.gradle
+
       - name: Gradle Build
         run: |
           chmod +x gradlew
