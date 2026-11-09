@@ -112,6 +112,7 @@ private fun Settings.withValuesInRange(): Settings = copy(
 // 星汐: 曾经内建过的旧版设定。只存 SHA-256，旧版里含个人称呼，不放原文
 private val OUTDATED_HOSHIO_PROMPT_HASHES = setOf(
     "9757f747f89f190abe9defd5233afc551ff47d1d75b5e665a98e13911126f44d",
+    "a45743f3e7b6a46c0b686070a160b274d69bbf194d9b4dd4c28edd86261224fc",
 )
 
 private fun String.isOutdatedHoshioPrompt(): Boolean {
