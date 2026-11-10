@@ -521,6 +521,8 @@ object FileFolders {
     const val FONTS = "fonts"
     const val TOOL_OUTPUTS = "tool_outputs"
     const val MEDIA_CREATION = "media_creation"
+    // 星汐: 日记等自己的资料
+    const val HOSHIO = "hoshio"
 }
 
 suspend fun FilesManager.saveUploadFromUri(

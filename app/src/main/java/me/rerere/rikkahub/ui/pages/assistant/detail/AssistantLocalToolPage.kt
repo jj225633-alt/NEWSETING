@@ -301,6 +301,13 @@ private fun HoshioCareSection(assistant: Assistant) {
     var nightUsage by remember { mutableStateOf(prefs.nightUsageEnabled) }
     var wakeUp by remember { mutableStateOf(prefs.wakeUpEnabled) }
     var alwaysOn by remember { mutableStateOf(prefs.alwaysOnEnabled) }
+    var batteryPercent by remember { mutableStateOf(prefs.lowBatteryPercent) }
+    var nightStart by remember { mutableStateOf(prefs.nightStartHour) }
+    var nightEnd by remember { mutableStateOf(prefs.nightEndHour) }
+    var nightMinutes by remember { mutableStateOf(prefs.nightUsageMinutes) }
+    var wakeSleep by remember { mutableStateOf(prefs.wakeMinSleepHours) }
+    var wakeStart by remember { mutableStateOf(prefs.wakeStartHour) }
+    var wakeEnd by remember { mutableStateOf(prefs.wakeEndHour) }
     var ownerId by remember { mutableStateOf(prefs.assistantId) }
     var lastResult by remember { mutableStateOf(prefs.lastResult) }
 
@@ -362,28 +369,69 @@ private fun HoshioCareSection(assistant: Assistant) {
             checked = lowBattery && !ownedByOther,
             onCheckedChange = { update(it, nightUsage, wakeUp) },
             leadingContent = { CardGroupIcon(icon = HugeIcons.Zap) },
-            supportingContent = { Text("電量低於 ${CarePrefs.LOW_BATTERY_PERCENT}% 且沒在充電時提醒你充電；充電後才會再提醒") },
+            supportingContent = { Text("電量低於 $batteryPercent% 且沒在充電時提醒你充電；充電或回到 ${batteryPercent + 10}% 以上才會再提醒") },
             headlineContent = { Text("電量低") },
         )
+        if (lowBattery && !ownedByOther) {
+            formItem(headlineContent = { Text("低於多少電量") }) {
+                CareChoiceChips(listOf(10, 15, 20, 30), batteryPercent, { "$it%" }) {
+                    batteryPercent = it; prefs.lowBatteryPercent = it
+                }
+            }
+        }
         switchItem(
             checked = nightUsage && !ownedByOther,
             onCheckedChange = { update(lowBattery, it, wakeUp) },
             leadingContent = { CardGroupIcon(icon = HugeIcons.Moon02) },
-            supportingContent = { Text("凌晨 0:00–5:00 連續亮著螢幕超過約 ${CarePrefs.NIGHT_USAGE_MINUTES} 分鐘時，提醒你休息；一晚最多一次") },
+            supportingContent = { Text("$nightStart:00–$nightEnd:00 之間連續亮著螢幕超過約 $nightMinutes 分鐘時，提醒你休息；一晚最多一次") },
             headlineContent = { Text("深夜還在滑手機") },
         )
+        if (nightUsage && !ownedByOther) {
+            formItem(headlineContent = { Text("深夜從幾點開始") }) {
+                CareChoiceChips(listOf(22, 23, 0, 1, 2), nightStart, { "$it:00" }) {
+                    nightStart = it; prefs.nightStartHour = it
+                }
+            }
+            formItem(headlineContent = { Text("到幾點結束") }) {
+                CareChoiceChips(listOf(4, 5, 6, 7), nightEnd, { "$it:00" }) {
+                    nightEnd = it; prefs.nightEndHour = it
+                }
+            }
+            formItem(headlineContent = { Text("連續亮屏多久才提醒") }) {
+                CareChoiceChips(listOf(10, 20, 30, 60), nightMinutes, { "$it 分鐘" }) {
+                    nightMinutes = it; prefs.nightUsageMinutes = it
+                }
+            }
+        }
         switchItem(
             checked = wakeUp && !ownedByOther,
             onCheckedChange = { update(lowBattery, nightUsage, it) },
             leadingContent = { CardGroupIcon(icon = HugeIcons.Sun01) },
             supportingContent = {
                 Text(
-                    "螢幕關了 ${CarePrefs.WAKE_MIN_SLEEP_HOURS} 小時以上、早上（${CarePrefs.WAKE_START_HOUR}:00–${CarePrefs.WAKE_END_HOUR}:00）第一次打開手機時，" +
+                    "螢幕關了 $wakeSleep 小時以上、早上（$wakeStart:00–$wakeEnd:00）第一次打開手機時，" +
                         "當作你起床了，跟你說早安；一天一次，可能晚 15–30 分鐘。需要「使用情況存取」權限"
                 )
             },
             headlineContent = { Text("起床打招呼") },
         )
+        if (wakeUp && !ownedByOther) {
+            formItem(headlineContent = { Text("螢幕關多久算睡著") }) {
+                CareChoiceChips(listOf(3, 4, 5, 6), wakeSleep, { "$it 小時" }) {
+                    wakeSleep = it; prefs.wakeMinSleepHours = it
+                }
+            }
+            formItem(headlineContent = { Text("最早幾點算起床") }) {
+                CareChoiceChips(listOf(4, 5, 6, 7, 8), wakeStart, { "$it:00" }) {
+                    wakeStart = it; prefs.wakeStartHour = it
+                }
+            }
+            formItem(headlineContent = { Text("最晚幾點前起床才問候") }) {
+                CareChoiceChips(listOf(11, 12, 13, 15), wakeEnd, { "$it:00" }) {
+                    wakeEnd = it; prefs.wakeEndHour = it
+                }
+            }
+        }
         switchItem(
             checked = alwaysOn,
             onCheckedChange = {
@@ -418,5 +466,26 @@ private fun HoshioCareSection(assistant: Assistant) {
             headlineContent = { Text("立刻測試一次") },
             supportingContent = { Text("讓這個助手馬上主動傳一則訊息給你。請先和它至少聊過一句") },
         )
+    }
+}
+
+/** 星汐: 主动关心条件用的选项晶片 */
+@Composable
+private fun CareChoiceChips(
+    options: List<Int>,
+    selected: Int,
+    label: (Int) -> String,
+    onSelect: (Int) -> Unit,
+) {
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEach { option ->
+            androidx.compose.material3.FilterChip(
+                selected = selected == option,
+                onClick = { onSelect(option) },
+                label = { Text(label(option)) },
+            )
+        }
     }
 }

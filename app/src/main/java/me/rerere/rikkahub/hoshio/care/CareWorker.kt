@@ -108,7 +108,7 @@ class CareWorker(
         val now = LocalDateTime.now()
         val today = now.toLocalDate()
         val target = when {
-            now.hour >= CarePrefs.DIARY_WRITE_HOUR -> today
+            now.hour >= prefs.diaryWriteHour -> today
             else -> today.minusDays(1)
         }
         if (target.toString() in prefs.diaryAttemptedDates) return
@@ -156,8 +156,8 @@ class CareWorker(
             val plugged = (battery?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0) != 0
             when {
                 percent < 0 -> Unit
-                plugged || percent >= CarePrefs.LOW_BATTERY_RESET_PERCENT -> prefs.lowBatteryAlerted = false
-                percent <= CarePrefs.LOW_BATTERY_PERCENT && !prefs.lowBatteryAlerted -> {
+                plugged || percent >= prefs.lowBatteryPercent + 10 -> prefs.lowBatteryAlerted = false
+                percent <= prefs.lowBatteryPercent && !prefs.lowBatteryAlerted -> {
                     prefs.lowBatteryAlerted = true
                     events += CareEvent(
                         key = "low_battery",
@@ -171,13 +171,15 @@ class CareWorker(
 
         if (prefs.nightUsageEnabled) {
             val power = applicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
-            val inNight = now.hour >= CarePrefs.NIGHT_START_HOUR && now.hour < CarePrefs.NIGHT_END_HOUR
+            val inNight = prefs.isNight(now.hour)
             if (inNight && power?.isInteractive == true) {
                 val nowMs = System.currentTimeMillis()
                 if (prefs.nightScreenOnSince == 0L) prefs.nightScreenOnSince = nowMs
                 val minutes = (nowMs - prefs.nightScreenOnSince) / 60_000
-                val night = now.toLocalDate().toString()
-                if (minutes >= CarePrefs.NIGHT_USAGE_MINUTES && prefs.nightAlertedFor != night) {
+                // 跨午夜的深夜时段，算在开始的那一天
+                val nightStartsYesterday = prefs.nightStartHour > prefs.nightEndHour && now.hour < prefs.nightEndHour
+                val night = (if (nightStartsYesterday) now.toLocalDate().minusDays(1) else now.toLocalDate()).toString()
+                if (minutes >= prefs.nightUsageMinutes && prefs.nightAlertedFor != night) {
                     prefs.nightAlertedFor = night
                     events += CareEvent(
                         key = "night_usage",
@@ -376,9 +378,9 @@ class CareWorker(
                     if (screenOffAt > 0) {
                         val sleptMs = event.timeStamp - screenOffAt
                         val onAt = Instant.ofEpochMilli(event.timeStamp).atZone(zone)
-                        if (sleptMs >= TimeUnit.HOURS.toMillis(CarePrefs.WAKE_MIN_SLEEP_HOURS) &&
+                        if (sleptMs >= TimeUnit.HOURS.toMillis(prefs.wakeMinSleepHours.toLong()) &&
                             onAt.toLocalDate().toString() == today &&
-                            onAt.hour >= CarePrefs.WAKE_START_HOUR && onAt.hour < CarePrefs.WAKE_END_HOUR
+                            onAt.hour >= prefs.wakeStartHour && onAt.hour < prefs.wakeEndHour
                         ) {
                             wake = screenOffAt to event.timeStamp
                         }

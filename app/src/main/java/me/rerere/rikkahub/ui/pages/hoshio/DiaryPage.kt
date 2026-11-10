@@ -66,6 +66,7 @@ fun DiaryPage() {
     val prefs = remember { CarePrefs(context) }
     val entries by DiaryStore.entries.collectAsState()
     var diaryEnabled by remember { mutableStateOf(prefs.diaryEnabled) }
+    var diaryHour by remember { mutableStateOf(prefs.diaryWriteHour) }
     var editing by remember { mutableStateOf<DiaryEntry?>(null) }
     var creating by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<DiaryEntry?>(null) }
@@ -104,7 +105,7 @@ fun DiaryPage() {
                             Column(Modifier.weight(1f)) {
                                 Text("讓他每天寫日記", style = MaterialTheme.typography.titleMedium)
                                 Text(
-                                    "每晚 ${CarePrefs.DIARY_WRITE_HOUR}:00 後，他會依照當天和你的對話寫一篇；忘了寫的話隔天會補上。那天沒聊天就不寫。",
+                                    "每晚 $diaryHour:00 後，他會依照當天和你的對話寫一篇；忘了寫的話隔天會補上。那天沒聊天就不寫。",
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
@@ -116,6 +117,17 @@ fun DiaryPage() {
                                     CareWorker.sync(context)
                                 },
                             )
+                        }
+                        if (diaryEnabled) {
+                            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(20, 21, 22, 23).forEach { hour ->
+                                    androidx.compose.material3.FilterChip(
+                                        selected = diaryHour == hour,
+                                        onClick = { diaryHour = hour; prefs.diaryWriteHour = hour },
+                                        label = { Text("$hour:00 後寫") },
+                                    )
+                                }
+                            }
                         }
                         TextButton(onClick = {
                             CareWorker.writeDiaryNow(context)

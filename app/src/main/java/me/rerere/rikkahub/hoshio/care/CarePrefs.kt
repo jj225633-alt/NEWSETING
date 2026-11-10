@@ -112,6 +112,47 @@ class CarePrefs(context: Context) {
 
     val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled || screenObservationEnabled || freeTimeEnabled || diaryEnabled
 
+    // ---- 可自订的条件 ----
+
+    var lowBatteryPercent: Int
+        get() = prefs.getInt("low_battery_percent", LOW_BATTERY_PERCENT)
+        set(value) = prefs.edit { putInt("low_battery_percent", value) }
+
+    var nightStartHour: Int
+        get() = prefs.getInt("night_start_hour", NIGHT_START_HOUR)
+        set(value) = prefs.edit { putInt("night_start_hour", value) }
+
+    var nightEndHour: Int
+        get() = prefs.getInt("night_end_hour", NIGHT_END_HOUR)
+        set(value) = prefs.edit { putInt("night_end_hour", value) }
+
+    var nightUsageMinutes: Int
+        get() = prefs.getInt("night_usage_minutes", NIGHT_USAGE_MINUTES.toInt())
+        set(value) = prefs.edit { putInt("night_usage_minutes", value) }
+
+    var wakeMinSleepHours: Int
+        get() = prefs.getInt("wake_min_sleep_hours", WAKE_MIN_SLEEP_HOURS.toInt())
+        set(value) = prefs.edit { putInt("wake_min_sleep_hours", value) }
+
+    var wakeStartHour: Int
+        get() = prefs.getInt("wake_start_hour", WAKE_START_HOUR)
+        set(value) = prefs.edit { putInt("wake_start_hour", value) }
+
+    var wakeEndHour: Int
+        get() = prefs.getInt("wake_end_hour", WAKE_END_HOUR)
+        set(value) = prefs.edit { putInt("wake_end_hour", value) }
+
+    var diaryWriteHour: Int
+        get() = prefs.getInt("diary_write_hour", DIARY_WRITE_HOUR)
+        set(value) = prefs.edit { putInt("diary_write_hour", value) }
+
+    /** 现在是否在深夜时段（可跨午夜，例如 23 点到 6 点） */
+    fun isNight(hour: Int): Boolean {
+        val start = nightStartHour
+        val end = nightEndHour
+        return if (start < end) hour in start until end else hour >= start || hour < end
+    }
+
     // ---- 运行状态 ----
 
     /** 这次低电量已经提醒过；充电或电量回升后才会再提醒 */

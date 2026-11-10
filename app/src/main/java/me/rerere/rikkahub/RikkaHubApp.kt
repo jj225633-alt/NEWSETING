@@ -160,6 +160,10 @@ class RikkaHubApp : Application() {
             }
         }
 
+        // 星汐: 依设定恢复自动备份
+        runCatching { me.rerere.rikkahub.hoshio.backup.AutoBackupWorker.sync(this) }
+            .onFailure { Log.e(TAG, "AutoBackupWorker.sync failed", it) }
+
         // 星汐: 依设定恢复「主动关心」的背景检查
         runCatching { me.rerere.rikkahub.hoshio.care.CareWorker.sync(this) }
             .onFailure { Log.e(TAG, "CareWorker.sync failed", it) }

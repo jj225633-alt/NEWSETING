@@ -81,6 +81,8 @@ fun BackupPage(vm: BackupVM = koinViewModel()) {
                 .padding(contentPadding)
                 .consumeWindowInsets(contentPadding)
         ) {
+            HoshioAutoBackupSection(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+
             PagerTabs(
                 pagerState = pagerState,
                 tabs = BackupTab.entries,
