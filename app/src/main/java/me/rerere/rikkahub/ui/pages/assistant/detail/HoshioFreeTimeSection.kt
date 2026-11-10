@@ -71,3 +71,28 @@ internal fun HoshioFreeTimeSection(assistant: Assistant) {
         }
     }
 }
+
+/**
+ * 星汐「对话跟随助手」：修改助手的模型、搜寻、MCP 等设定时，套用到所有对话。
+ */
+@Composable
+internal fun HoshioConversationSection() {
+    var follow by remember { mutableStateOf(me.rerere.rikkahub.hoshio.HoshioFlags.followAssistant) }
+    CardGroup(title = { Text("對話設定") }) {
+        switchItem(
+            checked = follow,
+            onCheckedChange = {
+                me.rerere.rikkahub.hoshio.HoshioFlags.setFollowAssistant(it)
+                follow = it
+            },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Sparkles) },
+            supportingContent = {
+                Text(
+                    "開啟時，所有對話都使用助手目前的模型、推理、搜尋、MCP、工作區和技能；在聊天頁切換這些設定也會直接改到助手，套用到所有對話。" +
+                        "關閉時恢復 RikkaHub 原本的做法：每個對話開始後固定自己的設定"
+                )
+            },
+            headlineContent = { Text("所有對話跟隨助手設定") },
+        )
+    }
+}

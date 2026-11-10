@@ -8,7 +8,12 @@ import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findModelById
 import me.rerere.rikkahub.data.datastore.getAssistantById
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
+import me.rerere.rikkahub.hoshio.HoshioFlags
 import kotlin.uuid.Uuid
+
+/** 星汐: 对话跟随助手时视为没有固定的设定 */
+private val Conversation.activeConfig: ConversationConfig?
+    get() = if (HoshioFlags.followAssistant) null else config
 
 /**
  * 会话开始后固定在会话上的配置。
@@ -49,7 +54,7 @@ private fun Assistant.withConversationConfig(config: ConversationConfig) = copy(
 
 /** 会话视角下的助手：会话开始后，会话持有的字段覆盖助手自身的值。 */
 fun Assistant.withConversation(conversation: Conversation): Assistant {
-    val config = conversation.config ?: return this
+    val config = conversation.activeConfig ?: return this
     return withConversationConfig(config).copy(
         modeInjectionIds = conversation.modeInjectionIds,
         lorebookIds = conversation.lorebookIds,
@@ -59,7 +64,7 @@ fun Assistant.withConversation(conversation: Conversation): Assistant {
 /** 聊天页改动助手后留在会话上的部分，[updated] 是会话视角下改动后的助手。 */
 fun Conversation.withAssistantUpdate(updated: Assistant, settings: Settings): Conversation {
     val previous = settings.getAssistantOf(this)
-    val config = config
+    val config = activeConfig
     val conversation = if (config == null) {
         this
     } else {
@@ -82,7 +87,7 @@ fun Conversation.withAssistantUpdate(updated: Assistant, settings: Settings): Co
 
 /** 聊天页改动助手后写回助手设置的部分：会话持有的字段保持 [stored] 的原值。 */
 fun Assistant.withoutConversationFields(conversation: Conversation, stored: Assistant): Assistant =
-    if (conversation.config == null) {
+    if (conversation.activeConfig == null) {
         this
     } else {
         withConversationConfig(stored.toConversationConfig()).copy(
@@ -98,7 +103,7 @@ fun Settings.getStoredAssistantOf(conversation: Conversation): Assistant =
 /** 会话所属的助手（会话视角）。 */
 fun Settings.getAssistantOf(conversation: Conversation): Assistant {
     val assistant = getStoredAssistantOf(conversation).withConversation(conversation)
-    if (conversation.config == null) return assistant
+    if (conversation.activeConfig == null) return assistant
     // 助手自身的失效引用在读取设置时已清理，会话上固定的这份在这里滤掉
     return assistant.copy(
         mcpServers = assistant.mcpServers.filterTo(mutableSetOf()) { id -> mcpServers.any { it.id == id } },
@@ -111,7 +116,7 @@ fun Settings.getAssistantOf(conversation: Conversation): Assistant {
 /** 会话使用的聊天模型；会话开始后内置搜索以会话上固定的开关为准。 */
 fun Settings.getChatModelOf(conversation: Conversation): Model? {
     val assistantModel = findModelById(getStoredAssistantOf(conversation).chatModelId ?: chatModelId)
-    val config = conversation.config ?: return assistantModel
+    val config = conversation.activeConfig ?: return assistantModel
     // 固定的模型被删除后退回助手当前的模型，内置搜索也跟随该模型自身的开关
     val model = findModelById(config.chatModelId) ?: return assistantModel
     return model.copy(
@@ -124,6 +129,8 @@ fun Settings.getChatModelOf(conversation: Conversation): Model? {
  * 只有固定的模型被删除时才改为固定助手当前的模型，之后不再跟着助手变。
  */
 fun Conversation.bindConfig(settings: Settings): Conversation {
+    // 星汐: 对话跟随助手时不固定快照，已经固定过的也清掉，一律使用助手当前的设定
+    if (HoshioFlags.followAssistant) return if (config == null) this else copy(config = null)
     val model = settings.getChatModelOf(this)
     val builtInSearch = model != null && BuiltInTools.Search in model.tools
     val config = config

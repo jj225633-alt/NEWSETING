@@ -74,6 +74,9 @@ class RikkaHubApp : Application() {
             Log.e(TAG, "Backup restore rolled back", e)
             Toast.makeText(this, "备份恢复失败，已保留原数据。请重新导入备份。", Toast.LENGTH_LONG).show()
         }
+        // 星汐: 先读取自己的全域开关，载入对话时会用到
+        me.rerere.rikkahub.hoshio.HoshioFlags.init(this)
+
         startKoin {
             androidLogger()
             androidContext(this@RikkaHubApp)

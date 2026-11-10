@@ -277,6 +277,8 @@ private fun AssistantLocalToolContent(
         HoshioScreenSection(assistant = assistant, onUpdate = onUpdate)
 
         HoshioFreeTimeSection(assistant = assistant)
+
+        HoshioConversationSection()
     }
 }
 
