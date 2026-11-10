@@ -97,7 +97,7 @@ object LibraryStore {
                 "epub" -> EpubParser.parse(temp)
                 "pdf" -> PdfParser.parserPdf(temp)
                 "docx" -> DocxParser.parse(temp)
-                "txt", "md", "text" -> temp.readText()
+                "txt", "md", "text" -> decodeText(temp.readBytes())
                 else -> error("不支援的格式：.$ext（可以用 TXT、EPUB、PDF、DOCX）")
             }
             val parts = splitIntoParts(text)
@@ -112,6 +112,38 @@ object LibraryStore {
         } finally {
             temp.delete()
         }
+    }
+
+    /**
+     * 文字档的编码不一定是 UTF-8：网路小说常见 GBK（GB18030）或 Big5。
+     * 依序看 BOM，再用严格模式试 UTF-8、GB18030、Big5，第一个完全解得开的就用它。
+     */
+    internal fun decodeText(bytes: ByteArray): String {
+        fun startsWith(vararg prefix: Int) = bytes.size >= prefix.size && prefix.indices.all { bytes[it] == prefix[it].toByte() }
+        when {
+            startsWith(0xEF, 0xBB, 0xBF) -> return String(bytes, 3, bytes.size - 3, Charsets.UTF_8)
+            startsWith(0xFF, 0xFE) -> return String(bytes, 2, bytes.size - 2, Charsets.UTF_16LE)
+            startsWith(0xFE, 0xFF) -> return String(bytes, 2, bytes.size - 2, Charsets.UTF_16BE)
+        }
+        fun strict(name: String): String? = runCatching {
+            java.nio.charset.Charset.forName(name).newDecoder()
+                .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+                .decode(java.nio.ByteBuffer.wrap(bytes))
+                .toString()
+        }.getOrNull()
+        strict("UTF-8")?.let { return it }
+        // GBK 几乎能解开任何 Big5 档案（只是变成乱码），所以两个都试，看哪个常用字比较多
+        val gb = strict("GB18030")
+        val big5 = strict("Big5")
+        if (gb != null && big5 != null) {
+            val common = "的一是了不在人有我他你她們们這这個个說说來来會会就也都和"
+            fun score(text: String) = text.take(20_000).count { it in common }
+            return if (score(big5) > score(gb)) big5 else gb
+        }
+        (gb ?: big5)?.let { return it }
+        // 都解不开时用 GB18030 宽松解码（至少大部分字是对的）
+        return String(bytes, java.nio.charset.Charset.forName("GB18030"))
     }
 
     /** 依段落切成约 [PART_CHARS] 字一段，尽量不在段落中间切开 */
