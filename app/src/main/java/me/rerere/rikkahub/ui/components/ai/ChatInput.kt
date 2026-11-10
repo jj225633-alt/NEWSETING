@@ -646,6 +646,16 @@ private fun TextInputRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     if (isFocused) {
+                        // 星汐: 插入一行「心里话」，他看不到，除非他选择偷看
+                        IconButton(
+                            onClick = {
+                                val current = state.textContent.text
+                                state.textContent.edit {
+                                    append(if (current.isNotEmpty() && !current.endsWith("\n")) "\n💭 " else "💭 ")
+                                }
+                            }) {
+                            Text("💭")
+                        }
                         IconButton(
                             onClick = {
                                 isFullScreen = !isFullScreen

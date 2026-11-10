@@ -24,10 +24,27 @@ class HoshioAccessibilityService : AccessibilityService() {
         instance = this
     }
 
+    private var lastBringBackAt = 0L
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            event.packageName?.toString()?.takeIf { it.isNotBlank() }?.let { foregroundPackage = it }
+            val pkg = event.packageName?.toString()?.takeIf { it.isNotBlank() } ?: return
+            foregroundPackage = pkg
+            enforceAppLock(pkg)
         }
+    }
+
+    /** 星汐: 应用锁生效中，切到不是必要的 App 就把她带回星汐 */
+    private fun enforceAppLock(pkg: String) {
+        if (!AppLock.isLocked(this)) {
+            if (AppLock.lockedUntil(this) > 0) AppLock.unlock(this, byHer = false) // 时间到了，收掉通知
+            return
+        }
+        if (!AppLock.allowed(this) || AppLock.isEssential(this, pkg)) return
+        val now = System.currentTimeMillis()
+        if (now - lastBringBackAt < 1500) return
+        lastBringBackAt = now
+        AppLock.bringHerBack(this)
     }
 
     override fun onInterrupt() = Unit
@@ -74,6 +91,9 @@ class HoshioAccessibilityService : AccessibilityService() {
             private set
 
         val isRunning: Boolean get() = instance != null
+
+        /** 用无障碍服务的身分打开星汐（在背景也被允许） */
+        fun bringHerBack(): Boolean = instance?.let { AppLock.bringHerBack(it) } ?: false
 
         /** 截一张目前的螢幕；服务没开或系统版本太旧时回传 null */
         suspend fun capture(): Bitmap? {

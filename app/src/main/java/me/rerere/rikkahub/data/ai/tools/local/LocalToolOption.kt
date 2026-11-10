@@ -96,4 +96,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("life")
     data object Life : LocalToolOption()
+
+    // 星汐: 应用锁（把她切回来、暂时锁住其他 App）
+    @Serializable
+    @SerialName("app_lock")
+    data object AppLock : LocalToolOption()
 }

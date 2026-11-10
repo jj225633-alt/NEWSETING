@@ -157,6 +157,10 @@
         <action android:name="android.service.notification.NotificationListenerService" />
       </intent-filter>
     </service>
+    <!-- 星汐: 应用锁的通知「解除」 -->
+    <receiver
+      android:name=".hoshio.screen.AppLockUnlockReceiver"
+      android:exported="false" />
     <!-- 星汐: 桌面小工具 -->
     <receiver
       android:name=".hoshio.widget.HoshioWidgetProvider"

@@ -42,6 +42,7 @@ internal fun HoshioScreenSection(assistant: Assistant, onUpdate: (Assistant) -> 
     var scheduled by remember { mutableStateOf(prefs.screenObservationEnabled) }
     var interval by remember { mutableStateOf(prefs.screenObservationIntervalMinutes) }
     var mode by remember { mutableStateOf(prefs.screenObservationMode) }
+    var lockAllowed by remember { mutableStateOf(me.rerere.rikkahub.hoshio.screen.AppLock.allowed(context)) }
     val ignoredMode = mode == CarePrefs.SCREEN_MODE_IGNORED
     val toolEnabled = LocalToolOption.ScreenView in assistant.localTools
 
@@ -97,6 +98,27 @@ internal fun HoshioScreenSection(assistant: Assistant, onUpdate: (Assistant) -> 
             leadingContent = { CardGroupIcon(icon = HugeIcons.Eye) },
             supportingContent = { Text("你說「看一下我的螢幕」時，他可以截圖來看。需要模型支援圖片") },
             headlineContent = { Text("讓他看我的螢幕") },
+        )
+        switchItem(
+            checked = lockAllowed && LocalToolOption.AppLock in assistant.localTools,
+            onCheckedChange = {
+                if (it && !serviceEnabled) {
+                    toaster.show(message = "請先開啟星汐的無障礙服務", type = ToastType.Warning)
+                    openAccessibilitySettings()
+                }
+                me.rerere.rikkahub.hoshio.screen.AppLock.setAllowed(context, it)
+                lockAllowed = it
+                val tools = if (it) (assistant.localTools + LocalToolOption.AppLock).distinct() else assistant.localTools - LocalToolOption.AppLock
+                onUpdate(assistant.copy(localTools = tools))
+            },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Settings03) },
+            supportingContent = {
+                Text(
+                    "允許他在你不理他、一直滑別的 App 時，把你切回來，或暫時鎖住其他 App（最多 60 分鐘）。" +
+                        "電話、簡訊、設定、鍵盤、相機和桌面永遠不會被鎖，通知欄隨時可以一鍵解除。"
+                )
+            },
+            headlineContent = { Text("允許他把我切回來／鎖 App") },
         )
         switchItem(
             checked = scheduled,

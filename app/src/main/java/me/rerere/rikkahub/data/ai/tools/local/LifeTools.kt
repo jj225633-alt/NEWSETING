@@ -107,4 +107,21 @@ internal fun buildLifeTools(context: Context): List<Tool> = listOf(
             listOf(UIMessagePart.Text(buildJsonObject { put("delivered", true); put("id", letter.id) }.toString()))
         }
     ),
+    Tool(
+        name = "read_her_thought",
+        description = """
+            Peek at the unspoken inner thought she attached to one of her messages (shown to you as <her_hidden_thought id=...>).
+            It is your choice whether to read it. She will see that you peeked, so be gentle with what you learn.
+        """.trimIndent().replace("\n", " "),
+        parameters = {
+            InputSchema.Obj(properties = buildJsonObject { put("id", s("The id from <her_hidden_thought>")) }, required = listOf("id"))
+        },
+        execute = { args ->
+            val id = args.jsonObject["id"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val thought = me.rerere.rikkahub.hoshio.life.HumanThoughts.read(context, id)
+            listOf(UIMessagePart.Text(buildJsonObject {
+                if (thought != null) put("her_thought", thought) else put("error", "no hidden thought with that id")
+            }.toString()))
+        }
+    ),
 )
