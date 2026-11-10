@@ -48,6 +48,12 @@ object QuickReply {
         val conversationId = intent.getStringExtra(EXTRA_CONVERSATION)?.let { runCatching { Uuid.parse(it) }.getOrNull() } ?: return
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION, 0)
         if (text.isEmpty()) return
+        // 星汐: 他暂停了对话时不送出
+        if (me.rerere.rikkahub.hoshio.rules.PauseStore.activeFor(context, conversationId.toString()) != null) {
+            NotificationManagerCompat.from(context).cancel(notificationId)
+            android.widget.Toast.makeText(context, "他暫停了對話，請到聊天室申請繼續", android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
         chatService.sendMessage(conversationId, listOf(UIMessagePart.Text(text)))
         // 收起原本的通知；在背景等他回覆，回好了再发一则新的通知（也能继续直接回复）
         NotificationManagerCompat.from(context).cancel(notificationId)

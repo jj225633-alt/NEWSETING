@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>星汐</title>
+<style>
+  body { margin:0; height:100vh; display:flex; align-items:center; justify-content:center; background:#101114; color:#e9e9ee;
+    font:15px/1.7 "Microsoft JhengHei UI","Segoe UI",sans-serif; text-align:center; padding:16px; }
+  .box { max-width:460px; }
+  h1 { font-size:20px; }
+  p { color:#a2a5b0; }
+</style>
+</head>
+<body>
+<div class="box" id="box"></div>
+<script>
+const state = new URLSearchParams(location.search).get('state');
+const box = document.getElementById('box');
+if (state === 'connecting') {
+  box.innerHTML = '<h1>正在連線到手機…</h1>';
+} else {
+  box.innerHTML = '<h1>連不上手機上的 星汐</h1>' +
+    '<p>請確認：手機的「網頁服務」已啟動；電腦和手機在同一個 Wi-Fi，或兩邊都已連上 Tailscale。</p>' +
+    '<p>可以從系統匣圖示選「重新連線」或「設定…」。</p>';
+}
+</script>
+</body>
+</html>

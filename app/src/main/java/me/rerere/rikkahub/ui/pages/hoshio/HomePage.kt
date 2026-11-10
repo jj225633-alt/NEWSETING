@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import me.rerere.ai.core.MessageRole
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.Clock01
 import me.rerere.hugeicons.stroke.Moon02
 import me.rerere.hugeicons.stroke.AiBrain01
@@ -145,11 +146,13 @@ fun HomePage() {
         HomeLink("life", "他的狀態", "心情、精神與醒來紀錄", HugeIcons.FavouriteCircle, SECTION_HIM) { Screen.HoshioLife },
         HomeLink("private", "他的隱私室", "他的心事，要申請才看得到", HugeIcons.Key01, SECTION_HIM) { Screen.PrivateRoom },
         HomeLink("memory", "記憶", "他記得的關於你的事", HugeIcons.AiBrain01, SECTION_HIM) { Screen.AssistantMemory(assistantKey) },
+        HomeLink("atlas", "記憶星圖", "把他記得的事畫成星系", HugeIcons.Sparkles, SECTION_HIM) { Screen.MemoryAtlas },
         HomeLink("diary", "日記與心情", "每天的日記和心情打卡", HugeIcons.Book01, SECTION_US) { Screen.Diary },
         HomeLink("playhub", "一起玩", "看螢幕、下棋、海龜湯、每日一問、寵物", HugeIcons.Puzzle, SECTION_US) { Screen.PlayHub },
         HomeLink("memories", "我們的回憶", "相簿、約定、紀念日、時光膠囊", HugeIcons.Calendar03, SECTION_US) { Screen.MemoriesHub },
         HomeLink("health", "手錶與健康", "睡眠、心率、步數", HugeIcons.Favourite, SECTION_US) { Screen.Health },
         HomeLink("library", "書房", "一起讀書、寫批註", HugeIcons.Book02, SECTION_US) { Screen.Library },
+        HomeLink("wakerules", "他的喚醒規則", "他自己訂什麼時候醒來找你", HugeIcons.Clock01, SECTION_HIM) { Screen.WakeRules },
         HomeLink("sleep", "晚安", "要睡了就來這裡，他會安靜陪你", HugeIcons.Moon02, SECTION_HIM) { Screen.Sleep },
         HomeLink("routine", "生活照顧", "喝水、吃飯、吃藥提醒", HugeIcons.Clock01, SECTION_US) { Screen.Routine },
         HomeLink("history", "對話紀錄", "所有聊過的對話", HugeIcons.TransactionHistory, SECTION_US) { Screen.History },
@@ -172,7 +175,18 @@ fun HomePage() {
         homePrefs.edit().putStringSet("hidden", hidden).apply()
     }
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
+    val hoshioTheme = settings.themeId == "hoshio" && !settings.dynamicColor
+    Scaffold(
+        containerColor = if (hoshioTheme) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background,
+    ) { innerPadding ->
+        // 星汐主题：白天淺海焦散、晚上星空的背景
+        if (hoshioTheme) {
+            me.rerere.rikkahub.ui.pages.hoshio.splash.HoshioChatBackdrop(
+                dark = me.rerere.rikkahub.ui.theme.LocalDarkMode.current,
+                animate = true,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize().padding(innerPadding),

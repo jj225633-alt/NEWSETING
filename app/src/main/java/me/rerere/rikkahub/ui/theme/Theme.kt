@@ -40,6 +40,8 @@ enum class ColorMode {
     DARK
 }
 
+private fun isHoshioNight(): Boolean = java.time.LocalTime.now().hour !in 6..17
+
 @Composable
 fun RikkahubTheme(
     colorMode: ColorMode = rememberCurrentColorMode(),
@@ -47,8 +49,15 @@ fun RikkahubTheme(
 ) {
     val settings by rememberUserSettingsState()
 
+    // 星汐: 用「星汐」主题、颜色模式跟随系统时，改成依时间：白天（6:00–18:00）淺海，晚上星空
+    val hoshioNight by androidx.compose.runtime.produceState(initialValue = isHoshioNight()) {
+        while (true) {
+            value = isHoshioNight()
+            kotlinx.coroutines.delay(60_000)
+        }
+    }
     val darkTheme = when (colorMode) {
-        ColorMode.SYSTEM -> isSystemInDarkTheme()
+        ColorMode.SYSTEM -> if (settings.themeId == "hoshio" && !settings.dynamicColor) hoshioNight else isSystemInDarkTheme()
         ColorMode.LIGHT -> false
         ColorMode.DARK -> true
     }

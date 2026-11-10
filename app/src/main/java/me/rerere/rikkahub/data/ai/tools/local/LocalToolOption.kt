@@ -116,4 +116,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("health")
     data object Health : LocalToolOption()
+
+    // 星汐: 电脑活动（星汐电脑版回报）
+    @Serializable
+    @SerialName("pc_activity")
+    data object PcActivity : LocalToolOption()
 }

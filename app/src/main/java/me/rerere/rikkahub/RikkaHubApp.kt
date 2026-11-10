@@ -341,6 +341,17 @@ class RikkaHubApp : Application() {
             }
         }
 
+        // 星汐: 换成「星汐」主题（白天淺海、晚上星空），只做一次，之后可以在设定里换回
+        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_sea_star_theme_v1")) {
+            get<AppScope>().launch(Dispatchers.IO) {
+                runCatching {
+                    val store = get<me.rerere.rikkahub.data.datastore.SettingsStore>()
+                    store.awaitLoaded()
+                    store.update { it.copy(themeId = "hoshio", dynamicColor = false) }
+                }.onFailure { Log.e(TAG, "apply hoshio theme failed", it) }
+            }
+        }
+
         // 星汐: 依设定恢复自动备份
         runCatching { me.rerere.rikkahub.hoshio.backup.AutoBackupWorker.sync(this) }
             .onFailure { Log.e(TAG, "AutoBackupWorker.sync failed", it) }

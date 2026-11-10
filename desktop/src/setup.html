@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>星汐電腦版設定</title>
+<style>
+  :root { color-scheme: dark; --bg:#101114; --card:#1a1c21; --ink:#e9e9ee; --muted:#a2a5b0; --accent:#8ab4ff; --ok:#7bd88f; --bad:#ff8a8a; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:20px; background:var(--bg); color:var(--ink); font:14px/1.6 "Microsoft JhengHei UI","Segoe UI",sans-serif; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.lead { color:var(--muted); margin:0 0 16px; }
+  section { background:var(--card); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+  h2 { font-size:15px; margin:0 0 8px; }
+  label { display:block; margin:10px 0 4px; }
+  .hint { color:var(--muted); font-size:12px; }
+  input[type=text], input[type=password], textarea { width:100%; padding:8px 10px; border-radius:8px; border:1px solid #333744; background:#0c0d10; color:var(--ink); font:inherit; }
+  textarea { min-height:60px; }
+  .row { display:flex; gap:8px; align-items:center; margin:8px 0; }
+  .row input { width:auto; }
+  button { padding:8px 16px; border-radius:8px; border:0; background:#2a2e38; color:var(--ink); font:inherit; cursor:pointer; }
+  button.primary { background:var(--accent); color:#0c0d10; font-weight:600; }
+  #results div { font-size:13px; margin-top:4px; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+  .actions { display:flex; gap:8px; justify-content:flex-end; }
+</style>
+</head>
+<body>
+<h1>星汐電腦版</h1>
+<p class="lead">電腦版會開啟手機上 星汐 的網頁版，聊天資料都在手機上，兩邊是同一份。請先在手機：設定 → Web伺服器，設定密碼、開啟密碼認證並啟動。</p>
+
+<section>
+  <h2>連線到手機</h2>
+  <label for="lan">家裡 Wi-Fi 位址（手機「區域網路位址」）</label>
+  <input id="lan" type="text" placeholder="例如 http://192.168.1.23:8081">
+  <label for="ts">Tailscale 位址（外出時用，可留空）</label>
+  <input id="ts" type="text" placeholder="例如 http://100.101.102.103:8081">
+  <div class="hint">會依序嘗試，先連得上的就用哪個。</div>
+  <label for="pw">網頁服務密碼</label>
+  <input id="pw" type="password" placeholder="手機網頁服務設定的存取密碼">
+  <div class="hint">以 Windows 帳戶加密儲存在這台電腦，只用來向你的手機登入。</div>
+  <div class="row"><button id="test">測試連線</button></div>
+  <div id="results"></div>
+</section>
+
+<section>
+  <h2>分享電腦活動給手機上的 AI</h2>
+  <div class="row"><input id="share" type="checkbox"><label for="share" style="margin:0">分享目前使用的程式和使用時間</label></div>
+  <div class="row"><input id="titles" type="checkbox"><label for="titles" style="margin:0">也分享視窗標題（例如網頁或文件名稱）</label></div>
+  <div class="hint">每 5 秒看一次前景視窗，超過 5 分鐘沒操作或鎖定螢幕視為離開。每分鐘送到手機一次，資料只存在手機（最近 48 小時）。AI 需要在助手的本機工具開啟「電腦活動」才讀得到。</div>
+  <div class="row"><input id="shot" type="checkbox"><label for="shot" style="margin:0">允許 AI 請求看螢幕截圖（每次都會先跳出視窗問你）</label></div>
+  <label for="excluded">不分享的程式（每行一個，程式名稱或執行檔名，例如 KeePass、1Password）</label>
+  <textarea id="excluded"></textarea>
+  <label for="device">這台電腦的名稱</label>
+  <input id="device" type="text">
+</section>
+
+<section>
+  <h2>MCP 工具橋接（讓手機使用需要在電腦執行的工具）</h2>
+  <div class="hint">貼上別人分享的 MCP 設定 JSON（Claude Desktop、Cursor、VS Code 格式皆可）。其中 <code>command</code> 型的工具（npx、uvx、node、python…）會在這台電腦執行，並自動登記到手機的 MCP 清單，名稱後面會加「（電腦）」。網址型工具請直接在手機的 MCP 匯入。</div>
+  <div class="hint" style="color:#ffcf8a">注意：這些工具以你的 Windows 帳戶權限執行，可能讀寫你的檔案或操作電腦，只加入你信任來源的工具。第一次啟用時 Windows 防火牆會詢問，請允許「私人網路」，手機才連得進來。</div>
+  <div class="row"><input id="bridgeOn" type="checkbox"><label for="bridgeOn" style="margin:0">啟用 MCP 工具橋接</label></div>
+  <label for="bridgeJson">MCP 設定 JSON</label>
+  <textarea id="bridgeJson" style="min-height:140px;font-family:Consolas,monospace;font-size:12px" placeholder='{ "mcpServers": { "filesystem": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:/Users/你/Documents"] } } }'></textarea>
+  <label for="bridgePort">連接埠</label>
+  <input id="bridgePort" type="text" style="width:120px">
+  <div class="row"><button id="bridgeApply">套用橋接設定</button></div>
+  <div id="bridgeStatus"></div>
+  <div class="hint">手機端：之後到助手的 MCP 設定勾選這些「（電腦）」工具，AI 才會用到。電腦需開機、星汐電腦版需執行中。</div>
+</section>
+
+<section>
+  <div class="row"><input id="autostart" type="checkbox"><label for="autostart" style="margin:0">開機時自動在背景啟動</label></div>
+</section>
+
+<div class="actions"><button id="save" class="primary">儲存並連線</button></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+function addresses() { return [$('lan').value, $('ts').value].map((s) => s.trim()).filter(Boolean); }
+(async () => {
+  const c = await window.orbisDesktop.getConfig();
+  $('lan').value = c.addresses[0] || '';
+  $('ts').value = c.addresses[1] || '';
+  $('pw').value = c.password || '';
+  $('share').checked = !!c.shareActivity;
+  $('titles').checked = c.shareTitles !== false;
+  $('shot').checked = c.allowScreenshot !== false;
+  $('excluded').value = (c.excludedApps || []).join('\n');
+  $('device').value = c.deviceName || '';
+  $('autostart').checked = c.autostart !== false;
+  const b = await window.orbisDesktop.bridgeGet();
+  $('bridgeOn').checked = b.enabled;
+  $('bridgeJson').value = b.json || '';
+  $('bridgePort').value = b.port || 8765;
+  renderBridge(b);
+  setInterval(async () => renderBridge(await window.orbisDesktop.bridgeGet()), 2000);
+})();
+const STATUS_TEXT = { starting: '啟動中', running: '執行中', error: '錯誤', stopped: '已停止' };
+function renderBridge(b) {
+  const box = $('bridgeStatus');
+  box.innerHTML = '';
+  const line = (text, cls) => { const d = document.createElement('div'); d.textContent = text; if (cls) d.className = cls; box.appendChild(d); };
+  if (b.error) line(b.error, 'bad');
+  for (const s of b.status || []) line(`${s.status === 'running' ? '✓' : s.status === 'error' ? '✗' : '…'} ${s.name}（${s.command}）：${STATUS_TEXT[s.status] || s.status}${s.error && s.status !== 'running' ? '－' + s.error : ''}`,
+    s.status === 'running' ? 'ok' : s.status === 'error' ? 'bad' : '');
+  for (const k of b.skipped || []) line('略過 ' + k);
+  if (b.registered) line(b.registered, b.registered.startsWith('已') ? 'ok' : 'bad');
+}
+$('bridgeApply').onclick = async () => {
+  $('bridgeStatus').textContent = '套用中…（第一次執行 npx 工具需要下載，可能要一兩分鐘）';
+  const r = await window.orbisDesktop.bridgeSave({ enabled: $('bridgeOn').checked, json: $('bridgeJson').value, port: $('bridgePort').value });
+  if (!r.ok) { $('bridgeStatus').textContent = r.message; $('bridgeStatus').className = 'bad'; return; }
+  $('bridgeStatus').className = '';
+  renderBridge(await window.orbisDesktop.bridgeGet());
+};
+$('test').onclick = async () => {
+  $('results').textContent = '測試中…';
+  const results = await window.orbisDesktop.testConnection({ addresses: addresses(), password: $('pw').value });
+  $('results').innerHTML = '';
+  if (!results.length) $('results').textContent = '請至少填一個位址。';
+  for (const r of results) {
+    const div = document.createElement('div');
+    div.className = r.ok ? 'ok' : 'bad';
+    div.textContent = `${r.ok ? '✓' : '✗'} ${r.address}：${r.message}`;
+    $('results').appendChild(div);
+  }
+};
+$('save').onclick = async () => {
+  if (!addresses().length) { $('results').textContent = '請至少填一個位址。'; return; }
+  await window.orbisDesktop.saveConfig({
+    addresses: addresses(), password: $('pw').value, shareActivity: $('share').checked, shareTitles: $('titles').checked, allowScreenshot: $('shot').checked,
+    excludedApps: $('excluded').value, deviceName: $('device').value.trim(), autostart: $('autostart').checked,
+  });
+  window.close();
+};
+</script>
+</body>
+</html>

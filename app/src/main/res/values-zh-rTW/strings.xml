@@ -1396,6 +1396,8 @@
   <string name="assistant_page_local_tools_together_desc">生活照顧、心情月曆、回憶相簿、時光膠囊和我們的約定</string>
   <string name="assistant_page_local_tools_health_title">她的健康</string>
   <string name="assistant_page_local_tools_health_desc">透過 Health Connect 讀取手錶的睡眠、心率和活動</string>
+  <string name="assistant_page_local_tools_pc_title">電腦活動</string>
+  <string name="assistant_page_local_tools_pc_desc">看她電腦上在用什麼程式，也能請求看電腦畫面（需要星汐電腦版）</string>
   <string name="chat_message_tool_chart_display">顯示圖表</string>
   <string name="chat_message_tool_chart_display_with_title">顯示圖表：%1$s</string>
   <string name="error_fast_model_not_found">找不到快速模型。請在設定中選擇一個。</string>

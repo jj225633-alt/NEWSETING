@@ -24,6 +24,7 @@ data class PresetTheme(
 
 val PresetThemes by lazy {
     listOf(
+        me.rerere.rikkahub.ui.theme.presets.HoshioThemePreset,
         StarryThemePreset,
         SakuraThemePreset,
         OceanThemePreset,

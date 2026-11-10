@@ -1401,6 +1401,8 @@
   <string name="assistant_page_local_tools_together_desc">Care routines, mood calendar, memory album, time capsules and promises</string>
   <string name="assistant_page_local_tools_health_title">Her health</string>
   <string name="assistant_page_local_tools_health_desc">Read sleep, heart rate and activity from her watch via Health Connect</string>
+  <string name="assistant_page_local_tools_pc_title">Computer activity</string>
+  <string name="assistant_page_local_tools_pc_desc">See which apps she uses on her computer and ask to look at the screen (needs Hoshio Desktop)</string>
   <string name="chat_message_tool_chart_display">Display chart</string>
   <string name="chat_message_tool_chart_display_with_title">Display chart: %1$s</string>
   <string name="error_fast_model_not_found">Fast model not found. Please select one in settings.</string>

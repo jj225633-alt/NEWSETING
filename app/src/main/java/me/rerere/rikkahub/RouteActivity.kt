@@ -212,7 +212,7 @@ class RouteActivity : ComponentActivity() {
                         }
                         .build()
                 }
-                AppRoutes()
+                me.rerere.rikkahub.ui.pages.hoshio.splash.HoshioStartupOverlay { AppRoutes() }
             }
         }
     }
@@ -465,6 +465,12 @@ class RouteActivity : ComponentActivity() {
                             }
                             entry<Screen.Pet> {
                                 me.rerere.rikkahub.ui.pages.hoshio.PetPage()
+                            }
+                            entry<Screen.WakeRules> {
+                                me.rerere.rikkahub.ui.pages.hoshio.WakeRulesPage()
+                            }
+                            entry<Screen.MemoryAtlas> {
+                                me.rerere.rikkahub.ui.pages.hoshio.atlas.MemoryAtlasPage()
                             }
                             entry<Screen.Spaces> {
                                 me.rerere.rikkahub.ui.pages.hoshio.SpacesPage()
@@ -844,6 +850,12 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Spaces : Screen
+
+    @Serializable
+    data object MemoryAtlas : Screen
+
+    @Serializable
+    data object WakeRules : Screen
 
     @Serializable
     data object Treasure : Screen

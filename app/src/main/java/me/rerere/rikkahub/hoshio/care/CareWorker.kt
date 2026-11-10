@@ -131,6 +131,7 @@ class CareWorker(
             )
         } else {
             val together = me.rerere.rikkahub.hoshio.together.TogetherEvents.hasReminders(applicationContext) ||
+                me.rerere.rikkahub.hoshio.rules.WakeRules.hasActive(applicationContext) ||
                 me.rerere.rikkahub.hoshio.health.HealthPrefs(applicationContext).heartAlertEnabled
             if (!prefs.anyEnabled && !hasAnniversaryReminders(applicationContext) && !together) return Result.success()
             detectEvents(prefs)
@@ -257,6 +258,12 @@ class CareWorker(
         me.rerere.rikkahub.hoshio.together.TogetherEvents.detect(applicationContext).forEach {
             events += CareEvent(key = it.key, title = it.title, text = it.text)
         }
+        // 星汐: 他自己订的唤醒规则
+        runCatching {
+            me.rerere.rikkahub.hoshio.rules.WakeRules.evaluate(applicationContext, lastUserMessageAt(prefs)).forEach {
+                events += CareEvent(key = it.key, title = it.title, text = it.text)
+            }
+        }.onFailure { Log.w(TAG, "wake rules failed", it) }
         return events
     }
 
@@ -484,6 +491,9 @@ class CareWorker(
             val cooledDown = nowMs - previous.lastEventAt >= TimeUnit.MINUTES.toMillis(CarePrefs.PLACE_COOLDOWN_MINUTES)
             states[place.id] = CarePlaceState(inside = inside, lastEventAt = if (cooledDown) nowMs else previous.lastEventAt)
             if (!cooledDown) continue
+            me.rerere.rikkahub.hoshio.rules.WakeRules.onPlace(applicationContext, place.name, inside).forEach {
+                events += CareEvent(key = it.key, title = it.title, text = it.text)
+            }
             events += if (inside) {
                 CareEvent(
                     key = "place_arrive_${place.id}",
@@ -726,7 +736,8 @@ class CareWorker(
             if (CarePrefs(context).anyEnabled || hasAnniversaryReminders(context) ||
                 me.rerere.rikkahub.hoshio.together.TogetherEvents.hasReminders(context) ||
                 me.rerere.rikkahub.hoshio.health.HealthPrefs(context).heartAlertEnabled ||
-                me.rerere.rikkahub.hoshio.handoff.HandoffPrefs(context).autoEnabled
+                me.rerere.rikkahub.hoshio.handoff.HandoffPrefs(context).autoEnabled ||
+                me.rerere.rikkahub.hoshio.rules.WakeRules.hasActive(context)
             ) {
                 workManager.enqueueUniquePeriodicWork(
                     PERIODIC_WORK,

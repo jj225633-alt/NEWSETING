@@ -303,6 +303,7 @@ private fun ChatPageContent(
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
+    val context = LocalContext.current
     val workspaceRepository: WorkspaceRepository = koinInject()
 
     var previewMode by rememberSaveable { mutableStateOf(false) }
@@ -393,6 +394,9 @@ private fun ChatPageContent(
                         onDismiss = { showBackgroundTasks = false },
                     )
                 }
+                androidx.compose.foundation.layout.Column {
+                // 星汐: 他暂停了对话时显示原因和「申请继续」
+                me.rerere.rikkahub.ui.pages.hoshio.PauseBanner(conversation.id.toString())
                 ChatInput(
                     onStartVoiceMode = onStartVoiceMode,
                     voiceState = voiceState,
@@ -415,6 +419,10 @@ private fun ChatPageContent(
                         vm.stopGeneration()
                     },
                     onSendClick = {
+                        me.rerere.rikkahub.hoshio.rules.PauseStore.activeFor(context, conversation.id.toString())?.let { pause ->
+                            toaster.show("他暫停了對話：${pause.reason}", type = ToastType.Warning)
+                            return@ChatInput
+                        }
                         if (currentChatModel == null) {
                             toaster.show("请先选择模型", type = ToastType.Error)
                             return@ChatInput
@@ -453,6 +461,7 @@ private fun ChatPageContent(
                         showFilesSheet = true
                     },
                 )
+                }
             },
             containerColor = Color.Transparent,
         ) { innerPadding ->

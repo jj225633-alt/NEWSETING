@@ -33,6 +33,7 @@ import me.rerere.rikkahub.web.routes.eventsRoutes
 import me.rerere.rikkahub.web.routes.filesRoutes
 import me.rerere.rikkahub.web.routes.folderRoutes
 import me.rerere.rikkahub.web.routes.hoshioRoutes
+import me.rerere.rikkahub.web.routes.pcRoutes
 import me.rerere.rikkahub.web.routes.settingsRoutes
 import java.security.MessageDigest
 
@@ -162,6 +163,7 @@ fun Application.configureWebApi(
                     filesRoutes(filesManager, context)
                     assetsRoutes(context)
                     hoshioRoutes(context, settingsStore)
+                    pcRoutes(context, settingsStore)
                 }
             } else {
                 conversationRoutes(chatService, conversationRepo, folderRepo, settingsStore)

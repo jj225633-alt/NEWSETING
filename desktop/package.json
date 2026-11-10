@@ -1,0 +1,42 @@
+{
+  "name": "hoshio-desktop",
+  "productName": "星汐",
+  "version": "0.3.1",
+  "description": "星汐電腦版：在電腦上開啟手機裡的星汐，並可選擇把電腦使用狀態分享給手機上的 AI。",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check src/main.js && node --check src/activity.js && node --check src/screenshot.js && node --check src/mcp-bridge.js && node --check src/preload.js",
+    "icon": "electron scripts/make-icon.js",
+    "dist": "electron scripts/make-icon.js && electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "app.hoshio.desktop",
+    "productName": "Hoshio",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "星汐"
+    }
+  },
+  "allowScripts": {
+    "electron@44.9.0": true
+  }
+}

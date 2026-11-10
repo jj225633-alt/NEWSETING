@@ -52,7 +52,7 @@ class LocalTools(
 
     val musicTools by lazy { buildMusicTools(context) }
 
-    val lifeTools by lazy { buildLifeTools(context) + buildSettingsHelperTool(context) }
+    val lifeTools by lazy { buildLifeTools(context) + buildSettingsHelperTool(context) + buildAiPowerTools(context) }
 
     val appLockTools by lazy { buildAppLockTools(context) }
 
@@ -61,6 +61,8 @@ class LocalTools(
     val togetherTools by lazy { buildTogetherTools(context) + buildTreasureTools(context) + buildSpacesTools(context) }
 
     val healthTool by lazy { buildHealthTool(context) }
+
+    val pcTools by lazy { buildPcTools(context) }
 
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
@@ -136,6 +138,9 @@ class LocalTools(
         }
         if (options.contains(LocalToolOption.Health)) {
             tools.add(healthTool)
+        }
+        if (options.contains(LocalToolOption.PcActivity)) {
+            tools.addAll(pcTools)
         }
         return tools
     }

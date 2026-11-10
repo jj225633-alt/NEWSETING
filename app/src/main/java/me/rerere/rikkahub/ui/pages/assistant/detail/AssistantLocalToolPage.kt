@@ -352,6 +352,12 @@ private fun AssistantLocalToolContent(
                 description = R.string.assistant_page_local_tools_health_desc,
             )
             toolItem(
+                option = LocalToolOption.PcActivity,
+                icon = HugeIcons.SmartPhone01,
+                title = R.string.assistant_page_local_tools_pc_title,
+                description = R.string.assistant_page_local_tools_pc_desc,
+            )
+            toolItem(
                 option = LocalToolOption.Location,
                 icon = HugeIcons.Route01,
                 title = R.string.assistant_page_local_tools_location_title,
