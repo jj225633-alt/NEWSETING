@@ -23,6 +23,8 @@ import androidx.work.workDataOf
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.CHAT_COMPLETED_NOTIFICATION_CHANNEL_ID
@@ -144,8 +146,12 @@ class CareWorker(
         return events
     }
 
-    /** 定时看一眼螢幕：螢幕亮着、不在星汐里面、距离上次够久，就请 AI 用 look_at_screen 看一下 */
-    private fun detectScreenObservation(prefs: CarePrefs): CareEvent? {
+    /**
+     * 偷看螢幕。螢幕亮着、不在星汐里面时才看，两种模式：
+     * - ignored：她最后一次传讯息给这个助手已经超过 N 分钟（没理他），每 N 分钟最多看一次
+     * - interval：固定每 N 分钟看一次
+     */
+    private suspend fun detectScreenObservation(prefs: CarePrefs): CareEvent? {
         if (!HoshioAccessibilityService.isRunning) {
             prefs.lastResult = "螢幕觀察：無障礙服務沒有開啟"
             return null
@@ -154,15 +160,38 @@ class CareWorker(
         if (power?.isInteractive != true) return null
         if (HoshioAccessibilityService.foregroundPackage == applicationContext.packageName) return null
         val nowMs = System.currentTimeMillis()
-        if (nowMs - prefs.lastScreenObservationAt < TimeUnit.MINUTES.toMillis(prefs.screenObservationIntervalMinutes.toLong())) {
-            return null
+        val thresholdMs = TimeUnit.MINUTES.toMillis(prefs.screenObservationIntervalMinutes.toLong())
+        if (nowMs - prefs.lastScreenObservationAt < thresholdMs) return null
+
+        val ignoredMode = prefs.screenObservationMode == CarePrefs.SCREEN_MODE_IGNORED
+        var silentMinutes = 0L
+        if (ignoredMode) {
+            val settings = settingsStore.awaitLoaded()
+            val assistantId = prefs.assistantId ?: settings.assistantId
+            val conversation = conversationRepository.getRecentConversations(assistantId, limit = 1).firstOrNull() ?: return null
+            val lastUserAt = conversation.currentMessages
+                .lastOrNull { it.role == MessageRole.USER && !it.isNoticeOnly }
+                ?.createdAt
+                ?.toInstant(TimeZone.currentSystemDefault())
+                ?.toEpochMilliseconds()
+                ?: return null
+            silentMinutes = (nowMs - lastUserAt) / 60_000
+            if (nowMs - lastUserAt < thresholdMs) return null
         }
+
         prefs.lastScreenObservationAt = nowMs
+        val reason = if (ignoredMode) {
+            "She has not replied to you for about $silentMinutes minutes, but her phone screen is on, so she is busy with something else. " +
+                "Call the look_at_screen tool once to see what she is doing instead of talking to you, " +
+                "then say one or two sentences in character (you may be a little jealous)."
+        } else {
+            "It is time for your scheduled glance at her screen. " +
+                "Call the look_at_screen tool once, then say one or two sentences in character about what she is doing."
+        }
         return CareEvent(
             key = "screen_observation",
-            title = "看一眼螢幕",
-            text = "Automatic phone event (not typed by the user): it is time for your scheduled glance at the user's screen. " +
-                "Call the look_at_screen tool once, then say one or two sentences in character about what she is doing. " +
+            title = if (ignoredMode) "她沒理你，在滑手機" else "看一眼螢幕",
+            text = "Automatic phone event (not typed by the user): $reason " +
                 "If the screenshot is black or unclear, just say something light without guessing. " +
                 "Never repeat passwords, bank details or other people's private messages.",
         )

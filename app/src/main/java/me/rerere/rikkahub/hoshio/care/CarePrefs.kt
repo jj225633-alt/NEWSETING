@@ -62,6 +62,11 @@ class CarePrefs(context: Context) {
         get() = prefs.getBoolean(KEY_SCREEN_OBS, false)
         set(value) = prefs.edit { putBoolean(KEY_SCREEN_OBS, value) }
 
+    /** "ignored"：她没理你超过 N 分钟、螢幕又亮着时才偷看；"interval"：固定每 N 分钟偷看 */
+    var screenObservationMode: String
+        get() = prefs.getString(KEY_SCREEN_OBS_MODE, SCREEN_MODE_IGNORED) ?: SCREEN_MODE_IGNORED
+        set(value) = prefs.edit { putString(KEY_SCREEN_OBS_MODE, value) }
+
     var screenObservationIntervalMinutes: Int
         get() = prefs.getInt(KEY_SCREEN_OBS_INTERVAL, 60)
         set(value) = prefs.edit { putInt(KEY_SCREEN_OBS_INTERVAL, value) }
@@ -124,6 +129,10 @@ class CarePrefs(context: Context) {
         private const val KEY_SCREEN_OBS = "screen_observation_enabled"
         private const val KEY_SCREEN_OBS_INTERVAL = "screen_observation_interval"
         private const val KEY_SCREEN_OBS_LAST = "screen_observation_last"
+        private const val KEY_SCREEN_OBS_MODE = "screen_observation_mode"
+
+        const val SCREEN_MODE_IGNORED = "ignored"
+        const val SCREEN_MODE_INTERVAL = "interval"
         private const val KEY_PLACES = "places"
         private const val KEY_PLACE_STATES = "place_states"
 

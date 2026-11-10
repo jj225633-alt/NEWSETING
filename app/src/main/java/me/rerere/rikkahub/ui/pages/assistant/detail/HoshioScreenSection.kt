@@ -41,6 +41,8 @@ internal fun HoshioScreenSection(assistant: Assistant, onUpdate: (Assistant) -> 
     var serviceEnabled by remember { mutableStateOf(HoshioAccessibilityService.isEnabledInSettings(context)) }
     var scheduled by remember { mutableStateOf(prefs.screenObservationEnabled) }
     var interval by remember { mutableStateOf(prefs.screenObservationIntervalMinutes) }
+    var mode by remember { mutableStateOf(prefs.screenObservationMode) }
+    val ignoredMode = mode == CarePrefs.SCREEN_MODE_IGNORED
     val toolEnabled = LocalToolOption.ScreenView in assistant.localTools
 
     // 从系统设定回来时更新无障碍服务状态
@@ -113,12 +115,40 @@ internal fun HoshioScreenSection(assistant: Assistant, onUpdate: (Assistant) -> 
             },
             leadingContent = { CardGroupIcon(icon = HugeIcons.Time02) },
             supportingContent = {
-                Text("螢幕亮著、而且你不在星汐裡的時候，每隔一段時間偷看一眼，再主動傳訊息給你。每次都會呼叫一次 AI")
+                Text("螢幕亮著、而且你不在星汐裡的時候偷看一眼，再主動傳訊息給你。每次都會呼叫一次 AI")
             },
-            headlineContent = { Text("定時偷看螢幕") },
+            headlineContent = { Text("偷看螢幕") },
         )
         if (scheduled) {
-            formItem(headlineContent = { Text("多久看一次") }) {
+            formItem(
+                headlineContent = { Text("什麼時候偷看") },
+                supportingContent = {
+                    Text(
+                        if (ignoredMode) {
+                            "你超過下面的時間沒回他、螢幕卻亮著時，他會偷看你在忙什麼；一直沒回的話，之後每隔同樣時間最多再看一次"
+                        } else {
+                            "不管有沒有在聊天，固定每隔下面的時間偷看一次"
+                        }
+                    )
+                },
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        CarePrefs.SCREEN_MODE_IGNORED to "沒理他的時候",
+                        CarePrefs.SCREEN_MODE_INTERVAL to "固定時間",
+                    ).forEach { (value, label) ->
+                        FilterChip(
+                            selected = mode == value,
+                            onClick = {
+                                mode = value
+                                prefs.screenObservationMode = value
+                            },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+            }
+            formItem(headlineContent = { Text(if (ignoredMode) "沒回他多久" else "多久看一次") }) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(30, 60, 120, 180).forEach { minutes ->
                         FilterChip(
