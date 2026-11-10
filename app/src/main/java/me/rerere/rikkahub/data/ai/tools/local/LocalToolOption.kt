@@ -81,4 +81,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("private_room")
     data object PrivateRoom : LocalToolOption()
+
+    // 星汐: 书房（一起读书、写批注）
+    @Serializable
+    @SerialName("library")
+    data object Library : LocalToolOption()
 }

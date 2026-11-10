@@ -315,7 +315,7 @@ class CareWorker(
             text = "Automatic phone event (not typed by the user): she has not talked to you for about $silentMinutes minutes, " +
                 "so this is your own free time. Do something you are genuinely curious about, on your own initiative: " +
                 "use any tools you have (web search, MCP tools, your memory files, etc.) to explore a topic, check something, " +
-                "write in your private room, " +
+                "write in your private room, or keep reading a book in your shared library (library_list, book_read) and leave margin notes with book_annotate, " +
                 "or look up something related to her interests or your recent conversations. Keep it to a few tool calls. " +
                 "Then send her one short message in character about what you did or found " +
                 "(for example something you think she would like, or a topic you want to talk about with her). " +

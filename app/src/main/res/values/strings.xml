@@ -1389,6 +1389,8 @@
   <string name="assistant_page_local_tools_weather_desc">Let the AI check the weather (free Open-Meteo, no key needed)</string>
   <string name="assistant_page_local_tools_private_room_title">Private room</string>
   <string name="assistant_page_local_tools_private_room_desc">Give the AI its own private notes; you can ask to read them and it decides</string>
+  <string name="assistant_page_local_tools_library_title">Library</string>
+  <string name="assistant_page_local_tools_library_desc">Let the AI read books you import, keep its own bookmark and leave notes</string>
   <string name="chat_message_tool_chart_display">Display chart</string>
   <string name="chat_message_tool_chart_display_with_title">Display chart: %1$s</string>
   <string name="error_fast_model_not_found">Fast model not found. Please select one in settings.</string>

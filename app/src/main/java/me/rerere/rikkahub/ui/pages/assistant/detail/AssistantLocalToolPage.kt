@@ -302,6 +302,12 @@ private fun AssistantLocalToolContent(
                 description = R.string.assistant_page_local_tools_private_room_desc,
             )
             toolItem(
+                option = LocalToolOption.Library,
+                icon = HugeIcons.Book01,
+                title = R.string.assistant_page_local_tools_library_title,
+                description = R.string.assistant_page_local_tools_library_desc,
+            )
+            toolItem(
                 option = LocalToolOption.Location,
                 icon = HugeIcons.Route01,
                 title = R.string.assistant_page_local_tools_location_title,

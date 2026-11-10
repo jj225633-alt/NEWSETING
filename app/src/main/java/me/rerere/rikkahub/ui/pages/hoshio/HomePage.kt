@@ -34,6 +34,7 @@ import me.rerere.ai.core.MessageRole
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Book01
+import me.rerere.hugeicons.stroke.Book02
 import me.rerere.hugeicons.stroke.Calendar03
 import me.rerere.hugeicons.stroke.Key01
 import me.rerere.hugeicons.stroke.CloudUpload
@@ -41,6 +42,7 @@ import me.rerere.hugeicons.stroke.Favourite
 import me.rerere.hugeicons.stroke.ImageAdd01
 import me.rerere.hugeicons.stroke.Message01
 import me.rerere.hugeicons.stroke.Notification01
+import me.rerere.hugeicons.stroke.PaintBoard
 import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.hugeicons.stroke.TransactionHistory
@@ -119,6 +121,7 @@ fun HomePage() {
     val links = listOf(
         HomeLink("日記", "他每天寫的日記，也能自己寫", HugeIcons.Book01) { Screen.Diary },
         HomeLink("遊戲室", "他做的小遊戲和小網頁", HugeIcons.Puzzle) { Screen.Playroom },
+        HomeLink("書房", "一起讀書、寫批註", HugeIcons.Book02) { Screen.Library },
         HomeLink("紀念日", "重要的日子和認識幾天", HugeIcons.Calendar03) { Screen.Anniversary },
         HomeLink("他的隱私室", "他的心事，要申請才看得到", HugeIcons.Key01) { Screen.PrivateRoom },
         HomeLink("對話紀錄", "所有聊過的對話", HugeIcons.TransactionHistory) { Screen.History },
@@ -129,6 +132,7 @@ fun HomePage() {
         HomeLink("媒體創作", "生成圖片與影片", HugeIcons.ImageAdd01) { Screen.MediaCreationSessions },
         HomeLink("翻譯", "翻譯工具", HugeIcons.Translate) { Screen.Translator },
         HomeLink("備份與還原", "把資料存到雲端", HugeIcons.CloudUpload) { Screen.Backup },
+        HomeLink("外觀主題", "星空主題、深色模式", HugeIcons.PaintBoard) { Screen.SettingPreferencesTheme },
         HomeLink("設定", "服務商、模型、外觀", HugeIcons.Settings03) { Screen.Setting },
     )
 

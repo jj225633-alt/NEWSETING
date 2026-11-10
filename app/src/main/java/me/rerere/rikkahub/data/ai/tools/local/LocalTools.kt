@@ -48,6 +48,8 @@ class LocalTools(
 
     val privateRoomTools by lazy { buildPrivateRoomTools(context) }
 
+    val libraryTools by lazy { buildLibraryTools(context) }
+
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -101,6 +103,9 @@ class LocalTools(
         }
         if (options.contains(LocalToolOption.PrivateRoom)) {
             tools.addAll(privateRoomTools)
+        }
+        if (options.contains(LocalToolOption.Library)) {
+            tools.addAll(libraryTools)
         }
         return tools
     }

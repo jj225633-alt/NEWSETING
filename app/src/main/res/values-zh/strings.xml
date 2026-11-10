@@ -1390,6 +1390,8 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="assistant_page_local_tools_weather_desc">让 AI 查天气（Open-Meteo 免费，不需要密钥）</string>
   <string name="assistant_page_local_tools_private_room_title">他的隐私室</string>
   <string name="assistant_page_local_tools_private_room_desc">让 AI 有自己的私密笔记；你可以申请看，由他决定</string>
+  <string name="assistant_page_local_tools_library_title">书房</string>
+  <string name="assistant_page_local_tools_library_desc">让 AI 读你导入的书，有自己的书签，还会写批注</string>
   <string name="chat_message_tool_chart_display">显示图表</string>
   <string name="chat_message_tool_chart_display_with_title">显示图表：%1$s</string>
   <string name="error_fast_model_not_found">未找到快速模型。请在设置中选择一个。</string>

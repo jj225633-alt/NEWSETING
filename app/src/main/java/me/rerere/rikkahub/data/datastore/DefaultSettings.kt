@@ -100,6 +100,7 @@ internal val DEFAULT_ASSISTANTS = listOf(
             LocalToolOption.Anniversary,
             LocalToolOption.Weather,
             LocalToolOption.PrivateRoom,
+            LocalToolOption.Library,
         ),
     ),
     Assistant(

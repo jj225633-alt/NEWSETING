@@ -441,6 +441,14 @@ class RouteActivity : ComponentActivity() {
                                 me.rerere.rikkahub.ui.pages.hoshio.PrivateRoomPage()
                             }
 
+                            entry<Screen.Library> {
+                                me.rerere.rikkahub.ui.pages.hoshio.LibraryPage()
+                            }
+
+                            entry<Screen.BookReader> { key ->
+                                me.rerere.rikkahub.ui.pages.hoshio.BookReaderPage(key.id)
+                            }
+
 
                             entry<Screen.MediaCreationSessions> {
                                 MediaCreationSessionsPage()
@@ -731,6 +739,12 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object PrivateRoom : Screen
+
+    @Serializable
+    data object Library : Screen
+
+    @Serializable
+    data class BookReader(val id: String) : Screen
 
 
     @Serializable

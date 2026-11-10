@@ -212,8 +212,27 @@ class RikkaHubApp : Application() {
             }
         }
 
+        // 星汐: 升级时帮時澈打开书房工具（只做一次）
+        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_tools_v4_library")) {
+            get<AppScope>().launch(Dispatchers.IO) {
+                runCatching {
+                    val store = get<me.rerere.rikkahub.data.datastore.SettingsStore>()
+                    store.awaitLoaded()
+                    store.update { settings ->
+                        settings.copy(assistants = settings.assistants.map {
+                            if (it.id == me.rerere.rikkahub.data.datastore.HOSHIO_ASSISTANT_ID) {
+                                it.copy(localTools = (it.localTools + me.rerere.rikkahub.data.ai.tools.local.LocalToolOption.Library).distinct())
+                            } else {
+                                it
+                            }
+                        })
+                    }
+                }.onFailure { Log.e(TAG, "enable library tool failed", it) }
+            }
+        }
+
         // 星汐: 升级时换成星空主题（只做一次，之后可以在设定里换回）
-        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_starry_theme_v1")) {
+        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_starry_theme_v2")) {
             get<AppScope>().launch(Dispatchers.IO) {
                 runCatching {
                     val store = get<me.rerere.rikkahub.data.datastore.SettingsStore>()
