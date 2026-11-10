@@ -143,7 +143,56 @@ class CareWorker(
         if (prefs.wakeUpEnabled) detectWakeUp(prefs)?.let { events += it }
         if (prefs.placesEnabled) events += detectPlaces(prefs)
         if (prefs.screenObservationEnabled) detectScreenObservation(prefs)?.let { events += it }
+        if (prefs.freeTimeEnabled) detectFreeTime(prefs)?.let { events += it }
         return events
+    }
+
+    /** 她最后一次亲自传讯息给这个助手（不含自动事件）的时间 */
+    private suspend fun lastUserMessageAt(prefs: CarePrefs): Long? {
+        val settings = settingsStore.awaitLoaded()
+        val assistantId = prefs.assistantId ?: settings.assistantId
+        val conversation = conversationRepository.getRecentConversations(assistantId, limit = 1).firstOrNull() ?: return null
+        return conversation.currentMessages
+            .lastOrNull { it.role == MessageRole.USER && !it.isNoticeOnly }
+            ?.createdAt
+            ?.toInstant(TimeZone.currentSystemDefault())
+            ?.toEpochMilliseconds()
+    }
+
+    /**
+     * 自由时间：她超过 N 分钟没理他时，让他用自己能用的工具（搜寻、MCP、记忆等）去探索想看的东西，
+     * 再传一则讯息分享。深夜不打扰，每天有次数上限。
+     */
+    private suspend fun detectFreeTime(prefs: CarePrefs): CareEvent? {
+        val now = LocalDateTime.now()
+        if (now.hour < CarePrefs.FREE_TIME_QUIET_END_HOUR) return null
+        val nowMs = System.currentTimeMillis()
+        val thresholdMs = TimeUnit.MINUTES.toMillis(prefs.freeTimeIdleMinutes.toLong())
+        if (nowMs - prefs.lastFreeTimeAt < thresholdMs) return null
+        val today = now.toLocalDate().toString()
+        if (prefs.freeTimeCountDate == today && prefs.freeTimeCount >= CarePrefs.FREE_TIME_MAX_PER_DAY) return null
+        val lastUserAt = lastUserMessageAt(prefs) ?: return null
+        val silentMinutes = (nowMs - lastUserAt) / 60_000
+        if (nowMs - lastUserAt < thresholdMs) return null
+
+        prefs.lastFreeTimeAt = nowMs
+        if (prefs.freeTimeCountDate != today) {
+            prefs.freeTimeCountDate = today
+            prefs.freeTimeCount = 0
+        }
+        prefs.freeTimeCount = prefs.freeTimeCount + 1
+        return CareEvent(
+            key = "free_time",
+            title = "自由時間",
+            text = "Automatic phone event (not typed by the user): she has not talked to you for about $silentMinutes minutes, " +
+                "so this is your own free time. Do something you are genuinely curious about, on your own initiative: " +
+                "use any tools you have (web search, MCP tools, your memory files, etc.) to explore a topic, check something, " +
+                "or look up something related to her interests or your recent conversations. Keep it to a few tool calls. " +
+                "Then send her one short message in character about what you did or found " +
+                "(for example something you think she would like, or a little complaint that she left you alone). " +
+                "Do not make anything up: only mention what you actually found with the tools. " +
+                "Do not take actions that change things outside this chat (sending messages to others, buying, deleting) on your own.",
+        )
     }
 
     /**
@@ -166,15 +215,7 @@ class CareWorker(
         val ignoredMode = prefs.screenObservationMode == CarePrefs.SCREEN_MODE_IGNORED
         var silentMinutes = 0L
         if (ignoredMode) {
-            val settings = settingsStore.awaitLoaded()
-            val assistantId = prefs.assistantId ?: settings.assistantId
-            val conversation = conversationRepository.getRecentConversations(assistantId, limit = 1).firstOrNull() ?: return null
-            val lastUserAt = conversation.currentMessages
-                .lastOrNull { it.role == MessageRole.USER && !it.isNoticeOnly }
-                ?.createdAt
-                ?.toInstant(TimeZone.currentSystemDefault())
-                ?.toEpochMilliseconds()
-                ?: return null
+            val lastUserAt = lastUserMessageAt(prefs) ?: return null
             silentMinutes = (nowMs - lastUserAt) / 60_000
             if (nowMs - lastUserAt < thresholdMs) return null
         }
@@ -333,9 +374,9 @@ class CareWorker(
             notice = UIMessagePart.Notice(title = event.title, text = event.text),
         )
 
-        // 等这一轮开始再结束，最多 5 分钟
+        // 等这一轮开始再结束，最多 8 分钟（自由时间可能会用好几次工具）
         val jobs = chatService.getGenerationJobStateFlow(conversation.id)
-        val finished = withTimeoutOrNull(TimeUnit.MINUTES.toMillis(5)) {
+        val finished = withTimeoutOrNull(TimeUnit.MINUTES.toMillis(8)) {
             withTimeoutOrNull(30_000) { jobs.filterNotNull().first() }
             jobs.first { it == null }
             true

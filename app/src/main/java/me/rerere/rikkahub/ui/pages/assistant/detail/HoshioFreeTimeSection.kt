@@ -1,0 +1,73 @@
+package me.rerere.rikkahub.ui.pages.assistant.detail
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Sparkles
+import me.rerere.rikkahub.data.model.Assistant
+import me.rerere.rikkahub.hoshio.care.CarePrefs
+import me.rerere.rikkahub.hoshio.care.CareWorker
+import me.rerere.rikkahub.ui.components.ui.CardGroup
+import me.rerere.rikkahub.ui.components.ui.CardGroupIcon
+import me.rerere.rikkahub.ui.components.ui.switchItem
+
+/**
+ * 星汐「自由时间」：她很久没理他时，他可以自己用工具去探索，再传讯息分享。
+ */
+@Composable
+internal fun HoshioFreeTimeSection(assistant: Assistant) {
+    val context = LocalContext.current
+    val prefs = remember { CarePrefs(context) }
+    var enabled by remember { mutableStateOf(prefs.freeTimeEnabled) }
+    var idle by remember { mutableStateOf(prefs.freeTimeIdleMinutes) }
+
+    CardGroup(title = { Text("自由時間") }) {
+        switchItem(
+            checked = enabled,
+            onCheckedChange = {
+                prefs.freeTimeEnabled = it
+                if (it) prefs.assistantId = assistant.id
+                enabled = it
+                CareWorker.sync(context)
+            },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Sparkles) },
+            supportingContent = {
+                Text(
+                    "你很久沒理他時，他會自己用能用的工具（網路搜尋、MCP、記憶等）去看看感興趣的東西，再傳訊息跟你分享。" +
+                        "早上 ${CarePrefs.FREE_TIME_QUIET_END_HOUR} 點前不打擾，一天最多 ${CarePrefs.FREE_TIME_MAX_PER_DAY} 次，每次都會呼叫 AI 好幾次"
+                )
+            },
+            headlineContent = { Text("沒理他時，讓他自己探索") },
+        )
+        if (enabled) {
+            formItem(
+                headlineContent = { Text("沒回他多久") },
+                supportingContent = {
+                    Text("一直沒回的話，之後每隔同樣時間最多再探索一次。要用搜尋或 MCP，記得在聊天頁打開它們；需要你核准的 MCP 工具，他自己用不了")
+                },
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(60, 120, 180, 360).forEach { minutes ->
+                        FilterChip(
+                            selected = idle == minutes,
+                            onClick = {
+                                idle = minutes
+                                prefs.freeTimeIdleMinutes = minutes
+                            },
+                            label = { Text("${minutes / 60} 小時") },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

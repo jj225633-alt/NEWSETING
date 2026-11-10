@@ -75,12 +75,32 @@ class CarePrefs(context: Context) {
         get() = prefs.getLong(KEY_SCREEN_OBS_LAST, 0L)
         set(value) = prefs.edit { putLong(KEY_SCREEN_OBS_LAST, value) }
 
+    var freeTimeEnabled: Boolean
+        get() = prefs.getBoolean(KEY_FREE_TIME, false)
+        set(value) = prefs.edit { putBoolean(KEY_FREE_TIME, value) }
+
+    var freeTimeIdleMinutes: Int
+        get() = prefs.getInt(KEY_FREE_TIME_IDLE, 120)
+        set(value) = prefs.edit { putInt(KEY_FREE_TIME_IDLE, value) }
+
+    var lastFreeTimeAt: Long
+        get() = prefs.getLong(KEY_FREE_TIME_LAST, 0L)
+        set(value) = prefs.edit { putLong(KEY_FREE_TIME_LAST, value) }
+
+    var freeTimeCountDate: String?
+        get() = prefs.getString(KEY_FREE_TIME_COUNT_DATE, null)
+        set(value) = prefs.edit { putString(KEY_FREE_TIME_COUNT_DATE, value) }
+
+    var freeTimeCount: Int
+        get() = prefs.getInt(KEY_FREE_TIME_COUNT, 0)
+        set(value) = prefs.edit { putInt(KEY_FREE_TIME_COUNT, value) }
+
     /** 常驻模式：用前台服务每几分钟检查一次，比 15 分钟的一般检查即时 */
     var alwaysOnEnabled: Boolean
         get() = prefs.getBoolean(KEY_ALWAYS_ON, false)
         set(value) = prefs.edit { putBoolean(KEY_ALWAYS_ON, value) }
 
-    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled || screenObservationEnabled
+    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled || screenObservationEnabled || freeTimeEnabled
 
     // ---- 运行状态 ----
 
@@ -130,6 +150,16 @@ class CarePrefs(context: Context) {
         private const val KEY_SCREEN_OBS_INTERVAL = "screen_observation_interval"
         private const val KEY_SCREEN_OBS_LAST = "screen_observation_last"
         private const val KEY_SCREEN_OBS_MODE = "screen_observation_mode"
+
+        private const val KEY_FREE_TIME = "free_time_enabled"
+        private const val KEY_FREE_TIME_IDLE = "free_time_idle_minutes"
+        private const val KEY_FREE_TIME_LAST = "free_time_last"
+        private const val KEY_FREE_TIME_COUNT_DATE = "free_time_count_date"
+        private const val KEY_FREE_TIME_COUNT = "free_time_count"
+
+        /** 自由时间：凌晨 0 点到这个时间不打扰 */
+        const val FREE_TIME_QUIET_END_HOUR = 8
+        const val FREE_TIME_MAX_PER_DAY = 6
 
         const val SCREEN_MODE_IGNORED = "ignored"
         const val SCREEN_MODE_INTERVAL = "interval"
