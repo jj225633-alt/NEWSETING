@@ -1378,6 +1378,12 @@
   <string name="assistant_page_local_tools_self_reminder_desc">讓 AI 自己決定什麼時候再主動來找你（5 分鐘～14 天）</string>
   <string name="assistant_page_local_tools_playroom_title">遊戲室</string>
   <string name="assistant_page_local_tools_playroom_desc">讓 AI 做小遊戲、小網頁，存進遊戲室，也會直接顯示在對話裡</string>
+  <string name="assistant_page_local_tools_anniversary_title">紀念日</string>
+  <string name="assistant_page_local_tools_anniversary_desc">讓 AI 記下你提到的重要日子，當天會記得</string>
+  <string name="assistant_page_local_tools_weather_title">天氣</string>
+  <string name="assistant_page_local_tools_weather_desc">讓 AI 查天氣（Open-Meteo 免費，不需要金鑰）</string>
+  <string name="assistant_page_local_tools_private_room_title">他的隱私室</string>
+  <string name="assistant_page_local_tools_private_room_desc">讓 AI 有自己的私密筆記；你可以申請看，由他決定</string>
   <string name="chat_message_tool_chart_display">顯示圖表</string>
   <string name="chat_message_tool_chart_display_with_title">顯示圖表：%1$s</string>
   <string name="error_fast_model_not_found">找不到快速模型。請在設定中選擇一個。</string>

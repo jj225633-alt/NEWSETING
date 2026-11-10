@@ -97,6 +97,9 @@ internal val DEFAULT_ASSISTANTS = listOf(
             LocalToolOption.Diary,
             LocalToolOption.SelfReminder,
             LocalToolOption.Playroom,
+            LocalToolOption.Anniversary,
+            LocalToolOption.Weather,
+            LocalToolOption.PrivateRoom,
         ),
     ),
     Assistant(

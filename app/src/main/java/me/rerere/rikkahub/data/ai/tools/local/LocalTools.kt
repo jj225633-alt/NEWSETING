@@ -42,6 +42,12 @@ class LocalTools(
 
     val playroomTools by lazy { buildPlayroomTools(context) }
 
+    val anniversaryTools by lazy { buildAnniversaryTools(context) }
+
+    val weatherTool by lazy { buildWeatherTool(context) }
+
+    val privateRoomTools by lazy { buildPrivateRoomTools(context) }
+
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -86,6 +92,15 @@ class LocalTools(
         }
         if (options.contains(LocalToolOption.Playroom)) {
             tools.addAll(playroomTools)
+        }
+        if (options.contains(LocalToolOption.Anniversary)) {
+            tools.addAll(anniversaryTools)
+        }
+        if (options.contains(LocalToolOption.Weather)) {
+            tools.add(weatherTool)
+        }
+        if (options.contains(LocalToolOption.PrivateRoom)) {
+            tools.addAll(privateRoomTools)
         }
         return tools
     }

@@ -66,4 +66,19 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("playroom")
     data object Playroom : LocalToolOption()
+
+    // 星汐: 纪念日
+    @Serializable
+    @SerialName("anniversary")
+    data object Anniversary : LocalToolOption()
+
+    // 星汐: 天气
+    @Serializable
+    @SerialName("weather")
+    data object Weather : LocalToolOption()
+
+    // 星汐: 他的隐私室
+    @Serializable
+    @SerialName("private_room")
+    data object PrivateRoom : LocalToolOption()
 }

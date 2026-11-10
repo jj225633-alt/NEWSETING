@@ -34,6 +34,8 @@ import me.rerere.ai.core.MessageRole
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Book01
+import me.rerere.hugeicons.stroke.Calendar03
+import me.rerere.hugeicons.stroke.Key01
 import me.rerere.hugeicons.stroke.CloudUpload
 import me.rerere.hugeicons.stroke.Favourite
 import me.rerere.hugeicons.stroke.ImageAdd01
@@ -82,6 +84,22 @@ fun HomePage() {
         }.getOrNull()
     }
 
+    // 认识第几天、聊了几则讯息（没设定认识日时，从第一段对话算起）
+    val stats by produceState<Pair<Long, Int>?>(null, assistantId) {
+        value = runCatching {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val conversations = conversationRepository.getRecentConversations(assistantId, limit = 500)
+                val messages = conversations.sumOf { c ->
+                    c.currentMessages.count { (it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT) && !it.isNoticeOnly }
+                }
+                val start = me.rerere.rikkahub.hoshio.anniversary.AnniversaryStore.metDate(context)
+                    ?: conversations.minOfOrNull { it.createAt }?.atZone(java.time.ZoneId.systemDefault())?.toLocalDate()
+                    ?: java.time.LocalDate.now()
+                (java.time.temporal.ChronoUnit.DAYS.between(start, java.time.LocalDate.now()) + 1) to messages
+            }
+        }.getOrNull()
+    }
+
     val greeting = remember {
         when (LocalTime.now().hour) {
             in 5..10 -> "早安"
@@ -101,6 +119,8 @@ fun HomePage() {
     val links = listOf(
         HomeLink("日記", "他每天寫的日記，也能自己寫", HugeIcons.Book01) { Screen.Diary },
         HomeLink("遊戲室", "他做的小遊戲和小網頁", HugeIcons.Puzzle) { Screen.Playroom },
+        HomeLink("紀念日", "重要的日子和認識幾天", HugeIcons.Calendar03) { Screen.Anniversary },
+        HomeLink("他的隱私室", "他的心事，要申請才看得到", HugeIcons.Key01) { Screen.PrivateRoom },
         HomeLink("對話紀錄", "所有聊過的對話", HugeIcons.TransactionHistory) { Screen.History },
         HomeLink("$assistantName 的設定", "個性、模型、頭像", HugeIcons.UserCircle) { Screen.AssistantDetail(assistantKey) },
         HomeLink("主動關心與工具", "地點、偷看螢幕、自由時間", HugeIcons.Notification01) { Screen.AssistantLocalTool(assistantKey) },
@@ -131,7 +151,8 @@ fun HomePage() {
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = if (prefs.anyEnabled) "$assistantName 正在陪著你" else "今天想做什麼？",
+                        text = stats?.let { (days, count) -> "和 $assistantName 認識的第 $days 天・聊了 $count 則訊息" }
+                            ?: if (prefs.anyEnabled) "$assistantName 正在陪著你" else "今天想做什麼？",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

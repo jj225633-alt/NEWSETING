@@ -36,6 +36,7 @@ import me.rerere.hugeicons.stroke.ClipboardPaste
 import me.rerere.hugeicons.stroke.Clock01
 import me.rerere.hugeicons.stroke.DashboardSpeed02
 import me.rerere.hugeicons.stroke.JavaScript
+import me.rerere.hugeicons.stroke.Key01
 import me.rerere.hugeicons.stroke.MessageQuestion
 import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.Moon02
@@ -281,6 +282,24 @@ private fun AssistantLocalToolContent(
                 icon = HugeIcons.Puzzle,
                 title = R.string.assistant_page_local_tools_playroom_title,
                 description = R.string.assistant_page_local_tools_playroom_desc,
+            )
+            toolItem(
+                option = LocalToolOption.Anniversary,
+                icon = HugeIcons.Calendar03,
+                title = R.string.assistant_page_local_tools_anniversary_title,
+                description = R.string.assistant_page_local_tools_anniversary_desc,
+            )
+            toolItem(
+                option = LocalToolOption.Weather,
+                icon = HugeIcons.Sun01,
+                title = R.string.assistant_page_local_tools_weather_title,
+                description = R.string.assistant_page_local_tools_weather_desc,
+            )
+            toolItem(
+                option = LocalToolOption.PrivateRoom,
+                icon = HugeIcons.Key01,
+                title = R.string.assistant_page_local_tools_private_room_title,
+                description = R.string.assistant_page_local_tools_private_room_desc,
             )
             toolItem(
                 option = LocalToolOption.Location,

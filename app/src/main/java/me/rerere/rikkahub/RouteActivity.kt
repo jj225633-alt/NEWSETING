@@ -433,6 +433,14 @@ class RouteActivity : ComponentActivity() {
                                 me.rerere.rikkahub.ui.pages.hoshio.PlayroomPage()
                             }
 
+                            entry<Screen.Anniversary> {
+                                me.rerere.rikkahub.ui.pages.hoshio.AnniversaryPage()
+                            }
+
+                            entry<Screen.PrivateRoom> {
+                                me.rerere.rikkahub.ui.pages.hoshio.PrivateRoomPage()
+                            }
+
 
                             entry<Screen.MediaCreationSessions> {
                                 MediaCreationSessionsPage()
@@ -717,6 +725,12 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Playroom : Screen
+
+    @Serializable
+    data object Anniversary : Screen
+
+    @Serializable
+    data object PrivateRoom : Screen
 
 
     @Serializable

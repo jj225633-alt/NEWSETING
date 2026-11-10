@@ -32,6 +32,7 @@ import me.rerere.rikkahub.conversationIntent
 import me.rerere.rikkahub.data.ai.tools.local.currentLocationOrNull
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.repository.ConversationRepository
+import me.rerere.rikkahub.hoshio.anniversary.AnniversaryStore
 import me.rerere.rikkahub.hoshio.diary.DiaryStore
 import me.rerere.rikkahub.hoshio.diary.DiaryAuthor
 import me.rerere.rikkahub.hoshio.diary.DiaryWriter
@@ -55,6 +56,10 @@ private const val KEY_TEST = "test"
 private const val KEY_DIARY_NOW = "diary_now"
 private const val DIARY_WORK = "hoshio_diary_now"
 private const val CARE_NOTIFICATION_ID = 7301
+
+/** 有纪念日而且开着当天提醒 */
+internal fun hasAnniversaryReminders(context: Context): Boolean =
+    AnniversaryStore.remindEnabled(context) && AnniversaryStore.load(context).isNotEmpty()
 
 /** 一次要让 AI 知道的手机事件 */
 private data class CareEvent(val key: String, val title: String, val text: String)
@@ -107,7 +112,7 @@ class CareWorker(
                 )
             )
         } else {
-            if (!prefs.anyEnabled) return Result.success()
+            if (!prefs.anyEnabled && !hasAnniversaryReminders(applicationContext)) return Result.success()
             detectEvents(prefs)
         }
         for (event in events) {
@@ -215,7 +220,34 @@ class CareWorker(
         if (prefs.screenObservationEnabled) detectScreenObservation(prefs)?.let { events += it }
         if (prefs.freeTimeEnabled) detectFreeTime(prefs)?.let { events += it }
         if (prefs.bedtimeEnabled) detectBedtime(prefs)?.let { events += it }
+        detectAnniversary()?.let { events += it }
         return events
+    }
+
+    /** 今天是重要的日子：早上 8 点后提醒他一次，让他记得 */
+    private fun detectAnniversary(): CareEvent? {
+        val context = applicationContext
+        if (!AnniversaryStore.remindEnabled(context)) return null
+        val now = LocalDateTime.now()
+        if (now.hour < 8) return null
+        val today = now.toLocalDate()
+        if (AnniversaryStore.notifiedFor(context) == today.toString()) return null
+        val todays = AnniversaryStore.load(context).filter { it.isToday(today) }
+        if (todays.isEmpty()) return null
+        AnniversaryStore.setNotifiedFor(context, today.toString())
+        val list = todays.joinToString("; ") { a ->
+            buildString {
+                append(a.title)
+                a.yearsSince(today)?.let { append(" (").append(it).append(" years since ").append(a.date).append(")") }
+                if (a.note.isNotBlank()) append(" - ").append(a.note)
+            }
+        }
+        return CareEvent(
+            key = "anniversary",
+            title = "今天是特別的日子",
+            text = "Automatic event (not typed by the user): today is an important date you two saved: $list. " +
+                "Send her a message about it in character - celebrate, wish her luck, or remember it together, whatever fits.",
+        )
     }
 
     /**
@@ -283,6 +315,7 @@ class CareWorker(
             text = "Automatic phone event (not typed by the user): she has not talked to you for about $silentMinutes minutes, " +
                 "so this is your own free time. Do something you are genuinely curious about, on your own initiative: " +
                 "use any tools you have (web search, MCP tools, your memory files, etc.) to explore a topic, check something, " +
+                "write in your private room, " +
                 "or look up something related to her interests or your recent conversations. Keep it to a few tool calls. " +
                 "Then send her one short message in character about what you did or found " +
                 "(for example something you think she would like, or a topic you want to talk about with her). " +
@@ -448,6 +481,7 @@ class CareWorker(
                 "The phone screen was off from ${Instant.ofEpochMilli(sleptAt).atZone(zone).format(fmt)} " +
                 "until ${Instant.ofEpochMilli(wokeAt).atZone(zone).format(fmt)} (about ${sleptMinutes / 60}h ${sleptMinutes % 60}m). " +
                 "Greet them good morning in one or two warm sentences. You may mention roughly how long they slept, " +
+                "and if you have the get_weather tool, check today's weather and mention it briefly. " +
                 "but the screen-off time is only an estimate of sleep, so do not state it as fact.",
         )
     }
@@ -523,7 +557,7 @@ class CareWorker(
         /** 依目前设定开启或关闭每 15 分钟的检查 */
         fun sync(context: Context) {
             val workManager = WorkManager.getInstance(context)
-            if (CarePrefs(context).anyEnabled) {
+            if (CarePrefs(context).anyEnabled || hasAnniversaryReminders(context)) {
                 workManager.enqueueUniquePeriodicWork(
                     PERIODIC_WORK,
                     ExistingPeriodicWorkPolicy.KEEP,
