@@ -466,6 +466,9 @@ class RouteActivity : ComponentActivity() {
                             entry<Screen.Pet> {
                                 me.rerere.rikkahub.ui.pages.hoshio.PetPage()
                             }
+                            entry<Screen.Health> {
+                                me.rerere.rikkahub.ui.pages.hoshio.HealthPage()
+                            }
                             entry<Screen.PlayHub> {
                                 me.rerere.rikkahub.ui.pages.hoshio.PlayHubPage()
                             }
@@ -817,6 +820,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object PlayHub : Screen
+
+    @Serializable
+    data object Health : Screen
 
     @Serializable
     data object MemoriesHub : Screen

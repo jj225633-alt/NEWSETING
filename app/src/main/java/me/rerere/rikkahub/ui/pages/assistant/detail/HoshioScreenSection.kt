@@ -171,17 +171,15 @@ internal fun HoshioScreenSection(assistant: Assistant, onUpdate: (Assistant) -> 
                 }
             }
             formItem(headlineContent = { Text(if (ignoredMode) "沒回他多久" else "多久看一次") }) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(30, 60, 120, 180).forEach { minutes ->
-                        FilterChip(
-                            selected = interval == minutes,
-                            onClick = {
-                                interval = minutes
-                                prefs.screenObservationIntervalMinutes = minutes
-                            },
-                            label = { Text(if (minutes < 60) "$minutes 分鐘" else "${minutes / 60} 小時") },
-                        )
-                    }
+                me.rerere.rikkahub.ui.pages.hoshio.NumberChoiceChips(
+                    options = listOf(30, 60, 120, 180),
+                    selected = interval,
+                    label = { m -> if (m < 60 || m % 60 != 0) "$m 分鐘" else "${m / 60} 小時" },
+                    range = 15..1440,
+                    unit = "分鐘",
+                ) {
+                    interval = it
+                    prefs.screenObservationIntervalMinutes = it
                 }
             }
         }

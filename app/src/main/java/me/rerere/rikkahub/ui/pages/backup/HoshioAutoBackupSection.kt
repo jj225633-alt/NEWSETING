@@ -65,29 +65,25 @@ internal fun HoshioAutoBackupSection(modifier: Modifier = Modifier) {
             }
             if (enabled) {
                 Text("多久備份一次", style = MaterialTheme.typography.labelLarge)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(12, 24, 72, 168).forEach { hours ->
-                        FilterChip(
-                            selected = interval == hours,
-                            onClick = {
-                                interval = hours
-                                prefs.intervalHours = hours
-                                AutoBackupWorker.sync(context)
-                            },
-                            label = { Text(if (hours < 24) "$hours 小時" else if (hours == 168) "每週" else "${hours / 24} 天") },
-                        )
-                    }
+                me.rerere.rikkahub.ui.pages.hoshio.NumberChoiceChips(
+                    options = listOf(12, 24, 72, 168),
+                    selected = interval,
+                    label = { hours -> if (hours % 24 != 0) "$hours 小時" else if (hours == 168) "每週" else "${hours / 24} 天" },
+                    range = 1..720,
+                    unit = "小時",
+                ) {
+                    interval = it
+                    prefs.intervalHours = it
+                    AutoBackupWorker.sync(context)
                 }
                 Text("雲端保留幾份", style = MaterialTheme.typography.labelLarge)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(3, 7, 14, 30).forEach { count ->
-                        FilterChip(
-                            selected = keep == count,
-                            onClick = { keep = count; prefs.keepCount = count },
-                            label = { Text("$count 份") },
-                        )
-                    }
-                }
+                me.rerere.rikkahub.ui.pages.hoshio.NumberChoiceChips(
+                    options = listOf(3, 7, 14, 30),
+                    selected = keep,
+                    label = { "$it 份" },
+                    range = 1..100,
+                    unit = "份",
+                ) { keep = it; prefs.keepCount = it }
             }
             TextButton(onClick = {
                 AutoBackupWorker.runNow(context)

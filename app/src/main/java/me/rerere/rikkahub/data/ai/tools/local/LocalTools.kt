@@ -60,6 +60,8 @@ class LocalTools(
 
     val togetherTools by lazy { buildTogetherTools(context) }
 
+    val healthTool by lazy { buildHealthTool(context) }
+
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -131,6 +133,9 @@ class LocalTools(
         }
         if (options.contains(LocalToolOption.Together)) {
             tools.addAll(togetherTools)
+        }
+        if (options.contains(LocalToolOption.Health)) {
+            tools.add(healthTool)
         }
         return tools
     }

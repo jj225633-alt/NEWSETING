@@ -191,11 +191,13 @@ fun RoutinePage() {
                     OutlinedTextField(value = times, onValueChange = { times = it }, label = { Text("時間（用空格分開，例如 10:00 14:00）") })
                     Text("會在：${parsed.joinToString("、").ifEmpty { "（時間格式不對）" }}", style = MaterialTheme.typography.bodySmall)
                     Text("持續多久", style = MaterialTheme.typography.labelLarge)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(0 to "每天", 1 to "只有今天", 3 to "3 天", 5 to "5 天", 7 to "7 天", 14 to "14 天").forEach { (d, l) ->
-                            FilterChip(selected = days == d, onClick = { days = d }, label = { Text(l) })
-                        }
-                    }
+                    NumberChoiceChips(
+                        options = listOf(0, 1, 3, 5, 7, 14),
+                        selected = days,
+                        label = { d -> if (d == 0) "每天" else if (d == 1) "只有今天" else "$d 天" },
+                        range = 0..365,
+                        unit = "天（0 = 每天）",
+                    ) { days = it }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("開啟提醒", modifier = Modifier.weight(1f))
                         Switch(checked = enabled, onCheckedChange = { enabled = it })

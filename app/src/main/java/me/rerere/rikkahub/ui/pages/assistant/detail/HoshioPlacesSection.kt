@@ -166,15 +166,13 @@ internal fun HoshioPlacesSection(assistant: Assistant) {
                         singleLine = true,
                     )
                     Text("範圍")
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(100, 200, 500).forEach { option ->
-                            FilterChip(
-                                selected = radius == option,
-                                onClick = { radius = option },
-                                label = { Text("$option 公尺") },
-                            )
-                        }
-                    }
+                    me.rerere.rikkahub.ui.pages.hoshio.NumberChoiceChips(
+                        options = listOf(100, 200, 500),
+                        selected = radius,
+                        label = { "$it 公尺" },
+                        range = 50..5000,
+                        unit = "公尺",
+                    ) { radius = it }
                 }
             },
             confirmButton = {

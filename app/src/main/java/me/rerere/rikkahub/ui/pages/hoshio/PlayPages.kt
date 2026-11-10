@@ -433,11 +433,7 @@ fun WatchTogetherPage() {
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text("多久看一次", style = MaterialTheme.typography.titleSmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(1, 3, 5, 10).forEach { m ->
-                        FilterChip(selected = interval == m, onClick = { interval = m }, label = { Text("$m 分鐘") })
-                    }
-                }
+                NumberChoiceChips(options = listOf(1, 3, 5, 10), selected = interval, label = { "$it 分鐘" }, range = 1..30, unit = "分鐘") { interval = it }
                 Button(
                     enabled = serviceOn,
                     onClick = {

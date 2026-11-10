@@ -111,4 +111,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("together")
     data object Together : LocalToolOption()
+
+    // 星汐: 她手表的健康资料（Health Connect）
+    @Serializable
+    @SerialName("health")
+    data object Health : LocalToolOption()
 }

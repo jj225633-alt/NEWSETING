@@ -40,6 +40,7 @@ jsoup = "1.23.2"
 zxing = "3.5.4"
 leakcanary = "2.14"
 workmanager = "2.12.0"
+healthConnect = "1.1.0"
 reorderable = "3.1.0"
 mcp = "0.15.0-rikka.4"
 pebble = "4.1.1"
@@ -64,6 +65,7 @@ diffutils = "4.18"
 snakeyaml = "2.7"
 
 [libraries]
+androidx-health-connect-client = { module = "androidx.health.connect:connect-client", version.ref = "healthConnect" }
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 kotlin-compose-gradle-plugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }

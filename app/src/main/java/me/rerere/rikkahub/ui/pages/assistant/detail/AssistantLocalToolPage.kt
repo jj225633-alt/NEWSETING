@@ -37,6 +37,7 @@ import me.rerere.hugeicons.stroke.Clock01
 import me.rerere.hugeicons.stroke.DashboardSpeed02
 import me.rerere.hugeicons.stroke.JavaScript
 import me.rerere.hugeicons.stroke.Key01
+import me.rerere.hugeicons.stroke.Favourite
 import me.rerere.hugeicons.stroke.FavouriteCircle
 import me.rerere.hugeicons.stroke.MessageQuestion
 import me.rerere.hugeicons.stroke.MusicNote03
@@ -345,6 +346,12 @@ private fun AssistantLocalToolContent(
                 description = R.string.assistant_page_local_tools_together_desc,
             )
             toolItem(
+                option = LocalToolOption.Health,
+                icon = HugeIcons.Favourite,
+                title = R.string.assistant_page_local_tools_health_title,
+                description = R.string.assistant_page_local_tools_health_desc,
+            )
+            toolItem(
                 option = LocalToolOption.Location,
                 icon = HugeIcons.Route01,
                 title = R.string.assistant_page_local_tools_location_title,
@@ -451,7 +458,7 @@ private fun HoshioCareSection(assistant: Assistant) {
         )
         if (lowBattery && !ownedByOther) {
             formItem(headlineContent = { Text("低於多少電量") }) {
-                CareChoiceChips(listOf(10, 15, 20, 30), batteryPercent, { "$it%" }) {
+                CareChoiceChips(listOf(10, 15, 20, 30), batteryPercent, { "$it%" }, 5..80, "%") {
                     batteryPercent = it; prefs.lowBatteryPercent = it
                 }
             }
@@ -465,17 +472,17 @@ private fun HoshioCareSection(assistant: Assistant) {
         )
         if (nightUsage && !ownedByOther) {
             formItem(headlineContent = { Text("深夜從幾點開始") }) {
-                CareChoiceChips(listOf(22, 23, 0, 1, 2), nightStart, { "$it:00" }) {
+                CareChoiceChips(listOf(22, 23, 0, 1, 2), nightStart, { "$it:00" }, 0..23, "點") {
                     nightStart = it; prefs.nightStartHour = it
                 }
             }
             formItem(headlineContent = { Text("到幾點結束") }) {
-                CareChoiceChips(listOf(4, 5, 6, 7), nightEnd, { "$it:00" }) {
+                CareChoiceChips(listOf(4, 5, 6, 7), nightEnd, { "$it:00" }, 0..23, "點") {
                     nightEnd = it; prefs.nightEndHour = it
                 }
             }
             formItem(headlineContent = { Text("連續亮屏多久才提醒") }) {
-                CareChoiceChips(listOf(10, 20, 30, 60), nightMinutes, { "$it 分鐘" }) {
+                CareChoiceChips(listOf(10, 20, 30, 60), nightMinutes, { "$it 分鐘" }, 1..300, "分鐘") {
                     nightMinutes = it; prefs.nightUsageMinutes = it
                 }
             }
@@ -494,17 +501,17 @@ private fun HoshioCareSection(assistant: Assistant) {
         )
         if (wakeUp && !ownedByOther) {
             formItem(headlineContent = { Text("螢幕關多久算睡著") }) {
-                CareChoiceChips(listOf(3, 4, 5, 6), wakeSleep, { "$it 小時" }) {
+                CareChoiceChips(listOf(3, 4, 5, 6), wakeSleep, { "$it 小時" }, 1..14, "小時") {
                     wakeSleep = it; prefs.wakeMinSleepHours = it
                 }
             }
             formItem(headlineContent = { Text("最早幾點算起床") }) {
-                CareChoiceChips(listOf(4, 5, 6, 7, 8), wakeStart, { "$it:00" }) {
+                CareChoiceChips(listOf(4, 5, 6, 7, 8), wakeStart, { "$it:00" }, 0..23, "點") {
                     wakeStart = it; prefs.wakeStartHour = it
                 }
             }
             formItem(headlineContent = { Text("最晚幾點前起床才問候") }) {
-                CareChoiceChips(listOf(11, 12, 13, 15), wakeEnd, { "$it:00" }) {
+                CareChoiceChips(listOf(11, 12, 13, 15), wakeEnd, { "$it:00" }, 1..24, "點") {
                     wakeEnd = it; prefs.wakeEndHour = it
                 }
             }
@@ -529,7 +536,7 @@ private fun HoshioCareSection(assistant: Assistant) {
         )
         if (bedtime) {
             formItem(headlineContent = { Text("幾點道晚安") }) {
-                CareChoiceChips(listOf(21, 22, 23, 0, 1), bedtimeHour, { "$it:00" }) {
+                CareChoiceChips(listOf(21, 22, 23, 0, 1), bedtimeHour, { "$it:00" }, 0..23, "點") {
                     bedtimeHour = it; prefs.bedtimeHour = it
                 }
             }
@@ -571,23 +578,13 @@ private fun HoshioCareSection(assistant: Assistant) {
     }
 }
 
-/** 星汐: 主动关心条件用的选项晶片 */
+/** 星汐: 主动关心条件用的选项晶片（可自订） */
 @Composable
 private fun CareChoiceChips(
     options: List<Int>,
     selected: Int,
     label: (Int) -> String,
+    range: IntRange,
+    unit: String,
     onSelect: (Int) -> Unit,
-) {
-    androidx.compose.foundation.layout.FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        options.forEach { option ->
-            androidx.compose.material3.FilterChip(
-                selected = selected == option,
-                onClick = { onSelect(option) },
-                label = { Text(label(option)) },
-            )
-        }
-    }
-}
+) = me.rerere.rikkahub.ui.pages.hoshio.NumberChoiceChips(options, selected, label, range, unit, onSelect = onSelect)

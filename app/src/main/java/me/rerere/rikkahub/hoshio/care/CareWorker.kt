@@ -126,7 +126,8 @@ class CareWorker(
                 )
             )
         } else {
-            val together = me.rerere.rikkahub.hoshio.together.TogetherEvents.hasReminders(applicationContext)
+            val together = me.rerere.rikkahub.hoshio.together.TogetherEvents.hasReminders(applicationContext) ||
+                me.rerere.rikkahub.hoshio.health.HealthPrefs(applicationContext).heartAlertEnabled
             if (!prefs.anyEnabled && !hasAnniversaryReminders(applicationContext) && !together) return Result.success()
             detectEvents(prefs)
         }
@@ -234,23 +235,41 @@ class CareWorker(
         if (me.rerere.rikkahub.hoshio.together.SleepMode.isOn(applicationContext)) {
             events.clear()
             if (prefs.wakeUpEnabled) {
-                detectWakeUp(prefs)?.let {
+                detectWakeUpCombined(prefs)?.let {
                     events += it
                     me.rerere.rikkahub.hoshio.together.SleepMode.stop(applicationContext)
                 }
             }
             return events
         }
-        if (prefs.wakeUpEnabled) detectWakeUp(prefs)?.let { events += it }
+        if (prefs.wakeUpEnabled) detectWakeUpCombined(prefs)?.let { events += it }
         if (prefs.placesEnabled) events += detectPlaces(prefs)
         if (prefs.screenObservationEnabled) detectScreenObservation(prefs)?.let { events += it }
         if (prefs.freeTimeEnabled) detectFreeTime(prefs)?.let { events += it }
         if (prefs.bedtimeEnabled) detectBedtime(prefs)?.let { events += it }
         detectAnniversary()?.let { events += it }
+        detectHighHeartRate()?.let { events += it }
         me.rerere.rikkahub.hoshio.together.TogetherEvents.detect(applicationContext).forEach {
             events += CareEvent(key = it.key, title = it.title, text = it.text)
         }
         return events
+    }
+
+    /** 手表：没在运动、心率却持续偏高时关心一下（3 小时最多一次） */
+    private suspend fun detectHighHeartRate(): CareEvent? {
+        val health = me.rerere.rikkahub.hoshio.health.HealthPrefs(applicationContext)
+        if (!health.heartAlertEnabled) return null
+        val now = System.currentTimeMillis()
+        if (now - health.lastHeartAlertAt < TimeUnit.HOURS.toMillis(3)) return null
+        val avg = me.rerere.rikkahub.hoshio.health.HealthData.highHeartRateAtRest(applicationContext, health.heartAlertBpm) ?: return null
+        health.lastHeartAlertAt = now
+        return CareEvent(
+            key = "high_heart_rate",
+            title = "心跳有點快",
+            text = "Automatic event (not typed by the user): her watch shows her heart rate has averaged about $avg bpm over the last 20 minutes " +
+                "while she does not seem to be exercising. Check on her gently in character (nervous? stressed? drank coffee? not feeling well?). " +
+                "Do not alarm her or give medical diagnoses; if she feels unwell, suggest resting and seeing a doctor if it continues.",
+        )
     }
 
     /** 今天是重要的日子：早上 8 点后提醒他一次，让他记得 */
@@ -459,7 +478,33 @@ class CareWorker(
      * 用「使用情况」里的螢幕亮/灭记录判断起床：螢幕关了至少几小时（睡觉），
      * 然后在早上第一次亮起，就当作刚起床。需要「使用情况存取」权限。
      */
-    private fun detectWakeUp(prefs: CarePrefs): CareEvent? {
+    /**
+     * 起床问候：先看手表的睡眠纪录（准确、有睡眠阶段）；手表资料还没同步时，
+     * 螢幕判断会先等最多 60 分钟，再退回用螢幕亮起来判断。
+     */
+    private suspend fun detectWakeUpCombined(prefs: CarePrefs): CareEvent? {
+        val today = LocalDateTime.now().toLocalDate().toString()
+        if (prefs.wakeGreetedFor == today) return null
+        val health = me.rerere.rikkahub.hoshio.health.HealthPrefs(applicationContext)
+        val useWatch = health.watchWakeEnabled && me.rerere.rikkahub.hoshio.health.HealthData.hasSleepPermission(applicationContext)
+        if (useWatch) {
+            me.rerere.rikkahub.hoshio.health.HealthData.recentWake(applicationContext)?.let { sleep ->
+                prefs.wakeGreetedFor = today
+                val extra = runCatching { me.rerere.rikkahub.hoshio.health.HealthData.today(applicationContext) }.getOrNull().orEmpty()
+                return CareEvent(
+                    key = "wake_up_watch",
+                    title = "起床了",
+                    text = "Automatic event (not typed by the user): her Pixel Watch says she just woke up. Sleep: ${sleep.describe()}. " +
+                        "Other health data: ${extra.replace("\n", "; ")}. Greet her good morning in one to three warm sentences. " +
+                        "You may mention how she slept in a caring, natural way (no lecture, no raw numbers dump), " +
+                        "and if you have the get_weather tool, mention today's weather briefly.",
+                )
+            }
+        }
+        return detectWakeUp(prefs, waitForWatchMinutes = if (useWatch) 60 else 0)
+    }
+
+    private fun detectWakeUp(prefs: CarePrefs, waitForWatchMinutes: Long = 0): CareEvent? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
         if (!applicationContext.hasUsageStatsPermission()) {
             prefs.lastResult = "起床問候需要「使用情況存取」權限"
@@ -495,6 +540,8 @@ class CareWorker(
             }
         }
         val (sleptAt, wokeAt) = wake ?: return null
+        // 有手表时先等手表的睡眠资料同步过来
+        if (waitForWatchMinutes > 0 && nowMs - wokeAt < TimeUnit.MINUTES.toMillis(waitForWatchMinutes)) return null
         if (nowMs - wokeAt > TimeUnit.MINUTES.toMillis(CarePrefs.WAKE_MAX_DELAY_MINUTES)) {
             // 太晚才检查到，今天就不补问了
             prefs.wakeGreetedFor = today
@@ -646,7 +693,8 @@ class CareWorker(
         fun sync(context: Context) {
             val workManager = WorkManager.getInstance(context)
             if (CarePrefs(context).anyEnabled || hasAnniversaryReminders(context) ||
-                me.rerere.rikkahub.hoshio.together.TogetherEvents.hasReminders(context)
+                me.rerere.rikkahub.hoshio.together.TogetherEvents.hasReminders(context) ||
+                me.rerere.rikkahub.hoshio.health.HealthPrefs(context).heartAlertEnabled
             ) {
                 workManager.enqueueUniquePeriodicWork(
                     PERIODIC_WORK,

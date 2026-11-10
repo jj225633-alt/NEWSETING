@@ -73,6 +73,24 @@ private val SETTINGS = listOf(
     int("diary_write_hour", "hour after which you write the diary", 18..23, { it.diaryWriteHour }, { p, v -> p.diaryWriteHour = v }),
     bool("always_on", "always-on mode: check every 2 minutes with a persistent notification (more battery)", { it.alwaysOnEnabled }, { p, v -> p.alwaysOnEnabled = v }),
     SettingKey(
+        "watch_wake", "use her watch's sleep data to detect waking up (true/false)",
+        { _, c -> me.rerere.rikkahub.hoshio.health.HealthPrefs(c).watchWakeEnabled.toString() },
+        { _, c, v -> me.rerere.rikkahub.hoshio.health.HealthPrefs(c).watchWakeEnabled = v.lowercase() in listOf("true", "on", "1"); null },
+    ),
+    SettingKey(
+        "heart_alert", "check on her when her heart rate stays high while not exercising (true/false)",
+        { _, c -> me.rerere.rikkahub.hoshio.health.HealthPrefs(c).heartAlertEnabled.toString() },
+        { _, c, v -> me.rerere.rikkahub.hoshio.health.HealthPrefs(c).heartAlertEnabled = v.lowercase() in listOf("true", "on", "1"); null },
+    ),
+    SettingKey(
+        "heart_alert_bpm", "heart rate threshold for heart_alert (80-200)",
+        { _, c -> me.rerere.rikkahub.hoshio.health.HealthPrefs(c).heartAlertBpm.toString() },
+        { _, c, v ->
+            val n = v.trim().toIntOrNull()
+            if (n == null || n !in 80..200) "value must be 80-200" else { me.rerere.rikkahub.hoshio.health.HealthPrefs(c).heartAlertBpm = n; null }
+        },
+    ),
+    SettingKey(
         "anniversary_reminder", "remind you on saved anniversaries (true/false)",
         { _, c -> AnniversaryStore.remindEnabled(c).toString() },
         { _, c, v -> AnniversaryStore.setRemindEnabled(c, v.lowercase() in listOf("true", "on", "1")); null },

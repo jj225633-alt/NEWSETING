@@ -38,7 +38,19 @@
     android:name="android.hardware.location.gps"
     android:required="false" />
 
+  <!-- 星汐: 读取 Pixel Watch / Fitbit 同步到 Health Connect 的资料 -->
+  <uses-permission android:name="android.permission.health.READ_SLEEP" />
+  <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+  <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
+  <uses-permission android:name="android.permission.health.READ_HEART_RATE_VARIABILITY" />
+  <uses-permission android:name="android.permission.health.READ_RESPIRATORY_RATE" />
+  <uses-permission android:name="android.permission.health.READ_STEPS" />
+  <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+  <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+  <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
+
   <queries>
+    <package android:name="com.google.android.apps.healthdata" />
     <intent>
       <action android:name="android.intent.action.TTS_SERVICE" />
     </intent>
@@ -191,6 +203,25 @@
         android:resource="@xml/hoshio_accessibility" />
     </service>
     <!-- 星汐: 常驻模式，让主动关心每几分钟检查一次 -->
+    <!-- 星汐: Health Connect 要求的隐私说明页 -->
+    <activity
+      android:name=".hoshio.health.HealthPrivacyActivity"
+      android:exported="true"
+      android:theme="@android:style/Theme.DeviceDefault.Dialog">
+      <intent-filter>
+        <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+      </intent-filter>
+    </activity>
+    <activity-alias
+      android:name="ViewPermissionUsageActivity"
+      android:exported="true"
+      android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+      android:targetActivity=".hoshio.health.HealthPrivacyActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+        <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+      </intent-filter>
+    </activity-alias>
     <service
       android:name=".hoshio.screen.WatchTogetherService"
       android:exported="false"

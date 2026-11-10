@@ -55,17 +55,15 @@ internal fun HoshioFreeTimeSection(assistant: Assistant) {
                     Text("一直沒回的話，之後每隔同樣時間最多再探索一次。要用搜尋或 MCP，記得在聊天頁打開它們；需要你核准的 MCP 工具，他自己用不了")
                 },
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(60, 120, 180, 360).forEach { minutes ->
-                        FilterChip(
-                            selected = idle == minutes,
-                            onClick = {
-                                idle = minutes
-                                prefs.freeTimeIdleMinutes = minutes
-                            },
-                            label = { Text("${minutes / 60} 小時") },
-                        )
-                    }
+                me.rerere.rikkahub.ui.pages.hoshio.NumberChoiceChips(
+                    options = listOf(60, 120, 180, 360),
+                    selected = idle,
+                    label = { m -> if (m < 60 || m % 60 != 0) "$m 分鐘" else "${m / 60} 小時" },
+                    range = 15..1440,
+                    unit = "分鐘",
+                ) {
+                    idle = it
+                    prefs.freeTimeIdleMinutes = it
                 }
             }
         }

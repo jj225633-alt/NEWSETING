@@ -1400,6 +1400,8 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="assistant_page_local_tools_play_desc">海龟汤和一起养的宠物</string>
   <string name="assistant_page_local_tools_together_title">我们的生活</string>
   <string name="assistant_page_local_tools_together_desc">生活照顾、心情月历、回忆相簿、时光胶囊和我们的约定</string>
+  <string name="assistant_page_local_tools_health_title">她的健康</string>
+  <string name="assistant_page_local_tools_health_desc">透过 Health Connect 读取手表的睡眠、心率和活动</string>
   <string name="chat_message_tool_chart_display">显示图表</string>
   <string name="chat_message_tool_chart_display_with_title">显示图表：%1$s</string>
   <string name="error_fast_model_not_found">未找到快速模型。请在设置中选择一个。</string>

@@ -1399,6 +1399,8 @@
   <string name="assistant_page_local_tools_play_desc">Turtle soup puzzles and a pet you raise together</string>
   <string name="assistant_page_local_tools_together_title">Our life</string>
   <string name="assistant_page_local_tools_together_desc">Care routines, mood calendar, memory album, time capsules and promises</string>
+  <string name="assistant_page_local_tools_health_title">Her health</string>
+  <string name="assistant_page_local_tools_health_desc">Read sleep, heart rate and activity from her watch via Health Connect</string>
   <string name="chat_message_tool_chart_display">Display chart</string>
   <string name="chat_message_tool_chart_display_with_title">Display chart: %1$s</string>
   <string name="error_fast_model_not_found">Fast model not found. Please select one in settings.</string>

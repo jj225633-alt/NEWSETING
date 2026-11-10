@@ -155,15 +155,13 @@ fun DiaryPage() {
                             )
                         }
                         if (diaryEnabled) {
-                            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf(20, 21, 22, 23).forEach { hour ->
-                                    androidx.compose.material3.FilterChip(
-                                        selected = diaryHour == hour,
-                                        onClick = { diaryHour = hour; prefs.diaryWriteHour = hour },
-                                        label = { Text("$hour:00 後寫") },
-                                    )
-                                }
-                            }
+                            NumberChoiceChips(
+                                options = listOf(20, 21, 22, 23),
+                                selected = diaryHour,
+                                label = { "$it:00 後寫" },
+                                range = 12..23,
+                                unit = "點",
+                            ) { diaryHour = it; prefs.diaryWriteHour = it }
                         }
                         TextButton(onClick = {
                             CareWorker.writeDiaryNow(context)

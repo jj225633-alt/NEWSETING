@@ -148,6 +148,7 @@ fun HomePage() {
         HomeLink("diary", "日記與心情", "每天的日記和心情打卡", HugeIcons.Book01, SECTION_US) { Screen.Diary },
         HomeLink("playhub", "一起玩", "看螢幕、下棋、海龜湯、每日一問、寵物", HugeIcons.Puzzle, SECTION_US) { Screen.PlayHub },
         HomeLink("memories", "我們的回憶", "相簿、約定、紀念日、時光膠囊", HugeIcons.Calendar03, SECTION_US) { Screen.MemoriesHub },
+        HomeLink("health", "手錶與健康", "睡眠、心率、步數", HugeIcons.Favourite, SECTION_US) { Screen.Health },
         HomeLink("library", "書房", "一起讀書、寫批註", HugeIcons.Book02, SECTION_US) { Screen.Library },
         HomeLink("sleep", "晚安", "要睡了就來這裡，他會安靜陪你", HugeIcons.Moon02, SECTION_HIM) { Screen.Sleep },
         HomeLink("routine", "生活照顧", "喝水、吃飯、吃藥提醒", HugeIcons.Clock01, SECTION_US) { Screen.Routine },
