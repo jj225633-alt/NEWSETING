@@ -124,4 +124,14 @@ internal fun buildLifeTools(context: Context): List<Tool> = listOf(
             }.toString()))
         }
     ),
+    Tool(
+        name = "hoshio_self_check",
+        description = """
+            Check the app's permissions and settings (notifications, battery, location, usage access, accessibility,
+            notification access, backup), which proactive-care features are on, and your recent wake-ups.
+            Use it when she asks why something does not work (e.g. no arrival message, no good-morning), then explain simply how to fix it.
+        """.trimIndent().replace("\n", " "),
+        parameters = { InputSchema.Obj(properties = buildJsonObject { }) },
+        execute = { listOf(UIMessagePart.Text(me.rerere.rikkahub.hoshio.SelfCheck.summary(context))) }
+    ),
 )

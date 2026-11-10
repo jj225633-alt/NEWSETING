@@ -457,6 +457,10 @@ class RouteActivity : ComponentActivity() {
                                 me.rerere.rikkahub.ui.pages.hoshio.HoshioLifePage()
                             }
 
+                            entry<Screen.SelfCheck> {
+                                me.rerere.rikkahub.ui.pages.hoshio.SelfCheckPage()
+                            }
+
 
                             entry<Screen.MediaCreationSessions> {
                                 MediaCreationSessionsPage()
@@ -759,6 +763,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object HoshioLife : Screen
+
+    @Serializable
+    data object SelfCheck : Screen
 
 
     @Serializable

@@ -34,6 +34,9 @@ class NotificationConfig {
 
     // 默认通知效果
     var useDefaults: Boolean = false
+
+    // 星汐: 额外的按钮（例如直接回复）
+    var actions: List<NotificationCompat.Action> = emptyList()
 }
 
 object NotificationUtil {
@@ -103,6 +106,8 @@ object NotificationUtil {
             if (config.useDefaults) {
                 setDefaults(NotificationCompat.DEFAULT_ALL)
             }
+
+            config.actions.forEach { addAction(it) }
 
             // Android 15+ Live Update 支持
             if (config.requestPromotedOngoing && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {

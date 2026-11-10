@@ -157,6 +157,10 @@
         <action android:name="android.service.notification.NotificationListenerService" />
       </intent-filter>
     </service>
+    <!-- 星汐: 通知直接回复 -->
+    <receiver
+      android:name=".hoshio.notify.QuickReplyReceiver"
+      android:exported="false" />
     <!-- 星汐: 应用锁的通知「解除」 -->
     <receiver
       android:name=".hoshio.screen.AppLockUnlockReceiver"

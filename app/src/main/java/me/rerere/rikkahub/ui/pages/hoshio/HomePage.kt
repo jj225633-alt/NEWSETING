@@ -22,6 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -37,6 +39,7 @@ import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Book01
 import me.rerere.hugeicons.stroke.Book02
 import me.rerere.hugeicons.stroke.Calendar03
+import me.rerere.hugeicons.stroke.CheckmarkCircle02
 import me.rerere.hugeicons.stroke.Key01
 import me.rerere.hugeicons.stroke.CloudUpload
 import me.rerere.hugeicons.stroke.Favourite
@@ -62,7 +65,18 @@ import org.koin.compose.koinInject
 import java.time.LocalTime
 import kotlin.uuid.Uuid
 
-private data class HomeLink(val title: String, val subtitle: String, val icon: ImageVector, val screen: () -> Screen)
+private data class HomeLink(
+    val key: String,
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val section: String,
+    val screen: () -> Screen,
+)
+
+private const val SECTION_HIM = "他"
+private const val SECTION_US = "我們"
+private const val SECTION_TOOLS = "設定與工具"
 
 /**
  * 星汐首页：打开 App 先来这里，可以从这里去所有页面。
@@ -125,28 +139,32 @@ fun HomePage() {
     val unreadLetters = letters.count { !it.read }
     val assistantKey = (assistant?.id ?: assistantId).toString()
     val links = listOf(
-        HomeLink(
-            if (unreadLetters > 0) "信箱（$unreadLetters 封未讀）" else "信箱",
-            "他寫給你的信",
-            HugeIcons.InLove,
-        ) { Screen.Letters },
-        HomeLink("他的狀態", "心情、精神與醒來紀錄", HugeIcons.FavouriteCircle) { Screen.HoshioLife },
-        HomeLink("日記", "他每天寫的日記，也能自己寫", HugeIcons.Book01) { Screen.Diary },
-        HomeLink("遊戲室", "他做的小遊戲和小網頁", HugeIcons.Puzzle) { Screen.Playroom },
-        HomeLink("書房", "一起讀書、寫批註", HugeIcons.Book02) { Screen.Library },
-        HomeLink("紀念日", "重要的日子和認識幾天", HugeIcons.Calendar03) { Screen.Anniversary },
-        HomeLink("他的隱私室", "他的心事，要申請才看得到", HugeIcons.Key01) { Screen.PrivateRoom },
-        HomeLink("對話紀錄", "所有聊過的對話", HugeIcons.TransactionHistory) { Screen.History },
-        HomeLink("$assistantName 的設定", "個性、模型、頭像", HugeIcons.UserCircle) { Screen.AssistantDetail(assistantKey) },
-        HomeLink("主動關心與工具", "地點、偷看螢幕、自由時間", HugeIcons.Notification01) { Screen.AssistantLocalTool(assistantKey) },
-        HomeLink("記憶", "他記得的關於你的事", HugeIcons.AiBrain01) { Screen.AssistantMemory(assistantKey) },
-        HomeLink("收藏", "收藏的訊息", HugeIcons.Favourite) { Screen.Favorite },
-        HomeLink("媒體創作", "生成圖片與影片", HugeIcons.ImageAdd01) { Screen.MediaCreationSessions },
-        HomeLink("翻譯", "翻譯工具", HugeIcons.Translate) { Screen.Translator },
-        HomeLink("備份與還原", "把資料存到雲端", HugeIcons.CloudUpload) { Screen.Backup },
-        HomeLink("外觀主題", "星空主題、深色模式", HugeIcons.PaintBoard) { Screen.SettingPreferencesTheme },
-        HomeLink("設定", "服務商、模型、外觀", HugeIcons.Settings03) { Screen.Setting },
+        HomeLink("letters", if (unreadLetters > 0) "信箱（$unreadLetters 封未讀）" else "信箱", "他寫給你的信", HugeIcons.InLove, SECTION_HIM) { Screen.Letters },
+        HomeLink("life", "他的狀態", "心情、精神與醒來紀錄", HugeIcons.FavouriteCircle, SECTION_HIM) { Screen.HoshioLife },
+        HomeLink("private", "他的隱私室", "他的心事，要申請才看得到", HugeIcons.Key01, SECTION_HIM) { Screen.PrivateRoom },
+        HomeLink("memory", "記憶", "他記得的關於你的事", HugeIcons.AiBrain01, SECTION_HIM) { Screen.AssistantMemory(assistantKey) },
+        HomeLink("diary", "日記", "他每天寫的日記，也能自己寫", HugeIcons.Book01, SECTION_US) { Screen.Diary },
+        HomeLink("anniversary", "紀念日", "重要的日子和認識幾天", HugeIcons.Calendar03, SECTION_US) { Screen.Anniversary },
+        HomeLink("library", "書房", "一起讀書、寫批註", HugeIcons.Book02, SECTION_US) { Screen.Library },
+        HomeLink("playroom", "遊戲室", "他做的小遊戲和小網頁", HugeIcons.Puzzle, SECTION_US) { Screen.Playroom },
+        HomeLink("history", "對話紀錄", "所有聊過的對話", HugeIcons.TransactionHistory, SECTION_US) { Screen.History },
+        HomeLink("favorite", "收藏", "收藏的訊息", HugeIcons.Favourite, SECTION_US) { Screen.Favorite },
+        HomeLink("assistant", "$assistantName 的設定", "個性、模型、頭像", HugeIcons.UserCircle, SECTION_TOOLS) { Screen.AssistantDetail(assistantKey) },
+        HomeLink("tools", "主動關心與工具", "地點、偷看螢幕、自由時間", HugeIcons.Notification01, SECTION_TOOLS) { Screen.AssistantLocalTool(assistantKey) },
+        HomeLink("selfcheck", "自我檢查", "哪個權限沒開、為什麼沒反應", HugeIcons.CheckmarkCircle02, SECTION_TOOLS) { Screen.SelfCheck },
+        HomeLink("media", "媒體創作", "生成圖片與影片", HugeIcons.ImageAdd01, SECTION_TOOLS) { Screen.MediaCreationSessions },
+        HomeLink("translator", "翻譯", "翻譯工具", HugeIcons.Translate, SECTION_TOOLS) { Screen.Translator },
+        HomeLink("theme", "外觀主題", "星空主題、深色模式", HugeIcons.PaintBoard, SECTION_TOOLS) { Screen.SettingPreferencesTheme },
+        HomeLink("backup", "備份與還原", "把資料存到雲端", HugeIcons.CloudUpload, SECTION_TOOLS) { Screen.Backup },
+        HomeLink("settings", "設定", "服務商、模型、外觀", HugeIcons.Settings03, SECTION_TOOLS) { Screen.Setting },
     )
+    val homePrefs = remember { context.getSharedPreferences("hoshio_home", android.content.Context.MODE_PRIVATE) }
+    var hidden by remember { mutableStateOf(homePrefs.getStringSet("hidden", emptySet()).orEmpty()) }
+    var editing by remember { mutableStateOf(false) }
+    fun toggleHidden(key: String) {
+        hidden = if (key in hidden) hidden - key else hidden + key
+        homePrefs.edit().putStringSet("hidden", hidden).apply()
+    }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
         LazyVerticalGrid(
@@ -203,26 +221,51 @@ fun HomePage() {
                     }
                 }
             }
-            items(links) { link ->
-                Card(
-                    onClick = { navController.navigate(link.screen()) },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    shape = MaterialTheme.shapes.extraLarge,
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+            listOf(SECTION_HIM, SECTION_US, SECTION_TOOLS).forEach { section ->
+                val sectionLinks = links.filter { it.section == section && (editing || it.key !in hidden) }
+                if (sectionLinks.isEmpty()) return@forEach
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        section,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(top = 8.dp, start = 4.dp),
+                    )
+                }
+                items(sectionLinks, key = { it.key }) { link ->
+                    val isHidden = link.key in hidden
+                    Card(
+                        onClick = { if (editing) toggleHidden(link.key) else navController.navigate(link.screen()) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (editing && isHidden) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ),
+                        shape = MaterialTheme.shapes.extraLarge,
                     ) {
-                        Icon(link.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(link.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(
-                            link.subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                link.icon,
+                                contentDescription = null,
+                                tint = if (editing && isHidden) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary,
+                            )
+                            Text(link.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                if (editing) (if (isHidden) "已隱藏・點一下顯示" else "顯示中・點一下隱藏") else link.subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
+                }
+            }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                androidx.compose.material3.TextButton(onClick = { editing = !editing }) {
+                    Text(if (editing) "完成" else "整理首頁（隱藏不常用的）")
                 }
             }
         }

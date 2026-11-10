@@ -107,7 +107,10 @@ class ChatNotificationManager(
             autoCancel = true
             useDefaults = true
             category = NotificationCompat.CATEGORY_MESSAGE
+            useBigTextStyle = true
             contentIntent = getPendingIntent(context, conversationId)
+            // 星汐: 通知上直接回复
+            actions = listOf(me.rerere.rikkahub.hoshio.notify.QuickReply.action(context, conversationId.toString(), 1))
         }
     }
 

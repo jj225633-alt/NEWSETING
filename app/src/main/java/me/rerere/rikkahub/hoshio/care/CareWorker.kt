@@ -57,6 +57,7 @@ private const val TEST_WORK = "hoshio_care_test"
 private const val TICK_WORK = "hoshio_care_tick"
 private const val KEY_TEST = "test"
 private const val KEY_DIARY_NOW = "diary_now"
+private const val KEY_AWAIT_REPLY = "await_reply"
 private const val DIARY_WORK = "hoshio_diary_now"
 private const val CARE_NOTIFICATION_ID = 7301
 
@@ -87,6 +88,10 @@ class CareWorker(
 
     override suspend fun doWork(): Result {
         val prefs = CarePrefs(applicationContext)
+        inputData.getString(KEY_AWAIT_REPLY)?.let { id ->
+            awaitReplyAndNotify(id)
+            return Result.success()
+        }
         inputData.getString(SelfReminders.KEY_REMINDER_ID)?.let { id ->
             // 他自己约好的时间到了；被取消的就不做事
             val reminder = SelfReminders.take(applicationContext, id) ?: return Result.success()
@@ -574,6 +579,24 @@ class CareWorker(
         }
     }
 
+    /** 她从通知直接回复后：等他回好，再用通知告诉她 */
+    private suspend fun awaitReplyAndNotify(conversationIdText: String) {
+        val conversationId = runCatching { kotlin.uuid.Uuid.parse(conversationIdText) }.getOrNull() ?: return
+        val jobs = chatService.getGenerationJobStateFlow(conversationId)
+        withTimeoutOrNull(TimeUnit.MINUTES.toMillis(8)) {
+            withTimeoutOrNull(30_000) { jobs.filterNotNull().first() }
+            jobs.first { it == null }
+        }
+        val conversation = chatService.getConversation(conversationId) ?: return
+        val last = conversation.currentMessages.lastOrNull() ?: return
+        if (last.role != MessageRole.ASSISTANT) return
+        val reply = last.toText().trim()
+        if (reply.isEmpty()) return
+        val settings = settingsStore.awaitLoaded()
+        val name = settings.assistants.firstOrNull { it.id == conversation.assistantId }?.name?.ifBlank { null } ?: "時澈"
+        notify(name, reply, conversationIdText)
+    }
+
     private fun notify(title: String, content: String, conversationId: String?) {
         // 星汐: 他主动说的话也显示在桌面小工具
         if (conversationId != null) me.rerere.rikkahub.hoshio.widget.HoshioWidget.update(applicationContext, title, content)
@@ -589,6 +612,9 @@ class CareWorker(
             useDefaults = true
             useBigTextStyle = true
             category = NotificationCompat.CATEGORY_MESSAGE
+            if (conversationId != null) {
+                actions = listOf(me.rerere.rikkahub.hoshio.notify.QuickReply.action(applicationContext, conversationId, CARE_NOTIFICATION_ID))
+            }
             contentIntent = intent?.let {
                 PendingIntent.getActivity(
                     applicationContext,
@@ -614,6 +640,17 @@ class CareWorker(
                 workManager.cancelUniqueWork(PERIODIC_WORK)
             }
             CareForegroundService.sync(context)
+        }
+
+        /** 通知直接回复后，在背景等他回覆再通知 */
+        fun awaitReply(context: Context, conversationId: String) {
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "hoshio_await_reply_$conversationId",
+                ExistingWorkPolicy.REPLACE,
+                OneTimeWorkRequestBuilder<CareWorker>()
+                    .setInputData(workDataOf(KEY_AWAIT_REPLY to conversationId))
+                    .build(),
+            )
         }
 
         /** 马上让他写今天的日记 */
