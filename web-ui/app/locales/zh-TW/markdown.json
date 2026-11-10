@@ -1,0 +1,16 @@
+{
+  "code_block": {
+    "clipboard_not_available": "剪貼簿不可用",
+    "copy_code": "複製程式碼",
+    "copied": "已複製",
+    "copy": "複製",
+    "preview_code": "預覽程式碼",
+    "preview": "預覽",
+    "window_not_available": "視窗物件不可用",
+    "download_code": "下載程式碼",
+    "download": "下載"
+  },
+  "markdown": {
+    "code_preview_title": "{{language}} 預覽"
+  }
+}

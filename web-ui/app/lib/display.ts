@@ -4,7 +4,7 @@ export function getDisplayName(value: string | null | undefined, fallback: strin
 }
 
 export function getAssistantDisplayName(name: string | null | undefined): string {
-  return getDisplayName(name, "默认助手");
+  return getDisplayName(name, "預設助手");
 }
 
 export function getModelDisplayName(

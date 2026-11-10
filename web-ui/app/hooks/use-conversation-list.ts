@@ -215,7 +215,7 @@ export function useConversationList({
       })
       .catch((err: Error) => {
         if (!active || requestEpoch !== listRequestEpochRef.current) return;
-        setError(err.message || "加载会话失败");
+        setError(err.message || "載入對話失敗");
       })
       .finally(() => {
         if (!active || requestEpoch !== listRequestEpochRef.current) return;

@@ -719,7 +719,7 @@ function ChatInputInner({
               />
               <ReasoningPickerButton disabled={!canSwitchModel} conversation={conversation} />
               <Button
-                aria-label={canStop ? "停止生成" : "发送消息"}
+                aria-label={canStop ? "停止生成" : "傳送訊息"}
                 title={sendHint}
                 onClick={() => {
                   void handlePrimaryAction();

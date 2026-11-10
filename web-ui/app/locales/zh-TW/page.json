@@ -1,0 +1,38 @@
+{
+  "conversations": {
+    "meta": {
+      "title": "星汐 Hoshio",
+      "description": "星汐網頁客戶端"
+    },
+    "preview": {
+      "empty_message": "空訊息",
+      "image": "[圖片]",
+      "video": "[影片]",
+      "audio": "[音訊]",
+      "document": "[文件]",
+      "document_with_name": "[文件] {{name}}",
+      "thinking": "[思考]",
+      "tool_call": "[工具呼叫]",
+      "tool_with_name": "[工具] {{name}}"
+    },
+    "errors": {
+      "load_detail_failed": "載入會話詳情失敗"
+    },
+    "empty_state": {
+      "select_title": "請選擇會話",
+      "select_description": "選擇左側會話以檢視訊息",
+      "loading_title": "載入中...",
+      "loading_description": "正在載入會話詳情",
+      "error_title": "載入失敗",
+      "no_message_title": "暫無訊息",
+      "no_message_description": "當前會話還沒有訊息"
+    },
+    "welcome_prompt": "有什麼可以幫助你的？",
+    "user": {
+      "default_name": "使用者"
+    },
+    "header": {
+      "select_conversation": "請選擇會話"
+    }
+  }
+}

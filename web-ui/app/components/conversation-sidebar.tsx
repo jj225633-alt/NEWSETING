@@ -139,6 +139,7 @@ const COLOR_THEME_OPTIONS: Array<{
 ];
 
 const LANGUAGE_OPTIONS = [
+  { value: "zh-TW", label: "🇹🇼 繁體中文" },
   { value: "zh-CN", label: "简体中文" },
   { value: "en-US", label: "English" },
 ] as const;
@@ -563,7 +564,8 @@ const ConversationListRow = React.memo(
 );
 
 function resolveLanguage(language: string): (typeof LANGUAGE_OPTIONS)[number]["value"] {
-  return language.startsWith("zh") ? "zh-CN" : "en-US";
+  if (language === "zh-CN") return "zh-CN";
+  return language.startsWith("zh") ? "zh-TW" : "en-US";
 }
 
 function LanguageSwitcher() {
