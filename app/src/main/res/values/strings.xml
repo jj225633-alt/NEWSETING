@@ -1397,6 +1397,8 @@
   <string name="assistant_page_local_tools_life_desc">Give the AI its own mood and energy, let it choose to stay silent when woken up, and write you letters</string>
   <string name="assistant_page_local_tools_play_title">Play together</string>
   <string name="assistant_page_local_tools_play_desc">Turtle soup puzzles and a pet you raise together</string>
+  <string name="assistant_page_local_tools_together_title">Our life</string>
+  <string name="assistant_page_local_tools_together_desc">Care routines, mood calendar, memory album, time capsules and promises</string>
   <string name="chat_message_tool_chart_display">Display chart</string>
   <string name="chat_message_tool_chart_display_with_title">Display chart: %1$s</string>
   <string name="error_fast_model_not_found">Fast model not found. Please select one in settings.</string>

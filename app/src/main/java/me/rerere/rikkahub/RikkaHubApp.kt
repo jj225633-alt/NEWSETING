@@ -270,7 +270,7 @@ class RikkaHubApp : Application() {
         }
 
         // 星汐: 升级时帮時澈打开「一起玩」（只做一次）
-        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_tools_v7_play")) {
+        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_tools_v8_together")) {
             get<AppScope>().launch(Dispatchers.IO) {
                 runCatching {
                     val store = get<me.rerere.rikkahub.data.datastore.SettingsStore>()
@@ -278,7 +278,7 @@ class RikkaHubApp : Application() {
                     store.update { settings ->
                         settings.copy(assistants = settings.assistants.map {
                             if (it.id == me.rerere.rikkahub.data.datastore.HOSHIO_ASSISTANT_ID) {
-                                it.copy(localTools = (it.localTools + me.rerere.rikkahub.data.ai.tools.local.LocalToolOption.Play).distinct())
+                                it.copy(localTools = (it.localTools + me.rerere.rikkahub.data.ai.tools.local.LocalToolOption.Play + me.rerere.rikkahub.data.ai.tools.local.LocalToolOption.Together).distinct())
                             } else {
                                 it
                             }

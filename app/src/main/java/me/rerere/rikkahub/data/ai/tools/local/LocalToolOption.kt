@@ -106,4 +106,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("play")
     data object Play : LocalToolOption()
+
+    // 星汐: 我们的生活（生活照顾、心情月历、相簿、时光胶囊、约定）
+    @Serializable
+    @SerialName("together")
+    data object Together : LocalToolOption()
 }

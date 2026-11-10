@@ -116,6 +116,7 @@ internal val DEFAULT_ASSISTANTS = listOf(
             LocalToolOption.Music,
             LocalToolOption.Life,
             LocalToolOption.Play,
+            LocalToolOption.Together,
         ),
     ),
     Assistant(

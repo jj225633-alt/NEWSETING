@@ -70,7 +70,7 @@ private fun Long.playFmt() = Instant.ofEpochMilli(this).atZone(ZoneId.systemDefa
 
 /** 放一则提示给他，然后跳到聊天室 */
 @Composable
-private fun rememberCallHim(): (String, String) -> Unit {
+internal fun rememberCallHim(): (String, String) -> Unit {
     val scope = rememberCoroutineScope()
     val navController = LocalNavController.current
     val toaster = LocalToaster.current
@@ -87,7 +87,7 @@ private fun rememberCallHim(): (String, String) -> Unit {
 }
 
 @Composable
-private fun PlayScaffold(title: String, content: @Composable (PaddingValues) -> Unit) {
+internal fun PlayScaffold(title: String, content: @Composable (PaddingValues) -> Unit) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(title) }, navigationIcon = { BackButton() }, colors = CustomColors.topBarColors) },
         containerColor = CustomColors.topBarColors.containerColor,

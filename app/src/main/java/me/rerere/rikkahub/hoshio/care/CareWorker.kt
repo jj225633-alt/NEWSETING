@@ -126,7 +126,8 @@ class CareWorker(
                 )
             )
         } else {
-            if (!prefs.anyEnabled && !hasAnniversaryReminders(applicationContext)) return Result.success()
+            val together = me.rerere.rikkahub.hoshio.together.TogetherEvents.hasReminders(applicationContext)
+            if (!prefs.anyEnabled && !hasAnniversaryReminders(applicationContext) && !together) return Result.success()
             detectEvents(prefs)
         }
         for (event in events) {
@@ -229,12 +230,26 @@ class CareWorker(
                 prefs.nightScreenOnSince = 0L
             }
         }
+        // 星汐: 晚安模式中只等起床问候，其他都不吵她
+        if (me.rerere.rikkahub.hoshio.together.SleepMode.isOn(applicationContext)) {
+            events.clear()
+            if (prefs.wakeUpEnabled) {
+                detectWakeUp(prefs)?.let {
+                    events += it
+                    me.rerere.rikkahub.hoshio.together.SleepMode.stop(applicationContext)
+                }
+            }
+            return events
+        }
         if (prefs.wakeUpEnabled) detectWakeUp(prefs)?.let { events += it }
         if (prefs.placesEnabled) events += detectPlaces(prefs)
         if (prefs.screenObservationEnabled) detectScreenObservation(prefs)?.let { events += it }
         if (prefs.freeTimeEnabled) detectFreeTime(prefs)?.let { events += it }
         if (prefs.bedtimeEnabled) detectBedtime(prefs)?.let { events += it }
         detectAnniversary()?.let { events += it }
+        me.rerere.rikkahub.hoshio.together.TogetherEvents.detect(applicationContext).forEach {
+            events += CareEvent(key = it.key, title = it.title, text = it.text)
+        }
         return events
     }
 
@@ -630,7 +645,9 @@ class CareWorker(
         /** 依目前设定开启或关闭每 15 分钟的检查 */
         fun sync(context: Context) {
             val workManager = WorkManager.getInstance(context)
-            if (CarePrefs(context).anyEnabled || hasAnniversaryReminders(context)) {
+            if (CarePrefs(context).anyEnabled || hasAnniversaryReminders(context) ||
+                me.rerere.rikkahub.hoshio.together.TogetherEvents.hasReminders(context)
+            ) {
                 workManager.enqueueUniquePeriodicWork(
                     PERIODIC_WORK,
                     ExistingPeriodicWorkPolicy.KEEP,

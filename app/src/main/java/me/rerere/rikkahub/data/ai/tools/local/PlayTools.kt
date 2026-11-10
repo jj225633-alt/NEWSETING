@@ -15,6 +15,10 @@ import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.hoshio.play.PetStore
 import me.rerere.rikkahub.hoshio.play.TurtleSoup
 import me.rerere.rikkahub.hoshio.play.TurtleSoupStore
+import me.rerere.rikkahub.hoshio.together.BY_HIM
+import me.rerere.rikkahub.hoshio.together.BoardGameStore
+import me.rerere.rikkahub.hoshio.together.DailyQuestion
+import me.rerere.rikkahub.hoshio.together.DailyQuestionStore
 
 private fun str(description: String) = buildJsonObject {
     put("type", "string")
@@ -143,6 +147,110 @@ internal fun buildPlayTools(context: Context): List<Tool> = listOf(
                     "pet" to PetStore.describe(context),
                     "recent_care" to result.log.take(5).joinToString("; ") { "${if (it.by == PetStore.BY_HIM) "you" else "her"}: ${it.text}" },
                 )
+            }
+        }
+    ),
+    Tool(
+        name = "board_game",
+        description = """
+            Board games with her in the app: 圈圈叉叉 (3x3, three in a row) or 五子棋 (11x11, five in a row). She is X, you are O.
+            action=status shows the board (columns A.., rows 1..). action=move with square like "C4" when it is your turn,
+            plus a short in-character comment (teasing, praising, pretending to be nervous...). Play to win but have fun.
+        """.trimIndent().replace("\n", " "),
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("action", enumOf("What to do", "status", "move"))
+                    put("square", str("move: e.g. B2"))
+                    put("comment", str("move: one short line she will see next to the board"))
+                },
+                required = listOf("action"),
+            )
+        },
+        execute = { args ->
+            val obj = args.jsonObject
+            fun arg(k: String) = obj[k]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+            val game = BoardGameStore.load(context)
+            if (game == null) {
+                text("status" to "No game in progress. She can start one on the home page (下棋).")
+            } else if (arg("action") == "move") {
+                val index = BoardGameStore.parseCoord(game, arg("square"))
+                if (index == null) {
+                    text("error" to "Invalid square", "board" to game.ascii())
+                } else {
+                    BoardGameStore.move(context, "him", index, arg("comment")).fold(
+                        onSuccess = { g ->
+                            text(
+                                "board" to g.ascii(),
+                                "result" to when (g.winner) { "him" -> "You won!"; "her" -> "She won"; "draw" -> "Draw"; else -> "Her turn now" },
+                            )
+                        },
+                        onFailure = { text("error" to (it.message ?: "Invalid move"), "board" to game.ascii()) },
+                    )
+                }
+            } else {
+                text(
+                    "game" to game.name,
+                    "board" to game.ascii(),
+                    "turn" to if (game.turn == "him") "yours" else "hers",
+                    "her_last_move" to game.lastMove?.takeIf { game.turn == "him" }?.let { game.coord(it) },
+                    "winner" to game.winner,
+                )
+            }
+        }
+    ),
+    Tool(
+        name = "daily_question",
+        description = """
+            每日一問: one question a day between you two, both of you answer. action=status shows today's question and answers
+            (her answer is hidden from you until you have answered too). action=ask sets today's question when there is none (something you genuinely
+            want to know about her, light or deep). action=answer gives your answer to today's question. action=history shows past ones.
+        """.trimIndent().replace("\n", " "),
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("action", enumOf("What to do", "status", "ask", "answer", "history"))
+                    put("text", str("ask: the question / answer: your answer"))
+                },
+                required = listOf("action"),
+            )
+        },
+        execute = { args ->
+            val obj = args.jsonObject
+            val input = obj["text"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+            val today = java.time.LocalDate.now().toString()
+            val current = DailyQuestionStore.load(context).firstOrNull { it.date == today }
+            when (obj["action"]?.jsonPrimitive?.contentOrNull) {
+                "ask" -> when {
+                    current != null -> text("error" to "Today already has a question: ${current.question}")
+                    input.isEmpty() -> text("error" to "text is required")
+                    else -> {
+                        DailyQuestionStore.update(context) { listOf(DailyQuestion(asker = BY_HIM, question = input.take(200))) + it }
+                        text("ok" to "Question set. Ask her in chat too, and answer it yourself with action=answer.")
+                    }
+                }
+
+                "answer" -> if (current == null || input.isEmpty()) {
+                    text("error" to "No question today or empty answer")
+                } else {
+                    DailyQuestionStore.update(context) { list -> list.map { if (it.id == current.id) it.copy(hisAnswer = input.take(1000)) else it } }
+                    text("ok" to "Answered", "her_answer" to current.herAnswer.ifBlank { "(she has not answered yet)" })
+                }
+
+                "history" -> text("history" to DailyQuestionStore.load(context).take(15).joinToString("\n") {
+                    "${it.date} Q: ${it.question} | her: ${it.herAnswer.ifBlank { "-" }} | you: ${it.hisAnswer.ifBlank { "-" }}"
+                })
+
+                else -> if (current == null) {
+                    text("status" to "No question today yet. You may ask one.")
+                } else {
+                    text(
+                        "question" to current.question,
+                        "asked_by" to if (current.asker == BY_HIM) "you" else "her",
+                        "your_answer" to current.hisAnswer.ifBlank { "(not yet)" },
+                        "her_answer" to if (current.hisAnswer.isBlank()) "(hidden until you answer)" else current.herAnswer.ifBlank { "(not yet)" },
+                    )
+                }
             }
         }
     ),

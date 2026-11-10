@@ -58,6 +58,8 @@ class LocalTools(
 
     val playTools by lazy { buildPlayTools(context) }
 
+    val togetherTools by lazy { buildTogetherTools(context) }
+
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -126,6 +128,9 @@ class LocalTools(
         }
         if (options.contains(LocalToolOption.Play)) {
             tools.addAll(playTools)
+        }
+        if (options.contains(LocalToolOption.Together)) {
+            tools.addAll(togetherTools)
         }
         return tools
     }

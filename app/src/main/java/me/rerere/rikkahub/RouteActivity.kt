@@ -469,6 +469,30 @@ class RouteActivity : ComponentActivity() {
                             entry<Screen.WatchTogether> {
                                 me.rerere.rikkahub.ui.pages.hoshio.WatchTogetherPage()
                             }
+                            entry<Screen.Routine> {
+                                me.rerere.rikkahub.ui.pages.hoshio.RoutinePage()
+                            }
+                            entry<Screen.MoodCalendar> {
+                                me.rerere.rikkahub.ui.pages.hoshio.MoodCalendarPage()
+                            }
+                            entry<Screen.Album> {
+                                me.rerere.rikkahub.ui.pages.hoshio.AlbumPage()
+                            }
+                            entry<Screen.Capsule> {
+                                me.rerere.rikkahub.ui.pages.hoshio.CapsulePage()
+                            }
+                            entry<Screen.Promises> {
+                                me.rerere.rikkahub.ui.pages.hoshio.PromisePage()
+                            }
+                            entry<Screen.Sleep> {
+                                me.rerere.rikkahub.ui.pages.hoshio.SleepPage()
+                            }
+                            entry<Screen.BoardGame> {
+                                me.rerere.rikkahub.ui.pages.hoshio.BoardGamePage()
+                            }
+                            entry<Screen.DailyQuestion> {
+                                me.rerere.rikkahub.ui.pages.hoshio.DailyQuestionPage()
+                            }
 
 
                             entry<Screen.MediaCreationSessions> {
@@ -784,6 +808,30 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object WatchTogether : Screen
+
+    @Serializable
+    data object Routine : Screen
+
+    @Serializable
+    data object MoodCalendar : Screen
+
+    @Serializable
+    data object Album : Screen
+
+    @Serializable
+    data object Capsule : Screen
+
+    @Serializable
+    data object Promises : Screen
+
+    @Serializable
+    data object Sleep : Screen
+
+    @Serializable
+    data object BoardGame : Screen
+
+    @Serializable
+    data object DailyQuestion : Screen
 
 
     @Serializable

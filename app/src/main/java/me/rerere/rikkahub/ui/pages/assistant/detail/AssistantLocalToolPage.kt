@@ -339,6 +339,12 @@ private fun AssistantLocalToolContent(
                 description = R.string.assistant_page_local_tools_play_desc,
             )
             toolItem(
+                option = LocalToolOption.Together,
+                icon = HugeIcons.FavouriteCircle,
+                title = R.string.assistant_page_local_tools_together_title,
+                description = R.string.assistant_page_local_tools_together_desc,
+            )
+            toolItem(
                 option = LocalToolOption.Location,
                 icon = HugeIcons.Route01,
                 title = R.string.assistant_page_local_tools_location_title,
