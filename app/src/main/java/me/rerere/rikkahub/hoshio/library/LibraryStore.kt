@@ -87,6 +87,26 @@ object LibraryStore {
     suspend fun get(context: Context, id: String): Book? = load(context).firstOrNull { it.id == id }
 
     /** 从档案汇入一本书 */
+    /** 汇入时自动转成繁体（台湾用字） */
+    fun convertOnImport(context: Context): Boolean =
+        context.getSharedPreferences("hoshio_library", Context.MODE_PRIVATE).getBoolean("convert_traditional", true)
+
+    fun setConvertOnImport(context: Context, value: Boolean) {
+        context.getSharedPreferences("hoshio_library", Context.MODE_PRIVATE).edit().putBoolean("convert_traditional", value).apply()
+    }
+
+    /** 把已经汇入的书转成繁体（书名与内容；批注不动） */
+    suspend fun convertToTraditional(context: Context, id: String) = withContext(Dispatchers.IO) {
+        val parts = runCatching { json.decodeFromString<List<String>>(partsFile(context, id).readText()) }.getOrNull()
+            ?: error("讀不到這本書")
+        val converted = parts.map { ChineseConverter.toTraditional(context, it) }
+        mutex.withLock {
+            ensureLoaded(context)
+            partsFile(context, id).writeText(json.encodeToString(converted))
+            saveIndex(context, _books.value.map { if (it.id == id) it.copy(title = ChineseConverter.toTraditional(context, it.title)) else it })
+        }
+    }
+
     suspend fun import(context: Context, uri: Uri, displayName: String): Book = withContext(Dispatchers.IO) {
         val ext = displayName.substringAfterLast('.', "").lowercase()
         val temp = File.createTempFile("book_", ".$ext", context.cacheDir)
@@ -100,11 +120,14 @@ object LibraryStore {
                 "txt", "md", "text" -> decodeText(temp.readBytes())
                 else -> error("不支援的格式：.$ext（可以用 TXT、EPUB、PDF、DOCX）")
             }
-            val parts = splitIntoParts(text)
+            val convert = convertOnImport(context)
+            val parts = splitIntoParts(if (convert) ChineseConverter.toTraditional(context, text) else text)
             require(parts.isNotEmpty()) { "這個檔案裡讀不到文字（可能有加密或是掃描圖片）" }
             mutex.withLock {
                 ensureLoaded(context)
-                val book = Book(title = displayName.substringBeforeLast('.').take(80), partCount = parts.size)
+                val rawTitle = displayName.substringBeforeLast('.').take(80)
+                val title = if (convert) ChineseConverter.toTraditional(context, rawTitle) else rawTitle
+                val book = Book(title = title, partCount = parts.size)
                 partsFile(context, book.id).writeText(json.encodeToString(parts))
                 saveIndex(context, _books.value + book)
                 book

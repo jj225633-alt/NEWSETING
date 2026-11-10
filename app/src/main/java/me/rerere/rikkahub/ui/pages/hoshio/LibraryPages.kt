@@ -68,6 +68,8 @@ fun LibraryPage() {
     val books by LibraryStore.books.collectAsState()
     var importing by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Book?>(null) }
+    var convertOnImport by remember { mutableStateOf(LibraryStore.convertOnImport(context)) }
+    var converting by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { LibraryStore.load(context) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -109,6 +111,20 @@ fun LibraryPage() {
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer), shape = MaterialTheme.shapes.extraLarge) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("匯入時轉成繁體", style = MaterialTheme.typography.titleMedium)
+                            Text("簡體書會自動轉成台灣用字的繁體（使用 OpenCC 辭典）", style = MaterialTheme.typography.bodySmall)
+                        }
+                        androidx.compose.material3.Switch(checked = convertOnImport, onCheckedChange = {
+                            LibraryStore.setConvertOnImport(context, it)
+                            convertOnImport = it
+                        })
+                    }
+                }
+            }
             items(books, key = { it.id }) { book ->
                 Card(
                     onClick = { navController.navigate(Screen.BookReader(book.id)) },
@@ -127,7 +143,21 @@ fun LibraryPage() {
                                 color = MaterialTheme.colorScheme.tertiary,
                             )
                         }
-                        IconButton(onClick = { deleting = book }) { Icon(HugeIcons.Delete01, contentDescription = "刪除") }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(onClick = { deleting = book }) { Icon(HugeIcons.Delete01, contentDescription = "刪除") }
+                            TextButton(
+                                enabled = converting == null,
+                                onClick = {
+                                    converting = book.id
+                                    scope.launch {
+                                        runCatching { LibraryStore.convertToTraditional(context, book.id) }
+                                            .onSuccess { toaster.show(message = "已轉成繁體", type = ToastType.Success) }
+                                            .onFailure { toaster.show(message = it.message ?: "轉換失敗", type = ToastType.Error) }
+                                        converting = null
+                                    }
+                                },
+                            ) { Text(if (converting == book.id) "轉換中…" else "轉繁體") }
+                        }
                     }
                 }
             }

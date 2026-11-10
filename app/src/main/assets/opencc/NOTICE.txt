@@ -1,0 +1,4 @@
+These dictionaries come from OpenCC (Open Chinese Convert)
+https://github.com/BYVoid/OpenCC  (data/dictionary)
+Licensed under the Apache License 2.0, see LICENSE-OpenCC.txt.
+Used by Hoshio to convert Simplified Chinese books to Traditional Chinese (Taiwan).
