@@ -42,6 +42,9 @@ import me.rerere.hugeicons.stroke.Calendar03
 import me.rerere.hugeicons.stroke.CheckmarkCircle02
 import me.rerere.hugeicons.stroke.Key01
 import me.rerere.hugeicons.stroke.CloudUpload
+import me.rerere.hugeicons.stroke.Eye
+import me.rerere.hugeicons.stroke.MessageQuestion
+import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.Favourite
 import me.rerere.hugeicons.stroke.FavouriteCircle
 import me.rerere.hugeicons.stroke.InLove
@@ -146,6 +149,9 @@ fun HomePage() {
         HomeLink("diary", "日記", "他每天寫的日記，也能自己寫", HugeIcons.Book01, SECTION_US) { Screen.Diary },
         HomeLink("anniversary", "紀念日", "重要的日子和認識幾天", HugeIcons.Calendar03, SECTION_US) { Screen.Anniversary },
         HomeLink("library", "書房", "一起讀書、寫批註", HugeIcons.Book02, SECTION_US) { Screen.Library },
+        HomeLink("watch", "一起看螢幕", "他陪你看，邊看邊說話", HugeIcons.Eye, SECTION_US) { Screen.WatchTogether },
+        HomeLink("soup", "海龜湯", "你出題或他出題，用是／不是猜真相", HugeIcons.MessageQuestion, SECTION_US) { Screen.TurtleSoup },
+        HomeLink("pet", "一起養寵物", "你和他一起照顧的小傢伙", HugeIcons.Sparkles, SECTION_US) { Screen.Pet },
         HomeLink("playroom", "遊戲室", "他做的小遊戲和小網頁", HugeIcons.Puzzle, SECTION_US) { Screen.Playroom },
         HomeLink("history", "對話紀錄", "所有聊過的對話", HugeIcons.TransactionHistory, SECTION_US) { Screen.History },
         HomeLink("favorite", "收藏", "收藏的訊息", HugeIcons.Favourite, SECTION_US) { Screen.Favorite },

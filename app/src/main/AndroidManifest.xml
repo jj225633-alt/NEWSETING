@@ -192,6 +192,14 @@
     </service>
     <!-- 星汐: 常驻模式，让主动关心每几分钟检查一次 -->
     <service
+      android:name=".hoshio.screen.WatchTogetherService"
+      android:exported="false"
+      android:foregroundServiceType="specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="companion periodically looking at the screen together with the user while she explicitly keeps the session running" />
+    </service>
+    <service
       android:name=".hoshio.care.CareForegroundService"
       android:exported="false"
       android:foregroundServiceType="specialUse">

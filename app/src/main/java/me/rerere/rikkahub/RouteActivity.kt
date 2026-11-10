@@ -460,6 +460,15 @@ class RouteActivity : ComponentActivity() {
                             entry<Screen.SelfCheck> {
                                 me.rerere.rikkahub.ui.pages.hoshio.SelfCheckPage()
                             }
+                            entry<Screen.TurtleSoup> {
+                                me.rerere.rikkahub.ui.pages.hoshio.TurtleSoupPage()
+                            }
+                            entry<Screen.Pet> {
+                                me.rerere.rikkahub.ui.pages.hoshio.PetPage()
+                            }
+                            entry<Screen.WatchTogether> {
+                                me.rerere.rikkahub.ui.pages.hoshio.WatchTogetherPage()
+                            }
 
 
                             entry<Screen.MediaCreationSessions> {
@@ -766,6 +775,15 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SelfCheck : Screen
+
+    @Serializable
+    data object TurtleSoup : Screen
+
+    @Serializable
+    data object Pet : Screen
+
+    @Serializable
+    data object WatchTogether : Screen
 
 
     @Serializable

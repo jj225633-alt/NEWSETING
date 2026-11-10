@@ -49,7 +49,63 @@ class HoshioAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() = Unit
 
+    private var bubble: android.view.View? = null
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val hideBubble = Runnable { removeBubble() }
+
+    private fun removeBubble() {
+        bubble?.let { view -> runCatching { (getSystemService(WINDOW_SERVICE) as android.view.WindowManager).removeView(view) } }
+        bubble = null
+    }
+
+    /** 在螢幕上方浮出一个小泡泡（无障碍覆盖层，不需要额外的悬浮窗权限），点一下就收起来 */
+    private fun showBubbleInternal(title: String, text: String, durationMs: Long) {
+        removeBubble()
+        val density = resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
+        val view = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(16), dp(10), dp(16), dp(12))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = dp(22).toFloat()
+                setColor(0xE61B1F3B.toInt())
+                setStroke(dp(1), 0x99E8C872.toInt())
+            }
+            addView(android.widget.TextView(context).apply {
+                this.text = title
+                textSize = 12f
+                setTextColor(0xFFE8C872.toInt())
+            })
+            addView(android.widget.TextView(context).apply {
+                this.text = text
+                textSize = 15f
+                maxLines = 5
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setTextColor(0xFFF5F3FF.toInt())
+            })
+            setOnClickListener { removeBubble() }
+        }
+        val params = android.view.WindowManager.LayoutParams(
+            android.view.WindowManager.LayoutParams.MATCH_PARENT,
+            android.view.WindowManager.LayoutParams.WRAP_CONTENT,
+            android.view.WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            android.graphics.PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = android.view.Gravity.TOP
+            y = dp(56)
+            horizontalMargin = 0.04f
+        }
+        runCatching {
+            (getSystemService(WINDOW_SERVICE) as android.view.WindowManager).addView(view, params)
+            bubble = view
+            mainHandler.removeCallbacks(hideBubble)
+            mainHandler.postDelayed(hideBubble, durationMs)
+        }
+    }
+
     override fun onDestroy() {
+        removeBubble()
         if (instance === this) instance = null
         super.onDestroy()
     }
@@ -94,6 +150,13 @@ class HoshioAccessibilityService : AccessibilityService() {
 
         /** 用无障碍服务的身分打开星汐（在背景也被允许） */
         fun bringHerBack(): Boolean = instance?.let { AppLock.bringHerBack(it) } ?: false
+
+        /** 在螢幕上浮出他说的话；服务没开时回传 false */
+        fun showBubble(title: String, text: String, durationMs: Long = 15_000): Boolean {
+            val service = instance ?: return false
+            service.mainHandler.post { service.showBubbleInternal(title, text, durationMs) }
+            return true
+        }
 
         /** 截一张目前的螢幕；服务没开或系统版本太旧时回传 null */
         suspend fun capture(): Bitmap? {

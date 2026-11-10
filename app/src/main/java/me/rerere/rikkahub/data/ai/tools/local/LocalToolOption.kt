@@ -101,4 +101,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("app_lock")
     data object AppLock : LocalToolOption()
+
+    // 星汐: 一起玩（海龟汤、一起养宠物）
+    @Serializable
+    @SerialName("play")
+    data object Play : LocalToolOption()
 }

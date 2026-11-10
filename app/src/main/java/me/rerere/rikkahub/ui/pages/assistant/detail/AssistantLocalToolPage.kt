@@ -333,6 +333,12 @@ private fun AssistantLocalToolContent(
                 description = R.string.assistant_page_local_tools_life_desc,
             )
             toolItem(
+                option = LocalToolOption.Play,
+                icon = HugeIcons.Puzzle,
+                title = R.string.assistant_page_local_tools_play_title,
+                description = R.string.assistant_page_local_tools_play_desc,
+            )
+            toolItem(
                 option = LocalToolOption.Location,
                 icon = HugeIcons.Route01,
                 title = R.string.assistant_page_local_tools_location_title,

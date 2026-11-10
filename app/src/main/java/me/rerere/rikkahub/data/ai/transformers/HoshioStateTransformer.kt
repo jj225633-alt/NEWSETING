@@ -14,7 +14,12 @@ object HoshioStateTransformer : InputMessageTransformer {
         if (LocalToolOption.Life !in ctx.assistant.localTools) return messages
         val index = messages.indexOfLast { it.role == MessageRole.USER && !it.isSynthetic }
         if (index < 0) return messages
-        val state = UIMessage.user("<your_state>${MoodStore.describe(ctx.context)}</your_state>").copy(isSynthetic = true)
+        val pet = if (LocalToolOption.Play in ctx.assistant.localTools) {
+            me.rerere.rikkahub.hoshio.play.PetStore.describe(ctx.context)?.let { "\nour pet: $it" }.orEmpty()
+        } else {
+            ""
+        }
+        val state = UIMessage.user("<your_state>${MoodStore.describe(ctx.context)}$pet</your_state>").copy(isSynthetic = true)
         return messages.subList(0, index) + state + messages.subList(index, messages.size)
     }
 }
