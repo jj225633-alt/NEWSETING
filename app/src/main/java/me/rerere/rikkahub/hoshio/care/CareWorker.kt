@@ -455,6 +455,12 @@ class CareWorker(
         if (location.hasAccuracy() && location.accuracy > CarePrefs.PLACE_MAX_ACCURACY_METERS) return emptyList()
         // 太旧的位置不能代表现在
         if (System.currentTimeMillis() - location.time > TimeUnit.MINUTES.toMillis(30)) return emptyList()
+        // 星汐: 顺便看看有没有走到藏宝的地方
+        runCatching {
+            me.rerere.rikkahub.hoshio.treasure.TreasureMapStore.visit(
+                applicationContext, location.latitude, location.longitude, if (location.hasAccuracy()) location.accuracy else 100f,
+            )
+        }
 
         val nowMs = System.currentTimeMillis()
         val states = prefs.placeStates.toMutableMap()

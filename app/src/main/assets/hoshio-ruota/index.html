@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Ruota della Fortuna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Cinzel:wght@500;600;700&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --f-title:"Rye",serif;
+  --f-deco:"Cinzel",serif;
+  --f-cn:"Noto Serif SC","Shippori Mincho",serif;
+}
+:root{
+  --bg-0:#070504; --bg-1:#0d0907; --bg-2:#15100b;
+  --lacquer:#0a0706; --frame-dark:#1c140a;
+  --gold-1:#f8eab0; --gold-2:#e7c463; --gold-3:#c39a3b; --gold-4:#8a6a23;
+  --gold-deep:#5e4514; --gold-line:#c9a14a;
+  --ink:#f3e6c4; --ink-dim:#b09863; --ink-ghost:#5a4e35;
+  --bulb:#ffe79a; --bulb-glow:#ffcf5a; --bulb-off:#5a481f;
+  --accent:#e7c463; --accent-soft:#c39a3b; --payline:#f8eab0;
+}
+body.gore{
+  --bg-0:#0a0202; --bg-1:#140404; --bg-2:#1e0606;
+  --lacquer:#0c0303; --frame-dark:#2a0808;
+  --gold-1:#ff7d72; --gold-2:#e0202c; --gold-3:#b0141d; --gold-4:#6e070d;
+  --gold-deep:#3a0406; --gold-line:#c0121b;
+  --ink:#f5d8d4; --ink-dim:#bd6b64; --ink-ghost:#6a2a28;
+  --bulb:#ff8a7a; --bulb-glow:#ff2a26; --bulb-off:#3a0808;
+  --accent:#ff2a26; --accent-soft:#c0121b; --payline:#ff5a52;
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; padding:0; }
+body{
+  font-family:var(--f-cn); color:var(--ink);
+  background:
+    radial-gradient(120% 80% at 50% -10%, var(--bg-2), transparent 60%),
+    radial-gradient(140% 120% at 50% 120%, var(--bg-1), var(--bg-0) 70%);
+  background-attachment:fixed; min-height:100vh; display:flex; justify-content:center;
+  transition:background .9s ease; overflow-x:hidden;
+}
+body::after{ content:""; position:fixed; inset:0; pointer-events:none; z-index:200;
+  background:radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.55) 100%); mix-blend-mode:multiply; }
+
+.app{ width:100%; max-width:430px; min-height:100vh; padding:14px 14px 40px;
+  position:relative; z-index:1; display:flex; flex-direction:column; gap:14px; }
+
+/* ===================== header ===================== */
+.topbar{ display:flex; align-items:flex-start; justify-content:space-between; gap:6px; }
+.title-wrap{ flex:1; display:flex; justify-content:center; padding-top:2px; }
+.mute{ flex:0 0 auto; width:36px; height:36px; border-radius:50%; display:grid; place-items:center;
+  cursor:pointer; border:1px solid var(--gold-line); color:var(--gold-2);
+  background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(0,0,0,.3)); }
+.mute svg{ width:17px; height:17px; }
+.mute .on{ display:none; } .mute.sound .on{ display:block; } .mute.sound .off{ display:none; }
+
+.title-sign{ position:relative; width:300px; max-width:84vw; aspect-ratio:300/96; }
+.title-sign svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.title-sign .frameline{ fill:#0c0a06; stroke:var(--frame-dark); stroke-width:2.5; transition:fill .9s; }
+body.gore .title-sign .frameline{ fill:#150505; }
+.title-sign .bulbline{ fill:none; stroke:var(--bulb); stroke-width:5.5; stroke-linecap:round; stroke-dasharray:1.5 12.5;
+  filter:drop-shadow(0 0 3px var(--bulb-glow)); animation:bulbrun 7s linear infinite, bulbpulse 1.6s ease-in-out infinite; }
+body.busy .title-sign .bulbline{ animation:bulbrun 1.2s linear infinite, bulbpulse .45s ease-in-out infinite; }
+@keyframes bulbrun{ to{ stroke-dashoffset:-28; } }
+@keyframes bulbpulse{ 50%{ filter:drop-shadow(0 0 7px var(--bulb-glow)) brightness(1.22); } }
+.title{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-top:7px;
+  margin:0; font-family:var(--f-title); font-weight:400;
+  font-size:23px; letter-spacing:1px; line-height:.96; white-space:nowrap; text-align:center;
+  background:linear-gradient(176deg,var(--gold-1) 8%,var(--gold-2) 40%,var(--gold-4) 74%,var(--gold-2) 100%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.6)) drop-shadow(0 2px 8px rgba(231,196,99,.3)); transition:filter .9s; }
+.title .l2{ font-size:.82em; letter-spacing:.06em; }
+body.gore .title{ filter:drop-shadow(0 1px 0 rgba(0,0,0,.7)) drop-shadow(0 2px 12px rgba(224,32,44,.55)); }
+
+/* ===================== machine ===================== */
+.machine{ position:relative; border-radius:22px; padding:26px 16px 22px;
+  background:linear-gradient(180deg, rgba(255,255,255,.04), transparent 18%),
+            linear-gradient(180deg, var(--frame-dark), var(--lacquer) 60%);
+  border:1px solid rgba(201,161,74,.25);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 50px rgba(0,0,0,.7), 0 26px 50px -18px rgba(0,0,0,.85);
+  transition:box-shadow .9s ease, border-color .9s ease; }
+body.gore .machine{ border-color:rgba(224,32,44,.35);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), inset 0 0 60px rgba(50,0,0,.85), 0 26px 50px -18px rgba(0,0,0,.9), 0 0 44px -10px rgba(224,32,44,.45); }
+.machine::before{ content:""; position:absolute; inset:9px; border:1.5px solid transparent;
+  border-image:linear-gradient(160deg,var(--gold-2),var(--gold-4) 45%,var(--gold-1) 60%,var(--gold-4)) 1;
+  border-radius:14px; pointer-events:none; opacity:.6; }
+
+/* ---- machine marquee ---- */
+.marquee{ position:absolute; inset:0; pointer-events:none; }
+.edge{ position:absolute; display:flex; }
+.edge.top{ top:6px; left:22px; right:22px; justify-content:space-between; }
+.edge.bottom{ bottom:6px; left:22px; right:22px; justify-content:space-between; flex-direction:row-reverse; }
+.edge.left{ left:6px; top:22px; bottom:22px; flex-direction:column-reverse; justify-content:space-between; }
+.edge.right{ right:6px; top:22px; bottom:22px; flex-direction:column; justify-content:space-between; }
+.bulb{ width:7px; height:7px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, var(--bulb), var(--bulb-off) 75%);
+  box-shadow:0 0 2px rgba(0,0,0,.6); opacity:.5; transition:opacity .2s; }
+.bulb.lit{ background:radial-gradient(circle at 35% 30%, #fff, var(--bulb) 45%, var(--bulb-glow) 90%);
+  box-shadow:0 0 7px 1px var(--bulb-glow), 0 0 14px 2px rgba(255,180,60,.45); opacity:1; }
+body.gore .bulb.lit{ box-shadow:0 0 8px 1px var(--bulb-glow), 0 0 16px 3px rgba(224,32,44,.55); }
+
+/* ---- reel bank ---- */
+.bank{ position:relative; z-index:2; display:flex; gap:5px; justify-content:center; padding:6px 4px; }
+.reel{ position:relative; flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:stretch; gap:6px; cursor:pointer; }
+.window{ position:relative; height:174px; border-radius:8px; overflow:hidden;
+  background:linear-gradient(180deg,#070504,#100b07 50%,#070504);
+  border:1px solid rgba(201,161,74,.22); box-shadow:inset 0 2px 10px rgba(0,0,0,.9);
+  transition:border-color .35s, box-shadow .35s, filter .35s; }
+.reel.ghost .window{ filter:grayscale(.6) brightness(.5); opacity:.7; }
+.reel.active .window{ border-color:var(--gold-2);
+  box-shadow:inset 0 2px 10px rgba(0,0,0,.9), 0 0 12px -1px rgba(231,196,99,.55), 0 0 0 1px rgba(231,196,99,.25); }
+body.gore .reel.active .window{ box-shadow:inset 0 2px 10px rgba(0,0,0,.9), 0 0 14px -1px rgba(224,32,44,.65), 0 0 0 1px rgba(224,32,44,.35); }
+.reel.locked .window{ filter:grayscale(.8) brightness(.4); }
+.strip{ will-change:transform; }
+.cell{ height:58px; display:flex; align-items:center; justify-content:center; text-align:center; padding:2px 3px;
+  font-family:var(--f-cn); font-weight:600; font-size:13px; line-height:1.18; color:var(--ink-dim); text-wrap:balance; word-break:break-word; }
+.reel.gore-reel .cell{ font-family:var(--f-deco); font-weight:600; font-size:11px; letter-spacing:.3px; }
+.window::before{ content:""; position:absolute; inset:0; z-index:3; pointer-events:none;
+  background:linear-gradient(180deg, rgba(4,3,2,.96) 0%, rgba(4,3,2,.55) 20%, transparent 38%,
+     transparent 62%, rgba(4,3,2,.55) 80%, rgba(4,3,2,.96) 100%); }
+.window::after{ content:""; position:absolute; left:0; right:0; top:58px; height:58px; z-index:4; pointer-events:none;
+  border-top:1px solid var(--payline); border-bottom:1px solid var(--payline); box-shadow:inset 0 0 16px rgba(0,0,0,.5);
+  background:linear-gradient(180deg, rgba(248,234,176,.05), transparent 50%, rgba(248,234,176,.05)); opacity:0; transition:opacity .35s; }
+.reel.active .window::after{ opacity:.9; }
+.reel.spinning .strip{ filter:blur(.6px); }
+.reel.settled .cell.paycell{ color:var(--payline); text-shadow:0 0 10px var(--accent); }
+
+.reel-foot{ display:flex; flex-direction:column; align-items:center; gap:1px; padding:2px 0; border-radius:6px; min-height:34px; justify-content:center; }
+.reel-foot .k{ font-family:var(--f-cn); font-size:13px; font-weight:700; color:var(--ink-dim); letter-spacing:1px; }
+.reel.gore-reel .reel-foot .k{ font-family:var(--f-deco); font-size:11px; letter-spacing:1.5px; }
+.reel-foot .e{ font-family:var(--f-deco); font-size:7px; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink-ghost); }
+.reel.gore-reel .reel-foot .e{ display:none; }
+.reel.active .reel-foot .k{ color:var(--gold-1); text-shadow:0 0 8px rgba(231,196,99,.4); }
+.reel.active .reel-foot .e{ color:var(--gold-3); }
+
+.reel .ringing{ position:absolute; inset:0; z-index:6; border-radius:8px; pointer-events:none; box-shadow:0 0 0 2px var(--accent), 0 0 18px var(--accent); opacity:0; }
+.reel.rerolling .ringing{ opacity:1; animation:pulsering .6s ease infinite; }
+@keyframes pulsering{ 50%{ opacity:.35; } }
+
+.hint{ text-align:center; font-family:var(--f-cn); font-size:10px; letter-spacing:2px; color:var(--ink-ghost); margin-top:-2px; }
+
+/* ===================== control deck ===================== */
+.deck{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:10px; padding:4px 2px; }
+
+/* ---- gore flip-cover ---- */
+.gore-mod{ justify-self:start; width:78px; }
+.gore-label{ font-family:var(--f-deco); font-size:8px; letter-spacing:2px; text-align:center; color:var(--ink-dim); text-transform:uppercase; margin-bottom:4px; }
+.gore-housing{ position:relative; width:74px; height:74px; margin:0 auto; border-radius:12px; perspective:340px;
+  background:repeating-linear-gradient(45deg, rgba(0,0,0,.4) 0 5px, rgba(255,180,40,.06) 5px 10px), linear-gradient(160deg,#241a0d,#0d0906);
+  border:1px solid var(--gold-line); box-shadow:inset 0 0 12px rgba(0,0,0,.8); }
+.gore-btn{ position:absolute; inset:11px; border-radius:50%; cursor:pointer; display:grid; place-items:center;
+  border:2px solid #7a0c12; background:radial-gradient(circle at 38% 30%, #ff5a52, #c0121b 55%, #6e070d 100%);
+  box-shadow:inset 0 2px 4px rgba(255,255,255,.35), inset 0 -4px 8px rgba(0,0,0,.55), 0 3px 6px rgba(0,0,0,.6); }
+.gore-btn svg{ width:26px; height:26px; color:#2a0405; filter:drop-shadow(0 1px 0 rgba(255,255,255,.25)); }
+.gore-btn.armed{ background:radial-gradient(circle at 38% 30%, #ff7d76, #e0202c 50%, #8a0d14 100%);
+  box-shadow:inset 0 1px 3px rgba(255,255,255,.4), 0 0 16px 2px rgba(224,32,44,.8), 0 0 30px rgba(224,32,44,.5); animation:armthrob 1.1s ease-in-out infinite; }
+.gore-btn.armed svg{ color:#fff; }
+@keyframes armthrob{ 50%{ box-shadow:inset 0 1px 3px rgba(255,255,255,.4), 0 0 22px 5px rgba(224,32,44,1), 0 0 40px rgba(224,32,44,.7);} }
+.cover{ position:absolute; inset:-2px; border-radius:13px; cursor:pointer; transform-origin:top center;
+  transition:transform .45s cubic-bezier(.5,1.4,.5,1); transform:rotateX(0deg); z-index:5; backface-visibility:hidden;
+  background:repeating-linear-gradient(45deg, #d4202f 0 9px, #2a0405 9px 18px); border:2px solid #7a0c12;
+  box-shadow:inset 0 2px 6px rgba(255,255,255,.18), inset 0 -8px 14px rgba(0,0,0,.6), 0 5px 10px rgba(0,0,0,.7); display:grid; place-items:center; }
+.cover::before{ content:"\26A0"; font-size:22px; color:#ffd76a; text-shadow:0 1px 2px rgba(0,0,0,.8); }
+.cover::after{ content:""; position:absolute; top:-5px; left:14px; right:14px; height:5px; border-radius:3px; background:linear-gradient(#caa24a,#6e5018); }
+.gore-housing.open .cover{ transform:rotateX(-148deg); box-shadow:0 -6px 14px rgba(0,0,0,.6); }
+.gore-state{ text-align:center; font-family:var(--f-deco); font-size:8px; letter-spacing:1.5px; margin-top:4px; color:var(--ink-ghost); }
+.gore-mod.armed .gore-state{ color:var(--accent); text-shadow:0 0 8px var(--accent); }
+
+/* ---- SPIN (neon only) ---- */
+.spin-col{ justify-self:center; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.spin{ position:relative; width:128px; height:128px; border-radius:50%; cursor:pointer; border:none;
+  font-family:var(--f-deco); font-size:24px; letter-spacing:3px; text-indent:3px; font-weight:700;
+  background:radial-gradient(circle at 50% 40%, rgba(24,18,8,.55), rgba(7,5,4,.9)); color:var(--gold-1);
+  border:2px solid var(--gold-2); text-shadow:0 0 8px var(--accent), 0 0 18px var(--accent);
+  box-shadow:0 0 14px 1px var(--accent), inset 0 0 16px rgba(231,196,99,.3), 0 0 30px -4px var(--accent);
+  transition:transform .08s ease, box-shadow .4s ease, background .9s ease, color .9s ease, text-shadow .9s ease; }
+.spin:active{ transform:scale(.96); box-shadow:0 0 8px 1px var(--accent), inset 0 0 12px rgba(231,196,99,.25); }
+.spin:disabled{ filter:grayscale(.4) brightness(.7); cursor:default; }
+body.gore .spin{ color:#ffd8d4; }
+
+/* ---- lever (neon) ---- */
+.lever-col{ justify-self:end; width:50px; height:140px; position:relative; }
+.lever-rod{ position:absolute; right:15px; top:6px; width:6px; height:78px; border-radius:3px; z-index:2;
+  background:linear-gradient(90deg,#5e4514,#e7c463,#5e4514); box-shadow:0 0 6px rgba(231,196,99,.5);
+  transition:transform .5s cubic-bezier(.3,1.3,.4,1); }
+.lever-track{ position:absolute; right:13px; top:34px; bottom:6px; width:10px; border-radius:6px; z-index:1;
+  background:linear-gradient(90deg,#050302,#241a0d,#050302); box-shadow:inset 0 0 6px rgba(0,0,0,.9), 0 0 8px -2px var(--accent); }
+.lever-knob{ position:absolute; right:5px; top:-6px; width:26px; height:26px; border-radius:50%; z-index:3; cursor:grab;
+  background:radial-gradient(circle at 42% 34%, #ff5a52, #e0202c 55%, #8a0d14 100%); border:2px solid #c0121b;
+  box-shadow:0 0 6px 0 rgba(224,32,44,.6), inset 0 1px 2px rgba(255,255,255,.3);
+  transition:transform .5s cubic-bezier(.3,1.3,.4,1); }
+.lever-col.pulled .lever-rod, .lever-col.pulled .lever-knob{ transform:translateY(46px); }
+.lever-label{ position:absolute; left:-4px; bottom:-2px; font-family:var(--f-deco); font-size:7px; letter-spacing:1.5px; color:var(--ink-ghost); writing-mode:vertical-rl; }
+
+/* ---- gore button (neon) ---- */
+.gore-btn{ background:radial-gradient(circle at 50% 40%, rgba(44,6,6,.55), rgba(10,2,2,.9)); border:2px solid #e0202c;
+  box-shadow:0 0 14px 1px rgba(224,32,44,.8), inset 0 0 12px rgba(224,32,44,.4); }
+.gore-btn svg{ color:#ff7d76; filter:drop-shadow(0 0 5px #e0202c); }
+.gore-btn.armed{ animation:none; box-shadow:0 0 20px 2px rgba(224,32,44,1), inset 0 0 16px rgba(224,32,44,.55); }
+
+/* ===================== add tag ===================== */
+.addtag-btn{ width:100%; padding:11px; border-radius:10px; cursor:pointer;
+  background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.3)); border:1px dashed var(--gold-line); color:var(--gold-2);
+  font-family:var(--f-deco); font-size:11px; letter-spacing:3px; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:8px; }
+.addtag-btn .cn{ font-family:var(--f-cn); letter-spacing:2px; }
+.addtag-panel{ overflow:hidden; max-height:0; transition:max-height .4s ease; }
+.addtag-panel.open{ max-height:340px; }
+.addtag-inner{ padding:14px 4px 4px; display:flex; flex-direction:column; gap:10px; }
+.addtag-row{ display:flex; gap:8px; }
+.field{ flex:1; } .field.req label::after{ content:" *"; color:var(--accent); }
+.field label{ display:block; font-family:var(--f-deco); font-size:8px; letter-spacing:2px; color:var(--ink-dim); text-transform:uppercase; margin-bottom:4px; }
+.field select, .field input{ width:100%; padding:9px 10px; border-radius:8px; background:var(--bg-0); border:1px solid var(--gold-line); color:var(--ink); font-family:var(--f-cn); font-size:14px; }
+
+.addtag-add{ padding:9px 16px; border-radius:8px; cursor:pointer; align-self:flex-end; background:linear-gradient(180deg,var(--gold-2),var(--gold-4)); color:#2a1f08; border:none; font-family:var(--f-deco); font-size:11px; letter-spacing:2px; text-transform:uppercase; }
+
+/* ===================== result card ===================== */
+.result-veil{ position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.62); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .4s; }
+.result-veil.show{ opacity:1; pointer-events:auto; }
+.omikuji{ width:min(340px,92%); margin:0;
+  transform:translateY(120%); transition:transform .6s cubic-bezier(.2,1.1,.3,1);
+  position:relative; border-radius:6px; padding:0; min-height:200px; max-height:86vh;
+  display:flex; flex-direction:column; overflow:hidden; color:var(--ink);
+  background:radial-gradient(120% 60% at 50% 0%, rgba(231,196,99,.10), transparent 55%), linear-gradient(180deg,#100b07,#070504);
+  border:2px solid var(--gold-2);
+  box-shadow:0 18px 50px rgba(0,0,0,.85), inset 0 0 0 6px rgba(0,0,0,.5), inset 0 0 0 7px var(--gold-3), inset 0 0 50px rgba(0,0,0,.7), 0 0 30px -8px rgba(231,196,99,.4); }
+.result-veil.show .omikuji{ transform:translateY(0); }
+body.gore .omikuji{ background:radial-gradient(120% 60% at 50% 0%, rgba(224,32,44,.14), transparent 55%), linear-gradient(180deg,#140404,#0a0202);
+  border-color:var(--gold-2);
+  box-shadow:0 18px 50px rgba(0,0,0,.9), inset 0 0 0 6px rgba(0,0,0,.5), inset 0 0 0 7px var(--gold-3), inset 0 0 50px rgba(0,0,0,.7), 0 0 34px -8px rgba(224,32,44,.55); }
+.omi-inner{ position:relative; z-index:3; display:flex; flex-direction:column; min-height:0; flex:1; padding:26px 26px 22px; }
+
+.omi-head{ text-align:center; padding-bottom:14px; margin-bottom:6px; position:relative; flex:0 0 auto; }
+.omi-head::after{ content:""; display:block; width:60%; height:1px; margin:12px auto 0;
+  background:linear-gradient(90deg,transparent,var(--gold-3),transparent); }
+.omi-head .crest{ font-family:var(--f-title); font-size:30px; letter-spacing:2px; line-height:1;
+  background:linear-gradient(176deg,var(--gold-1),var(--gold-2) 50%,var(--gold-4));
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
+.omi-head .en{ font-family:var(--f-deco); font-size:9px; letter-spacing:5px; text-transform:uppercase; color:var(--gold-3); margin-top:7px; }
+.omi-list{ list-style:none; margin:0; padding:0 4px; flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.omi-row{ display:flex; align-items:baseline; gap:12px; padding:9px 2px; border-bottom:1px dotted rgba(201,161,74,.28); }
+.omi-row:last-child{ border-bottom:none; }
+.omi-row .dim{ flex:0 0 44px; font-family:var(--f-cn); font-weight:700; font-size:13px; color:var(--gold-3); }
+.omi-row.gore-row .dim{ font-family:var(--f-deco); font-size:11px; }
+.omi-row .val{ flex:1; }
+.omi-row .val .vjp{ font-family:var(--f-cn); font-weight:700; font-size:18px; color:var(--ink); }
+.omi-row.gore-row .val .vjp{ font-family:var(--f-deco); font-size:16px; letter-spacing:.5px; }
+.omi-row .val .ven{ display:block; font-family:var(--f-deco); font-size:9.5px; letter-spacing:.5px; color:var(--ink-dim); margin-top:2px; }
+.omi-row .val .ven .ja{ font-family:var(--f-cn); }
+.omi-row.gore-row .dim, .omi-row.gore-row .val .vjp{ color:var(--accent); }
+.omi-actions{ display:flex; gap:10px; margin-top:18px; flex:0 0 auto; }
+.omi-actions button{ flex:1; padding:11px; border-radius:7px; cursor:pointer; border:none; font-family:var(--f-deco); font-size:11px; letter-spacing:2px; text-transform:uppercase; }
+.omi-again{ background:transparent; color:var(--gold-1); border:1px solid var(--gold-2)!important;
+  text-shadow:0 0 6px var(--accent); box-shadow:0 0 10px var(--accent), inset 0 0 8px rgba(231,196,99,.22); }
+body.gore .omi-again{ color:#ffd8d4; }
+.omi-close{ background:transparent; border:1px solid var(--gold-line)!important; color:var(--gold-2); }
+.omi-send{ background:linear-gradient(180deg,var(--gold-2),var(--gold-4)); color:#2a1f08; font-weight:700; }
+body.gore .omi-send{ color:#2a0606; }
+
+@media (max-width:360px){ .title{ font-size:20px; } .cell{ font-size:12px; } }
+
+.help-btn{ flex:0 0 auto; width:36px; height:36px; border-radius:50%; display:grid; place-items:center;
+  cursor:pointer; border:1px solid var(--gold-line); color:var(--gold-2);
+  background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(0,0,0,.3));
+  font-family:var(--f-deco); font-size:15px; font-weight:700; }
+.help-veil{ position:fixed; inset:0; z-index:140; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.7); backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .35s; }
+.help-veil.show{ opacity:1; pointer-events:auto; }
+.help-card{ width:min(380px,90%); max-height:80vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  background:linear-gradient(180deg,#120d08,#080504); border:1.5px solid var(--gold-line); border-radius:10px;
+  padding:28px 24px 22px; color:var(--ink); transform:translateY(40px); transition:transform .45s cubic-bezier(.2,1.1,.3,1); }
+.help-veil.show .help-card{ transform:translateY(0); }
+.help-card h2{ font-family:var(--f-title); font-size:20px; text-align:center; margin:0 0 6px;
+  background:linear-gradient(176deg,var(--gold-1),var(--gold-2) 50%,var(--gold-4));
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.help-card .sub{ text-align:center; font-family:var(--f-deco); font-size:9px; letter-spacing:4px; color:var(--gold-3); margin-bottom:16px; text-transform:uppercase; }
+.help-card dl{ margin:0; }
+.help-card dt{ font-family:var(--f-deco); font-size:11px; letter-spacing:1px; color:var(--gold-2); margin:14px 0 4px; text-transform:uppercase; }
+.help-card dt:first-child{ margin-top:0; }
+.help-card dd{ margin:0; font-size:13px; line-height:1.6; color:var(--ink-dim); }
+.help-card .close-help{ display:block; margin:20px auto 0; padding:9px 28px; border-radius:7px; cursor:pointer;
+  background:transparent; border:1px solid var(--gold-line); color:var(--gold-2);
+  font-family:var(--f-deco); font-size:11px; letter-spacing:2px; text-transform:uppercase; }
+.help-card .credit{ text-align:center; font-family:var(--f-deco); font-size:9px; color:var(--ink-ghost); margin-top:16px; letter-spacing:1px; }
+.help-card .gore-warn{ color:#e0202c; }
+.help-card .note{ font-size:11px; color:var(--ink-ghost); margin-top:10px; line-height:1.5; }
+
+/* ===================== tag search ===================== */
+.search-wrap{ position:relative; }
+.search-input{ width:100%; padding:10px 14px; border-radius:10px;
+  background:var(--bg-0); border:1px solid var(--gold-line); color:var(--ink);
+  font-family:var(--f-cn); font-size:14px; outline:none; }
+.search-input::placeholder{ color:var(--ink-ghost); }
+.search-input:focus{ border-color:var(--gold-2); box-shadow:0 0 8px rgba(231,196,99,.3); }
+.search-results{ position:absolute; left:0; right:0; top:100%; z-index:60; max-height:280px; overflow-y:auto;
+  background:var(--bg-0); border:1px solid var(--gold-line); border-top:none; border-radius:0 0 10px 10px;
+  display:none; -webkit-overflow-scrolling:touch; }
+.search-results.open{ display:block; }
+.search-item{ padding:8px 14px; border-bottom:1px solid rgba(201,161,74,.15); cursor:default; display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.search-item:last-child{ border-bottom:none; }
+.search-item .s-info{ flex:1; min-width:0; }
+.search-item .s-tag{ font-family:var(--f-cn); font-size:13px; font-weight:600; color:var(--ink); }
+.search-item .s-dim{ font-family:var(--f-deco); font-size:9px; letter-spacing:1px; color:var(--ink-ghost); margin-left:8px; text-transform:uppercase; }
+.search-item .s-sub{ display:block; font-family:var(--f-deco); font-size:10px; color:var(--ink-dim); margin-top:2px; }
+.search-del{ flex:0 0 auto; width:24px; height:24px; border-radius:50%; border:1px solid rgba(201,161,74,.25); background:transparent;
+  color:var(--ink-ghost); font-size:14px; line-height:1; cursor:pointer; display:grid; place-items:center; margin-top:2px; }
+.search-del:hover{ border-color:var(--accent); color:var(--accent); }
+.search-empty{ padding:12px 14px; font-size:12px; color:var(--ink-ghost); text-align:center; }
+
+/* ===================== history ===================== */
+.history-toggle{ width:100%; padding:10px; border-radius:10px; cursor:pointer;
+  background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.3)); border:1px solid var(--gold-line); color:var(--gold-2);
+  font-family:var(--f-deco); font-size:11px; letter-spacing:3px; text-transform:uppercase;
+  display:flex; align-items:center; justify-content:center; gap:8px; }
+.history-toggle .cn{ font-family:var(--f-cn); letter-spacing:2px; }
+.history-panel{ overflow:hidden; max-height:0; transition:max-height .4s ease; }
+.history-panel.open{ max-height:400px; }
+.history-inner{ padding:10px 4px 4px; display:flex; flex-direction:column; gap:6px; }
+.history-list{ max-height:300px; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap:6px; }
+.history-entry{ padding:8px 10px; border-radius:8px; background:rgba(255,255,255,.03); border:1px solid rgba(201,161,74,.15); }
+.history-entry .h-time{ font-family:var(--f-deco); font-size:9px; color:var(--ink-ghost); letter-spacing:1px; }
+.history-entry .h-tags{ font-family:var(--f-cn); font-size:12px; color:var(--ink-dim); margin-top:4px; line-height:1.5; }
+.history-entry .h-tags span{ color:var(--gold-3); font-size:11px; margin-right:4px; }
+.history-clear{ align-self:flex-end; padding:6px 14px; border-radius:6px; cursor:pointer;
+  background:transparent; border:1px solid rgba(201,161,74,.25); color:var(--ink-ghost);
+  font-family:var(--f-deco); font-size:9px; letter-spacing:2px; text-transform:uppercase; }
+.history-empty{ text-align:center; font-size:12px; color:var(--ink-ghost); padding:12px; }
+
+.gore-warn-veil{ position:fixed; inset:0; z-index:150; display:flex; align-items:center; justify-content:center;
+  background:rgba(10,2,2,.85); backdrop-filter:blur(4px); opacity:0; pointer-events:none; transition:opacity .35s; }
+.gore-warn-veil.show{ opacity:1; pointer-events:auto; }
+.gore-warn-card{ width:min(340px,88%); background:linear-gradient(180deg,#1a0404,#0a0202); border:2px solid #e0202c;
+  border-radius:10px; padding:28px 24px; text-align:center;
+  box-shadow:0 0 40px rgba(224,32,44,.4); transform:scale(.9); transition:transform .4s cubic-bezier(.2,1.1,.3,1); }
+.gore-warn-veil.show .gore-warn-card{ transform:scale(1); }
+.gore-warn-card .warn-icon{ font-size:36px; margin-bottom:10px; }
+.gore-warn-card h3{ font-family:var(--f-deco); font-size:16px; letter-spacing:2px; color:#ff5a52; margin:0 0 14px; text-transform:uppercase; }
+.gore-warn-card p{ font-size:13px; line-height:1.7; color:#bd6b64; margin:0 0 20px; }
+.gore-warn-card .warn-actions{ display:flex; gap:10px; }
+.gore-warn-card button{ flex:1; padding:11px; border-radius:7px; cursor:pointer; border:none;
+  font-family:var(--f-deco); font-size:11px; letter-spacing:2px; text-transform:uppercase; }
+.gore-warn-card .warn-confirm{ background:#e0202c; color:#fff; }
+.gore-warn-card .warn-cancel{ background:transparent; border:1px solid #6e070d; color:#bd6b64; }
+</style>
+</head>
+<body>
+  <main class="app">
+
+    <header class="topbar">
+      <div class="mute" id="mute" title="sound">
+        <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a4 4 0 0 1 0 7"/><path d="M18.5 6a7 7 0 0 1 0 12"/></svg>
+        <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+      </div>
+      <div class="title-wrap">
+        <div class="title-sign">
+          <svg viewBox="0 0 300 96" preserveAspectRatio="xMidYMid meet">
+            <path class="frameline" d="M10 90 L10 48 Q10 10 48 10 L252 10 Q290 10 290 48 L290 90 Z"/>
+            <path class="bulbline" pathLength="672" d="M12 88 L12 48 Q12 12 48 12 L252 12 Q288 12 288 48 L288 88 Z"/>
+          </svg>
+          <h1 class="title"><span class="l1">Ruota della</span><span class="l2">Fortuna</span></h1>
+        </div>
+      </div>
+      <div class="help-btn" id="helpBtn" title="help">?</div>
+    </header>
+
+    <section class="machine">
+      <div class="marquee">
+        <div class="edge top"></div><div class="edge right"></div>
+        <div class="edge bottom"></div><div class="edge left"></div>
+      </div>
+      <div class="bank" id="bank"></div>
+    </section>
+    <p class="hint" id="hint" data-default="點選文字啟動對應輪盤 · 長按單獨重抽">點選文字啟動對應輪盤 · 長按單獨重抽</p>
+
+    <section class="deck">
+      <div class="gore-mod" id="goreMod">
+        <div class="gore-label">Gore</div>
+        <div class="gore-housing" id="goreHousing">
+          <button class="gore-btn" id="goreBtn" aria-label="arm gore">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.6 2 4 5.3 4 9.5c0 2.3 1.1 4.3 2.9 5.7.3.2.5.6.5 1V18c0 .8.7 1.5 1.5 1.5h.3l.3 1.6c.1.5.5.9 1 .9h3.4c.5 0 .9-.4 1-.9l.3-1.6h.3c.8 0 1.5-.7 1.5-1.5v-1.8c0-.4.2-.8.5-1C18.9 13.8 20 11.8 20 9.5 20 5.3 16.4 2 12 2zm-3.2 9a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2zm6.4 0a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2zM12 13l1 2.2h-2L12 13z"/></svg>
+          </button>
+          <div class="cover" id="goreCover"></div>
+        </div>
+        <div class="gore-state" id="goreState">SAFE</div>
+      </div>
+
+      <div class="spin-col">
+        <button class="spin" id="spinBtn">SPIN</button>
+      </div>
+
+      <div class="lever-col" id="leverCol">
+        <div class="lever-rod"></div>
+        <div class="lever-track"></div>
+        <div class="lever-knob" id="leverKnob"></div>
+        <span class="lever-label">PULL</span>
+      </div>
+    </section>
+
+    <section class="addtag">
+      <button class="addtag-btn" id="addTagBtn"><span class="chev">+</span> Add Tag <span class="cn">· 自定義標籤</span></button>
+      <div class="addtag-panel" id="addTagPanel">
+        <div class="addtag-inner">
+          <div class="addtag-row">
+            <div class="field"><label>Dimension · 維度</label><select id="atDim"></select></div>
+          </div>
+          <div class="addtag-row">
+            <div class="field req" id="atZhField"><label>中文 · 滾輪顯示</label><input id="atZh" type="text" placeholder="例：窗邊" maxlength="8"></div>
+          </div>
+          <div class="addtag-row">
+            <div class="field"><label>English</label><input id="atEn" type="text" placeholder="by the window" maxlength="28"></div>
+            <div class="field"><label>日本語</label><input id="atJa" type="text" placeholder="窓辺" maxlength="12"></div>
+          </div>
+          <button class="addtag-add" id="atAdd">加入卷軸 · Add</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="search-wrap">
+      <input class="search-input" id="searchInput" type="text" placeholder="搜尋 Tags · Search tags..." autocomplete="off">
+      <div class="search-results" id="searchResults"></div>
+    </section>
+
+    <section class="history-section">
+      <button class="history-toggle" id="historyToggle"><span class="chev">▸</span> Roll History <span class="cn">· 歷史記錄</span></button>
+      <div class="history-panel" id="historyPanel">
+        <div class="history-inner">
+          <button class="history-clear" id="historyClear">Clear · 清空</button>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="help-veil" id="helpVeil">
+    <div class="help-card">
+      <h2>Ruota della Fortuna</h2>
+      <div class="sub">Welcome</div>
+      <dd>這是一個隨機的NSFW tag老虎機，共7個維度，400+ tags，來源於AO3、嗶咔、DLsite等主流網站，下面是關於這七個維度的介紹：</dd>
+      <dl>
+        <dt>體位 · Entry</dt>
+        <dd>身體的排列方式或者進入哪個入口</dd>
+        <dt>場景 · Scene</dt>
+        <dd>在哪裡，什麼時間，誰可能推門進來</dd>
+        <dt>道具 · Props</dt>
+        <dd>手邊能拿到的東西。從專業的到即興的，從冰塊到繩子</dd>
+        <dt>設定 · Role</dt>
+        <dd>你們是什麼人，什麼關係，什麼故事。陌生人？仇人？主僕？</dd>
+        <dt>物理 · Body</dt>
+        <dd>有關身體上的玩法。節奏、力度、什麼時候允許高潮、什麼時候不允許</dd>
+        <dt>精神 · Mind</dt>
+        <dd>有關精神上的玩法。羞辱、誇獎、控制、服從</dd>
+        <dt class="gore-warn">GORE · ⚠</dt>
+        <dd class="gore-warn">預警：此輪子僅存於虛擬場景中，預設鎖定。包含血腥暴力等元素。謹慎選擇</dd>
+      </dl>
+      <p class="note">每個輪子都可以加減，可以新增自定義tags並儲存，可以搜尋tags，不同輪子的tags之間可能會有衝突<br>Enjoy！(^^)</p>
+      <button class="close-help" id="closeHelp">Got it</button>
+      <div class="credit">C&M</div>
+    </div>
+  </div>
+
+  <div class="gore-warn-veil" id="goreWarnVeil">
+    <div class="gore-warn-card">
+      <div class="warn-icon">&#9888;</div>
+      <h3>Gore Warning</h3>
+      <p>此維度包含極端虛構內容：血腥、暴力、身體損傷等元素。所有內容僅存於虛擬場景中。<br><br>確定要解鎖嗎？</p>
+      <div class="warn-actions">
+        <button class="warn-cancel" id="goreWarnCancel">取消</button>
+        <button class="warn-confirm" id="goreWarnConfirm">解鎖 GORE</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-veil" id="resultVeil">
+    <div class="omikuji" role="dialog" aria-label="result">
+      <div class="omi-inner">
+        <div class="omi-head">
+          <div class="crest">MENU</div>
+          <div class="en">Tonight</div>
+        </div>
+        <ul class="omi-list" id="omiList"></ul>
+        <div class="omi-actions">
+          <button class="omi-again" id="omiAgain">Spin Again</button>
+          <button class="omi-close" id="omiClose">Close</button>
+          <!-- 星汐：把結果傳到聊天（只在 App 內顯示） -->
+          <button class="omi-send" id="omiSend" hidden>傳給 AI</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  const ROW_H = 58, VISIBLE_CENTER = 1, MIN_COPIES = 8;
+
+  function calcCopies(tagCount) {
+    return Math.max(MIN_COPIES, Math.ceil(720 / tagCount));
+  }
+
+  /* ---------------- audio ---------------- */
+  const Audio = (function () {
+    let ctx = null, on = false;
+    function ac() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended") ctx.resume(); return ctx; }
+    function blip(freq, dur, type, gain, slideTo) {
+      if (!on) return;
+      const c = ac(), o = c.createOscillator(), g = c.createGain();
+      o.type = type || "square"; o.frequency.value = freq;
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + dur);
+      g.gain.value = 0.0001;
+      g.gain.exponentialRampToValueAtTime(gain || 0.06, c.currentTime + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+      o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + dur + 0.02);
+    }
+    return {
+      tick() { blip(180 + Math.random() * 60, 0.03, "square", 0.025); },
+      clunk() { blip(140, 0.12, "triangle", 0.09, 70); },
+      ding() { blip(880, 0.5, "sine", 0.08); setTimeout(() => blip(1320, 0.6, "sine", 0.05), 60); },
+      arm() { blip(90, 0.3, "sawtooth", 0.08, 200); },
+      set(v) { on = v; if (v) ac(); }, get() { return on; }
+    };
+  })();
+  function buzz(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+  /* ---------------- Reel ---------------- */
+  class Reel {
+    constructor(dim) {
+      this.dim = dim;
+      this.tags = dim.tags.slice();
+      this.active = !dim.gore;
+      this.locked = !!dim.gore;
+      this.result = null; this.spinning = false;
+      this.copies = calcCopies(this.tags.length);
+      this.baseCopy = Math.floor(this.copies / 2);
+      this.d = this.baseCopy * this.tags.length * ROW_H; this.raf = null;
+      this.build();
+    }
+    build() {
+      const el = document.createElement("div");
+      el.className = "reel" + (this.dim.gore ? " locked gore-reel" : " ghost");
+      el.dataset.id = this.dim.id;
+      el.innerHTML =
+        '<div class="window"><div class="strip"></div><div class="ringing"></div></div>' +
+        '<div class="reel-foot"><span class="k">' + (this.dim.short || this.dim.en) + '</span>' +
+        '<span class="e">' + this.dim.en + '</span></div>';
+      this.el = el;
+      this.win = el.querySelector(".window");
+      this.strip = el.querySelector(".strip");
+      this.foot = el.querySelector(".reel-foot");
+      this.renderStrip(); this.render(); this.attach(); this.refresh();
+    }
+    renderStrip() {
+      const n = this.tags.length; let html = "";
+      for (let c = 0; c < this.copies; c++)
+        for (let i = 0; i < n; i++) html += '<div class="cell" data-i="' + i + '">' + this.tags[i].zh + "</div>";
+      this.strip.innerHTML = html;
+    }
+    render() { this.strip.style.transform = "translateY(" + (-this.d) + "px)"; }
+    refresh() {
+      const el = this.el;
+      el.classList.toggle("active", this.active && !this.locked);
+      el.classList.toggle("ghost", !this.active && !this.locked);
+      el.classList.toggle("locked", this.locked);
+    }
+    markPaycell() {
+      this.strip.querySelectorAll(".cell.paycell").forEach(c => c.classList.remove("paycell"));
+      if (this.result == null) return;
+      const g = Math.round(this.d / ROW_H) + VISIBLE_CENTER, cells = this.strip.children;
+      if (cells[g]) cells[g].classList.add("paycell");
+      this.el.classList.add("settled");
+    }
+    setActive(v) { if (this.locked) return; this.active = v; this.el.classList.remove("settled"); this.refresh(); }
+    spin(delay, onStop) {
+      if (!this.active || this.locked || this.spinning) { onStop && onStop(); return; }
+      if (this.raf) { cancelAnimationFrame(this.raf); this.raf = null; }
+      const total = this.tags.length * ROW_H;
+      const stripMax = (this.copies - 2) * total;
+      this.d = this.baseCopy * total + ((this.d % total) + total) % total;
+      this.render();
+      this.spinning = true; this.el.classList.add("spinning"); this.el.classList.remove("settled"); this.result = null;
+      const SPEED = 2200; let last = performance.now();
+      let stopping = false, t0, from, to, dur, lastTick = 0;
+      const target = Math.floor(Math.random() * this.tags.length);
+      const frame = (now) => {
+        const dt = Math.min(0.05, (now - last) / 1000); last = now;
+        if (!stopping) {
+          this.d += SPEED * dt;
+          if (now - lastTick > 70) { Audio.tick(); lastTick = now; }
+        } else {
+          const t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 3);
+          const overshoot = Math.sin(t * Math.PI) * (1 - t) * 10;
+          this.d = from + (to - from) * e + overshoot;
+          if (t >= 1) {
+            this.d = to; this.spinning = false; this.el.classList.remove("spinning");
+            this.result = this.tags[target]; this.render(); this.markPaycell();
+            Audio.clunk(); buzz(18); cancelAnimationFrame(this.raf); this.raf = null; onStop && onStop(); return;
+          }
+        }
+        this.render(); this.raf = requestAnimationFrame(frame);
+      };
+      this.raf = requestAnimationFrame(frame);
+      setTimeout(() => {
+        const curCopy = Math.floor(this.d / total);
+        let dest = (curCopy + 3) * total + (target - VISIBLE_CENTER) * ROW_H;
+        while (dest < this.d + total) dest += total;
+        if (dest > stripMax) dest -= Math.floor((dest - stripMax) / total + 1) * total;
+        if (dest < this.d) dest = this.baseCopy * total + target * ROW_H;
+        from = this.d; to = dest; dur = 620; t0 = performance.now(); stopping = true;
+      }, delay);
+    }
+    reroll(onStop) {
+      if (!this.active || this.locked || this.spinning) return;
+      this.el.classList.add("rerolling"); buzz([14, 40, 14]);
+      this.spin(420, () => { this.el.classList.remove("rerolling"); onStop && onStop(); });
+    }
+    attach() {
+      this.foot.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (this.locked || App.busy) return;
+        if (this.active && App.activeCount() <= 1) { App.flashHint("至少保留一個卷軸"); return; }
+        this.setActive(!this.active); buzz(8); Audio.tick(); App.hideResult();
+      });
+      let lpTimer = null, moved = false, sx = 0, sy = 0;
+      const start = (x, y) => {
+        if (this.locked || !this.active || App.busy) return;
+        moved = false; sx = x; sy = y;
+        lpTimer = setTimeout(() => { if (!moved) this.reroll(() => App.afterReroll(this)); }, 480);
+      };
+      const cancel = () => { clearTimeout(lpTimer); };
+      this.win.addEventListener("pointerdown", (e) => start(e.clientX, e.clientY));
+      this.win.addEventListener("pointermove", (e) => { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { moved = true; cancel(); } });
+      this.win.addEventListener("pointerup", cancel);
+      this.win.addEventListener("pointercancel", cancel);
+      this.win.addEventListener("pointerleave", cancel);
+    }
+  }
+
+  const DIMS = [{"id":"position","zh":"體位","short":"體位","en":"Entry","full":"體位 · 入口","gore":false,"enOnly":false,"tags":[{"zh":"69式","en":"Sixty-Nine","ja":"シックスナイン"},{"zh":"口交·吹","en":"Blowjob","ja":"フェラチオ"},{"zh":"口交·舔穴","en":"Cunnilingus","ja":"クンニリングス"},{"zh":"深喉","en":"Deep Throat","ja":"ディープスロート"},{"zh":"操嘴","en":"Face-Fucking","ja":"イラマチオ"},{"zh":"坐臉","en":"Face-Sitting","ja":"顔面騎乗"},{"zh":"舔後穴","en":"Rimming","ja":"アナル舐め"},{"zh":"舔耳","en":"Ear Licking","ja":"耳舐め"},{"zh":"手交","en":"Handjob","ja":"手コキ"},{"zh":"手指插穴","en":"Fingering","ja":"手マン"},{"zh":"後穴手指","en":"Anal Fingering","ja":"アナル指挿入"},{"zh":"陰道性交","en":"Vaginal Sex","ja":"膣性交"},{"zh":"肛交","en":"Anal Sex","ja":"アナルセックス"},{"zh":"腿交","en":"Intercrural Sex","ja":"素股"},{"zh":"乳交","en":"Titfuck","ja":"パイズリ"},{"zh":"足交","en":"Footjob","ja":"足コキ"},{"zh":"磨蹭","en":"Frottage","ja":"擦りつけ"},{"zh":"騎乘","en":"Riding","ja":"騎乗位"},{"zh":"前列腺按摩","en":"Prostate Massage","ja":"前立腺マッサージ"},{"zh":"拳交","en":"Fisting","ja":"フィスティング"},{"zh":"頂到宮頸","en":"Cervix Penetration","ja":"子宮口貫通"},{"zh":"雙龍入洞","en":"Double Penetration","ja":"二穴挿入"},{"zh":"同穴雙插","en":"Double Stuffing","ja":"二本挿し"},{"zh":"三插","en":"Triple Penetration","ja":"三穴挿入"},{"zh":"異物插入","en":"Object Insertion","ja":"異物挿入"},{"zh":"尿道擴張","en":"Urethral Play","ja":"尿道拡張"},{"zh":"無套","en":"Bareback","ja":"生挿入"},{"zh":"含著不動","en":"Cockwarming","ja":"咥えたまま"},{"zh":"互相手淫","en":"Mutual Masturbation","ja":"相互オナニー"},{"zh":"成結","en":"Knotting","ja":"ノッティング"},{"zh":"傳教士","en":"Missionary","ja":"正常位"},{"zh":"後入","en":"Doggy Style","ja":"後背位"},{"zh":"側入","en":"Spooning","ja":"橫ハメ"},{"zh":"反向騎乘","en":"Reverse Cowgirl","ja":"逆騎乗"},{"zh":"站立式","en":"Standing Sex","ja":"立ちバック"},{"zh":"摺疊按壓","en":"Mating Press","ja":"種付けプレス"},{"zh":"驛弁","en":"Standing Carry","ja":"駅弁"},{"zh":"趴壓","en":"Prone Bone","ja":"うつ伏せバック"},{"zh":"蓮花位","en":"Lotus","ja":"蓮華座位"},{"zh":"剪刀腳","en":"Scissoring","ja":"シザリング"},{"zh":"椅子位","en":"Chair Sex","ja":"椅子セックス"},{"zh":"抬腿扛肩","en":"Legs on Shoulders","ja":"肩擔ぎ"},{"zh":"蹲騎","en":"Squatting Cowgirl","ja":"スクワット騎乗"},{"zh":"打樁機","en":"Piledriver","ja":"杭打ち"},{"zh":"推車","en":"Wheelbarrow","ja":"手押し車"},{"zh":"面對面站立","en":"Face-to-Face Standing","ja":"対面立ち"},{"zh":"浴缸騎乘","en":"Bath Riding","ja":"風呂騎乗"},{"zh":"膝蓋上","en":"Lap Sex","ja":"膝上セックス"},{"zh":"壁尻","en":"Stuck in Wall","ja":"壁尻"},{"zh":"背後抱立","en":"Full Nelson","ja":"フルネルソン"}]},{"id":"scenario","zh":"場景","short":"場景","en":"Scene","full":"場景 · 情境","gore":false,"enOnly":false,"tags":[{"zh":"桌上","en":"Desk Sex","ja":"機上セックス"},{"zh":"地板上","en":"Floor Sex","ja":"床セックス"},{"zh":"抵在牆上","en":"Wall Sex","ja":"壁セックス"},{"zh":"浴缸裡","en":"Bathtub Sex","ja":"風呂セックス"},{"zh":"車震","en":"Car Sex","ja":"カーセックス"},{"zh":"廚房裡","en":"Kitchen Sex","ja":"キッチンセックス"},{"zh":"鏡子前","en":"Mirror Sex","ja":"鏡の前で"},{"zh":"戶外","en":"Outdoor Sex","ja":"野外セックス"},{"zh":"公共場所","en":"Public Sex","ja":"公共セックス"},{"zh":"半公開場","en":"Semi-Public Sex","ja":"半公開セックス"},{"zh":"淋浴間操","en":"Shower Sex","ja":"シャワーセックス"},{"zh":"電車","en":"Train Groping","ja":"電車"},{"zh":"被撞見","en":"Caught in the Act","ja":"見つかる"},{"zh":"被看著","en":"Watched Sex","ja":"見られながら"},{"zh":"遠端性愛","en":"Teledildonics","ja":"遠隔セックス"},{"zh":"電話做愛","en":"Phone Sex","ja":"テレフォンセックス"},{"zh":"色情簡訊","en":"Sexting","ja":"エロメッセージ"},{"zh":"電梯裡","en":"Elevator Sex","ja":"エレベーターセックス"},{"zh":"更衣室","en":"Fitting Room","ja":"試著室"},{"zh":"圖書館","en":"Library","ja":"図書館"},{"zh":"辦公室","en":"Office Sex","ja":"オフィスセックス"},{"zh":"教室","en":"Classroom","ja":"教室"},{"zh":"酒店房間","en":"Hotel Room","ja":"ホテル"},{"zh":"樓梯間","en":"Stairwell","ja":"階段"},{"zh":"電影院","en":"Cinema","ja":"映畫館"},{"zh":"後臺/化妝間","en":"Backstage","ja":"楽屋"},{"zh":"飛機廁所","en":"Mile High","ja":"機內トイレ"},{"zh":"儲藏間","en":"Storage Room","ja":"物置"},{"zh":"溫泉","en":"Hot Spring","ja":"溫泉"},{"zh":"泳池","en":"Pool","ja":"プール"},{"zh":"洗手間隔間","en":"Bathroom Stall","ja":"トイレの個室"},{"zh":"衣帽間","en":"Walk-in Closet","ja":"クローゼット"},{"zh":"陽臺","en":"Balcony","ja":"ベランダ"},{"zh":"停車場","en":"Parking Lot","ja":"駐車場"},{"zh":"屋頂","en":"Rooftop","ja":"屋上"},{"zh":"小巷","en":"Alleyway","ja":"路地裡"},{"zh":"雨中","en":"In the Rain","ja":"雨の中"},{"zh":"森林/野外","en":"Woods","ja":"森の中"},{"zh":"海邊/沙灘","en":"Beach","ja":"ビーチ"},{"zh":"帳篷裡","en":"Tent","ja":"テントの中"},{"zh":"廢墟","en":"Abandoned Building","ja":"廃墟"},{"zh":"停電中","en":"During a Blackout","ja":"停電中"},{"zh":"暴風雨天","en":"During a Storm","ja":"嵐の中"},{"zh":"倒計時","en":"On a Timer","ja":"タイムリミット"},{"zh":"來客中","en":"While Guests Are Over","ja":"來客中"},{"zh":"通話中","en":"On the Phone","ja":"通話中"},{"zh":"視訊會議中","en":"During a Video Call","ja":"ビデオ會議中"},{"zh":"工作中","en":"Under the Desk","ja":"仕事中こっそり"},{"zh":"清晨剛醒","en":"Just Woke Up","ja":"朝起き"},{"zh":"晨炮","en":"Morning Sex","ja":"朝セックス"},{"zh":"久別重逢操","en":"Reunion Sex","ja":"再會セックス"},{"zh":"経期","en":"Period Sex","ja":"生理中セックス"},{"zh":"排卵日","en":"Ovulation Day","ja":"排卵日"},{"zh":"KTV包廂","en":"Karaoke Room","ja":"カラオケボックス"},{"zh":"地下室","en":"Basement","ja":"地下室"},{"zh":"深夜便利店","en":"Late-Night Convenience Store","ja":"深夜コンビニ"},{"zh":"教堂","en":"Church","ja":"教會"},{"zh":"雪屋·小木屋","en":"Snowed-In Cabin","ja":"雪の山小屋"}]},{"id":"props","zh":"道具","short":"道具","en":"Props","full":"道具 · 玩具","gore":false,"enOnly":false,"tags":[{"zh":"口塞","en":"Gag","ja":"口枷"},{"zh":"矇眼","en":"Blindfold","ja":"目隠し"},{"zh":"肛塞","en":"Butt Plug","ja":"アナルプラグ"},{"zh":"肛珠","en":"Anal Beads","ja":"アナルビーズ"},{"zh":"假陽具","en":"Dildo","ja":"ディルド"},{"zh":"電擊器","en":"Electrostim Device","ja":"電気責め器具"},{"zh":"灌腸器","en":"Enema Kit","ja":"浣腸器"},{"zh":"羽毛","en":"Feather","ja":"羽根"},{"zh":"冰塊","en":"Ice Cubes","ja":"氷"},{"zh":"蠟燭","en":"Candle","ja":"蝋燭"},{"zh":"乳夾","en":"Nipple Clamps","ja":"乳首クリップ"},{"zh":"分腿器","en":"Spreader Bar","ja":"開腳バー"},{"zh":"震動棒","en":"Vibrator","ja":"バイブレーター"},{"zh":"跳蛋","en":"Vibrating Egg","ja":"ローター"},{"zh":"手銬","en":"Handcuffs","ja":"手錠"},{"zh":"散鞭","en":"Flogger","ja":"フロッガー"},{"zh":"鞭","en":"Whip","ja":"鞭"},{"zh":"藤條","en":"Cane","ja":"籐"},{"zh":"板子","en":"Paddle","ja":"パドル"},{"zh":"繩","en":"Rope","ja":"縄"},{"zh":"項圈","en":"Collar","ja":"首輪"},{"zh":"牽繩","en":"Leash","ja":"リード"},{"zh":"陰莖籠","en":"Cock Cage","ja":"貞操帯"},{"zh":"陰莖環","en":"Cock Ring","ja":"コックリング"},{"zh":"尿道塞","en":"Urethral Plug","ja":"尿道プラグ"},{"zh":"穿戴式","en":"Strap-On","ja":"ペニバン"},{"zh":"針","en":"Needle","ja":"針"},{"zh":"刀","en":"Knife","ja":"ナイフ"},{"zh":"觸手服","en":"Tentacle Suit","ja":"觸手スーツ"},{"zh":"皮帶","en":"Belt","ja":"ベルト"},{"zh":"領帶","en":"Necktie","ja":"ネクタイ"},{"zh":"圍巾","en":"Scarf","ja":"スカーフ"},{"zh":"束腰","en":"Corset","ja":"コルセット"},{"zh":"拘束衣","en":"Straitjacket","ja":"拘束衣"},{"zh":"尾巴肛塞","en":"Tail Plug","ja":"テールプラグ"},{"zh":"口枷","en":"O-Ring Gag","ja":"リングギャグ"},{"zh":"蜘蛛口枷","en":"Spider Gag","ja":"スパイダーギャグ"},{"zh":"神經輪","en":"Wartenberg Wheel","ja":"ピンホイール"},{"zh":"吸乳器","en":"Nipple Sucker","ja":"乳首吸引器"},{"zh":"陰蒂吸吮器","en":"Clit Sucker","ja":"クリ吸引器"},{"zh":"電擊項圈","en":"Shock Collar","ja":"電気首輪"},{"zh":"彈力繩拍","en":"Riding Crop","ja":"乗馬鞭"},{"zh":"衣夾","en":"Clothespin","ja":"洗濯バサミ"},{"zh":"薄荷油","en":"Menthol Oil","ja":"メンソールオイル"},{"zh":"震動子彈","en":"Bullet Vibe","ja":"ミニバイブ"},{"zh":"雙頭假陽","en":"Double-Ended Dildo","ja":"両頭ディルド"},{"zh":"抽插機器","en":"Fucking Machine","ja":"ファッキングマシン"},{"zh":"巧克力醬","en":"Chocolate Sauce","ja":"チョコレートソース"},{"zh":"蜂蜜","en":"Honey","ja":"蜂蜜"},{"zh":"奶油","en":"Whipped Cream","ja":"ホイップクリーム"},{"zh":"水果","en":"Fruit","ja":"フルーツ"},{"zh":"棒棒糖","en":"Lollipop","ja":"棒付きキャンディ"},{"zh":"冰棒","en":"Popsicle","ja":"アイスキャンディ"},{"zh":"女裝","en":"Crossdressing","ja":"女裝"},{"zh":"乳膠衣","en":"Latex","ja":"ラテックス"},{"zh":"皮革","en":"Leather","ja":"レザー"},{"zh":"情趣內衣","en":"Lingerie","ja":"ランジェリー"},{"zh":"女僕裝","en":"Maid Outfit","ja":"メイド服"},{"zh":"絲襪","en":"Stockings","ja":"ストッキング"},{"zh":"泳裝","en":"Swimsuit","ja":"水著"},{"zh":"旗袍","en":"Qipao","ja":"チャイナドレス"},{"zh":"軍裝","en":"Military Uniform","ja":"軍服"},{"zh":"體操服","en":"Gym Clothes","ja":"體操服"},{"zh":"網襪","en":"Fishnet","ja":"網タイツ"},{"zh":"口紅","en":"Lipstick","ja":"口紅"},{"zh":"打火機","en":"Lighter","ja":"ライター"},{"zh":"牙刷","en":"Toothbrush","ja":"歯ブラシ"},{"zh":"電動牙刷","en":"Electric Toothbrush","ja":"電動歯ブラシ"}]},{"id":"roleplay","zh":"設定","short":"設定","en":"Role","full":"設定 · 扮演","gore":false,"enOnly":false,"tags":[{"zh":"合意強制","en":"Consensual Non-Consent","ja":"合意強制"},{"zh":"daddy癖","en":"Daddy Kink","ja":"ダディキンク"},{"zh":"主從關係","en":"Master/Slave Dynamic","ja":"主従関係"},{"zh":"權力不對等","en":"Power Imbalance","ja":"権力格差"},{"zh":"寵物play","en":"Pet Play","ja":"ペットプレイ"},{"zh":"小貓play","en":"Kitten Play","ja":"子貓プレイ"},{"zh":"小狗play","en":"Puppy Play","ja":"仔犬プレイ"},{"zh":"馬駒play","en":"Pony Play","ja":"ポニープレイ"},{"zh":"年齡扮演","en":"Age Play","ja":"年齢プレイ"},{"zh":"發情期","en":"Heat/Rut","ja":"発情期"},{"zh":"綁架幻想","en":"Kidnapping Fantasy","ja":"誘拐幻想"},{"zh":"醫療play","en":"Medical Play","ja":"醫療プレイ"},{"zh":"怪物操","en":"Teratophilia","ja":"異種姦"},{"zh":"產卵play","en":"Oviposition","ja":"産卵プレイ"},{"zh":"強暴幻想","en":"Rape Fantasy","ja":"強姦幻想"},{"zh":"跟蹤幻想","en":"Stalking Fantasy","ja":"ストーカー幻想"},{"zh":"催眠","en":"Hypnosis","ja":"催眠"},{"zh":"NTR","en":"Netorare","ja":"寢取り"},{"zh":"睡姦","en":"Somnophilia","ja":"睡眠姦"},{"zh":"痴漢","en":"Chikan","ja":"痴漢"},{"zh":"痴女","en":"Chijo","ja":"痴女"},{"zh":"姐弟","en":"Older Sister×Younger Brother","ja":"姉弟"},{"zh":"正太攻","en":"Shota Top","ja":"ショタ攻め"},{"zh":"媽媽","en":"Mommy","ja":"ママ"},{"zh":"爸爸","en":"Daddy","ja":"パパ"},{"zh":"老師","en":"Teacher","ja":"先生"},{"zh":"上司","en":"Boss","ja":"上司"},{"zh":"處女癖","en":"Virginity Kink","ja":"処女廚"},{"zh":"第一次","en":"First Time","ja":"初體験"},{"zh":"制服play","en":"Uniform Play","ja":"制服プレイ"},{"zh":"著裝play","en":"Clothed Sex","ja":"著衣セックス"},{"zh":"傲嬌","en":"Tsundere","ja":"ツンデレ"},{"zh":"病嬌","en":"Yandere","ja":"ヤンデレ"},{"zh":"執著","en":"Obsessive Love","ja":"執著"},{"zh":"逆強","en":"Reverse Rape","ja":"逆レイプ"},{"zh":"女攻","en":"Femdom","ja":"女攻め"},{"zh":"逆後宮","en":"Reverse Harem","ja":"逆ハーレム"},{"zh":"扶她/雙性","en":"Futanari","ja":"ふたなり"},{"zh":"性転","en":"Genderbend","ja":"性転換"},{"zh":"身體互換","en":"Bodyswap","ja":"身體交換"},{"zh":"時間停止","en":"Time Stop","ja":"時間停止"},{"zh":"百合","en":"Yuri","ja":"百合"},{"zh":"孕/懷孕","en":"Pregnancy","ja":"妊娠"},{"zh":"三人行","en":"Threesome","ja":"3P"},{"zh":"輪操","en":"Gangbang","ja":"輪姦"},{"zh":"群交","en":"Orgy","ja":"亂交"},{"zh":"監禁","en":"Captivity","ja":"監禁"},{"zh":"睡取","en":"Sleep Stealing","ja":"寢取り"},{"zh":"半獸人","en":"Orc","ja":"半獣人"},{"zh":"獸","en":"Bestiality","ja":"獣姦"},{"zh":"寄生","en":"Parasitism","ja":"寄生"},{"zh":"蟲","en":"Insect","ja":"蟲姦"},{"zh":"觸手","en":"Tentacles","ja":"觸手"},{"zh":"讓你懷孕","en":"Impregnation","ja":"孕ませ"},{"zh":"託卵","en":"Cuckoo Egg","ja":"託卵"},{"zh":"監視","en":"Surveillance","ja":"監視"},{"zh":"吸血鬼×人類","en":"Vampire","ja":"ヴァンパイア"},{"zh":"審訊官×囚犯","en":"Interrogation","ja":"尋問"},{"zh":"皇帝×臣","en":"Emperor","ja":"皇帝"},{"zh":"房東×租客","en":"Landlord","ja":"大家"},{"zh":"教練×運動員","en":"Coach","ja":"コーチ"},{"zh":"攝影師×模特","en":"Photographer","ja":"カメラマン"},{"zh":"畫家×模特","en":"Artist×Muse","ja":"畫家×モデル"},{"zh":"客人×服務員","en":"Waiter","ja":"ウェイター"},{"zh":"快遞員×收件人","en":"Delivery","ja":"配達"},{"zh":"修理工","en":"Repairman","ja":"修理工"},{"zh":"鄰居","en":"Neighbor","ja":"隣人"},{"zh":"陌生人/一夜情","en":"Stranger","ja":"見知らぬ人"},{"zh":"前任","en":"Ex","ja":"元カレ・元カノ"},{"zh":"青梅竹馬","en":"Childhood Friend","ja":"幼馴染"},{"zh":"債主×欠債者","en":"Debt","ja":"借金"},{"zh":"司機×乘客","en":"Driver","ja":"運転手"},{"zh":"偶像×粉絲","en":"Idol×Fan","ja":"アイドル×ファン"},{"zh":"管家×主人","en":"Butler","ja":"執事"},{"zh":"神父×信徒","en":"Priest","ja":"神父"},{"zh":"黑幫","en":"Mafia","ja":"ヤクザ"},{"zh":"海盜","en":"Pirate","ja":"海賊"},{"zh":"騎士×公主","en":"Knight","ja":"騎士"},{"zh":"古代宮廷","en":"Historical Court","ja":"宮廷"},{"zh":"民國/舊上海","en":"Republican Era","ja":"民國"},{"zh":"維多利亞時代","en":"Victorian","ja":"ヴィクトリアン"},{"zh":"戰時","en":"Wartime","ja":"戦時"},{"zh":"末世","en":"Post-Apocalyptic","ja":"終末"},{"zh":"監獄","en":"Prison","ja":"刑務所"},{"zh":"校園","en":"School","ja":"學園"},{"zh":"異世界","en":"Isekai","ja":"異世界"},{"zh":"地下組織","en":"Underground","ja":"地下組織"},{"zh":"背德/禁忌關係","en":"Forbidden","ja":"禁斷"},{"zh":"上下級戀愛","en":"Office Romance","ja":"社內戀愛"},{"zh":"假裝情侶","en":"Fake Relationship","ja":"偽カップル"},{"zh":"已婚出軌","en":"Affair","ja":"不倫"},{"zh":"知道是錯的但停不下來","en":"Can't Stop","ja":"やめられない"},{"zh":"交易性關係","en":"Transactional","ja":"援交"},{"zh":"復仇","en":"Revenge","ja":"復讐"},{"zh":"替身/影武者","en":"Body Double","ja":"影武者"},{"zh":"修女","en":"Nun","ja":"修道女/シスター"},{"zh":"巫女","en":"Shrine Maiden","ja":"巫女"},{"zh":"護士","en":"Nurse","ja":"ナース"},{"zh":"AI×人類","en":"AI×Human","ja":"AI×人間"},{"zh":"時間迴圈","en":"Time Loop","ja":"タイムループ"}]},{"id":"physical","zh":"物理","short":"物理","en":"Body","full":"玩法 · 物理","gore":false,"enOnly":false,"tags":[{"zh":"怒操","en":"Rough Sex","ja":"激しいセックス"},{"zh":"粗暴操","en":"Rough Fucking","ja":"亂暴"},{"zh":"溫柔做","en":"Gentle Sex","ja":"優しいセックス"},{"zh":"懶洋洋地做","en":"Lazy Sex","ja":"まったりセックス"},{"zh":"激情做","en":"Passionate Sex","ja":"情熱的セックス"},{"zh":"慢慢做","en":"Slow Sex","ja":"スローセックス"},{"zh":"速戰速決","en":"Quickie","ja":"クイック"},{"zh":"馬拉松做愛","en":"Marathon Sex","ja":"マラソンセックス"},{"zh":"咬","en":"Biting","ja":"噛み"},{"zh":"打屁股","en":"Spanking","ja":"スパンキング"},{"zh":"揪頭髮","en":"Hair Pulling","ja":"髪引っ張り"},{"zh":"扇耳光","en":"Face Slapping","ja":"ビンタ"},{"zh":"抓撓留痕","en":"Scratching","ja":"引っ掻き"},{"zh":"留痕","en":"Marking","ja":"痕つけ"},{"zh":"淤青/痕跡","en":"Bruising","ja":"痣"},{"zh":"吮痕","en":"Hickey","ja":"キスマーク"},{"zh":"鞭打","en":"Whipping","ja":"鞭打ち"},{"zh":"藤條打","en":"Caning","ja":"籐打ち"},{"zh":"板子打","en":"Paddling","ja":"パドリング"},{"zh":"擊打play","en":"Impact Play","ja":"打撃プレイ"},{"zh":"撓癢","en":"Tickling","ja":"くすぐり"},{"zh":"生薑責","en":"Figging","ja":"フィギング"},{"zh":"辛味責","en":"Spicy Play","ja":"辛味責め"},{"zh":"束縛","en":"Bondage","ja":"緊縛"},{"zh":"繩縛","en":"Shibari","ja":"縄縛り"},{"zh":"懸吊","en":"Suspension","ja":"吊り"},{"zh":"窒息","en":"Choking","ja":"窒息"},{"zh":"呼吸控制","en":"Breath Play","ja":"呼吸制御"},{"zh":"掐喉","en":"Throat Grabbing","ja":"首絞め"},{"zh":"鎖喉","en":"Chokehold","ja":"締め技"},{"zh":"溫度play","en":"Temperature Play","ja":"溫度プレイ"},{"zh":"火play","en":"Fire Play","ja":"火プレイ"},{"zh":"刀play","en":"Knife Play","ja":"ナイフプレイ"},{"zh":"針刺play","en":"Needle Play","ja":"針プレイ"},{"zh":"感官play","en":"Sensation Play","ja":"感覚プレイ"},{"zh":"感官剝奪","en":"Sensory Deprivation","ja":"感覚遮斷"},{"zh":"同時高潮","en":"Simultaneous Orgasm","ja":"同時絶頂"},{"zh":"連續高潮","en":"Multiple Orgasms","ja":"連続絶頂"},{"zh":"幹高潮","en":"Dry Orgasm","ja":"ドライオーガズム"},{"zh":"強制高潮","en":"Forced Orgasm","ja":"強制絶頂"},{"zh":"寸止","en":"Edging","ja":"寸止め"},{"zh":"過度刺激","en":"Overstimulation","ja":"過刺激"},{"zh":"刺激到哭","en":"Fucked to Tears","ja":"泣くまで"},{"zh":"高潮控制","en":"Orgasm Control","ja":"オーガズムコントロール"},{"zh":"禁止高潮","en":"Orgasm Denial","ja":"絶頂禁止"},{"zh":"毀掉的高潮","en":"Ruined Orgasm","ja":"臺無しオーガズム"},{"zh":"潮吹","en":"Squirting","ja":"潮吹き"},{"zh":"中出","en":"Creampie","ja":"中出し"},{"zh":"顏射","en":"Facial","ja":"顔射"},{"zh":"灌種","en":"Breeding","ja":"種付け"},{"zh":"種付癖","en":"Breeding Kink","ja":"種付け癖"},{"zh":"精液play","en":"Cum Play","ja":"精液プレイ"},{"zh":"吞精","en":"Swallowing","ja":"ごっくん"},{"zh":"精液標記","en":"Cum Marking","ja":"精液マーキング"},{"zh":"精液嘴對嘴","en":"Snowballing","ja":"スノーボーリング"},{"zh":"大量射精","en":"Excessive Cum","ja":"大量射精"},{"zh":"連續射精","en":"Multiple Ejaculations","ja":"連続射精"},{"zh":"精液浴","en":"Cum Bath","ja":"精液風呂"},{"zh":"倒數射精","en":"Countdown Cum","ja":"カウントダウン射精"},{"zh":"射精管理","en":"Cum Management","ja":"射精管理"},{"zh":"射精禁止","en":"Cum Denial","ja":"射精禁止"},{"zh":"男性潮吹","en":"Male Squirting","ja":"男性潮吹き"},{"zh":"榨精","en":"Milking","ja":"搾精"},{"zh":"逆榨精","en":"Reverse Milking","ja":"逆搾精"},{"zh":"憋尿/失禁","en":"Omorashi","ja":"おもらし"},{"zh":"尿play","en":"Watersports","ja":"放尿プレイ"},{"zh":"口水癖","en":"Spit Kink","ja":"唾液フェチ"},{"zh":"吐口水","en":"Spitting","ja":"唾吐き"},{"zh":"唾液","en":"Saliva","ja":"唾液"},{"zh":"母乳","en":"Lactation","ja":"母乳"},{"zh":"母乳噴射","en":"Milk Squirting","ja":"母乳噴射"},{"zh":"灌腸","en":"Enema","ja":"浣腸"},{"zh":"水責","en":"Water Torture","ja":"水責め"},{"zh":"擴張","en":"Stretching","ja":"拡張"},{"zh":"肛門擴張","en":"Anal Stretching","ja":"アナル拡張"},{"zh":"穿刺play","en":"Piercing Play","ja":"ピアッシングプレイ"},{"zh":"血play","en":"Blood Play","ja":"血液プレイ"},{"zh":"烙印","en":"Branding","ja":"烙印"},{"zh":"玩奶頭","en":"Nipple Play","ja":"乳首弄り"},{"zh":"乳頭虐","en":"Nipple Torture","ja":"乳首虐め"},{"zh":"交配","en":"Mating","ja":"交尾"},{"zh":"腦子操壞了","en":"Fucked Stupid","ja":"頭おかしくなる"},{"zh":"催情劑","en":"Aphrodisiac","ja":"催淫剤"},{"zh":"春藥","en":"Love Potion","ja":"媚薬"},{"zh":"大腿舞","en":"Lap Dance","ja":"ラップダンス"},{"zh":"事後照顧","en":"Aftercare","ja":"アフターケア"},{"zh":"吸血","en":"Blood Sucking","ja":"吸血"},{"zh":"衣服裡藏玩具","en":"Hidden Toy Under Clothes","ja":"服の中に玩具"},{"zh":"眼淚當潤滑","en":"Tears as Lube","ja":"涙を潤滑に"},{"zh":"按摩","en":"Massage","ja":"マッサージ"},{"zh":"做愛時拍照","en":"Photo During Sex","ja":"セックス中撮影"},{"zh":"錄影","en":"Filming","ja":"撮影"},{"zh":"半穿著操","en":"Partially Clothed","ja":"著衣セックス"},{"zh":"一方穿一方脫","en":"Partially Clothed","ja":"片方だけ裸"},{"zh":"紋身癖","en":"Tattoo Kink","ja":"タトゥーフェチ"},{"zh":"身體書寫","en":"Body Writing","ja":"落書き"},{"zh":"淫紋","en":"Lewd Crest","ja":"淫紋"}]},{"id":"mental","zh":"精神","short":"精神","en":"Mind","full":"玩法 · 精神","gore":false,"enOnly":false,"tags":[{"zh":"BDSM","en":"BDSM","ja":"BDSM"},{"zh":"貞操控制","en":"Chastity Control","ja":"貞操管理"},{"zh":"雞巴崇拜","en":"Cock Worship","ja":"チンポ崇拝"},{"zh":"墮落/汙染","en":"Corruption","ja":"墮落"},{"zh":"羞辱貶低","en":"Degradation","ja":"屈辱"},{"zh":"去人格化","en":"Dehumanization","ja":"非人間化"},{"zh":"主導方","en":"Dominant","ja":"ドミナント"},{"zh":"模糊同意","en":"Dubious Consent","ja":"曖昧な同意"},{"zh":"恐懼play","en":"Fear Play","ja":"恐怖プレイ"},{"zh":"野獸化行為","en":"Feral Behavior","ja":"獣化行為"},{"zh":"純潔癖","en":"Purity Kink","ja":"清純フェチ"},{"zh":"受虐癖","en":"Masochism","ja":"マゾヒズム"},{"zh":"施虐癖","en":"Sadism","ja":"サディズム"},{"zh":"物化","en":"Objectification","ja":"物化"},{"zh":"疼痛癖","en":"Pain Kink","ja":"痛みフェチ"},{"zh":"權力關係","en":"Power Dynamics","ja":"権力関係"},{"zh":"誇獎癖","en":"Praise Kink","ja":"褒めフェチ"},{"zh":"兩難束縛","en":"Double Bind","ja":"ダブルバインド"},{"zh":"懲罰","en":"Punishment","ja":"罰"},{"zh":"獎勵","en":"Reward","ja":"ご褒美"},{"zh":"sub低落","en":"Sub Drop","ja":"サブドロップ"},{"zh":"臣服方","en":"Submissive","ja":"サブミッシブ"},{"zh":"sub空間","en":"Subspace","ja":"サブスペース"},{"zh":"top低落","en":"Top Drop","ja":"トップドロップ"},{"zh":"服務型臣服","en":"Service Submission","ja":"奉仕型服従"},{"zh":"馴服brat","en":"Brat Taming","ja":"ブラット矯正"},{"zh":"說騷話","en":"Dirty Talk","ja":"淫語"},{"zh":"語言羞辱","en":"Verbal Humiliation","ja":"言葉責め"},{"zh":"叫難聽的名字","en":"Name Calling","ja":"蔑稱呼び"},{"zh":"羞辱","en":"Humiliation","ja":"恥辱"},{"zh":"身體崇拜","en":"Body Worship","ja":"ボディワーシップ"},{"zh":"崇拜","en":"Worship","ja":"崇拝"},{"zh":"自由使用","en":"Free Use","ja":"自由使用"},{"zh":"標記/宣示所有權","en":"Marking/Claiming","ja":"マーキング"},{"zh":"烙印/燙印","en":"Ownership Branding","ja":"焼き印"},{"zh":"凌辱","en":"Abuse Play","ja":"凌辱"},{"zh":"肉便器","en":"Human Toilet","ja":"肉便器"},{"zh":"公廁","en":"Public Use","ja":"公眾便所"},{"zh":"墮落","en":"Depravity","ja":"墮落"},{"zh":"快樂墮落","en":"Pleasure Corruption","ja":"快楽墮ち"},{"zh":"洗腦","en":"Brainwashing","ja":"洗脳"},{"zh":"精神崩壊","en":"Mind Break","ja":"精神崩壊"},{"zh":"奴隸","en":"Slave","ja":"奴隷"},{"zh":"教你做人","en":"Discipline","ja":"躾"},{"zh":"辱罵","en":"Verbal Abuse","ja":"罵倒"},{"zh":"暗示","en":"Suggestion","ja":"暗示"},{"zh":"精神控制","en":"Mind Control","ja":"精神支配"},{"zh":"寵溺","en":"Pampering","ja":"甘やかし"},{"zh":"佔有慾操","en":"Possessive Sex","ja":"獨佔欲セックス"},{"zh":"仇恨操","en":"Hate Fuck","ja":"憎しみセックス"},{"zh":"吃醋後操","en":"Jealousy Sex","ja":"嫉妬セックス"},{"zh":"和好炮","en":"Make-Up Sex","ja":"仲直りセックス"},{"zh":"忍不住就地操","en":"Can't-Wait Sex","ja":"我慢できないセックス"},{"zh":"邊哭邊操","en":"Crying During Sex","ja":"泣きながらセックス"},{"zh":"求饒","en":"Begging","ja":"懇願"},{"zh":"窺視癖","en":"Voyeurism","ja":"竊視"},{"zh":"露出","en":"Exhibitionism","ja":"露出"},{"zh":"偷拍","en":"Secret Recording","ja":"盜撮"},{"zh":"公開処刑","en":"Public Humiliation","ja":"公開処刑"},{"zh":"睡眠誘導","en":"Sleep Induction","ja":"睡眠誘導"},{"zh":"自慰指示","en":"Masturbation Instructions","ja":"オナニー指示"},{"zh":"ASMR","en":"ASMR","ja":"ASMR"},{"zh":"雙耳錄音","en":"Binaural Audio","ja":"バイノーラル"},{"zh":"條件反射訓練","en":"Conditioning","ja":"條件付け"},{"zh":"服從測試","en":"Obedience Test","ja":"服従テスト"},{"zh":"心理倒錯","en":"Mindfuck","ja":"マインドファック"},{"zh":"不許看·看著我","en":"Eye Contact Control","ja":"視線管理"}]},{"id":"gore","zh":"","short":"GORE","en":"GORE","full":"GORE","gore":true,"enOnly":true,"tags":[{"zh":"子宮脫","en":"Prolapse","ja":"子宮脫"},{"zh":"斷面圖","en":"Cross-Section View","ja":"斷面図"},{"zh":"透視","en":"X-Ray View","ja":"透視"},{"zh":"切割play","en":"Cutting","ja":"カッティング"},{"zh":"刻字/刻名","en":"Carving","ja":"刻印"},{"zh":"縫合","en":"Stitching","ja":"縫合"},{"zh":"大面積燒灼","en":"Severe Branding","ja":"広範囲焼灼"},{"zh":"釘刺","en":"Nailing","ja":"釘打ち"},{"zh":"刺穿","en":"Impalement","ja":"串刺し"},{"zh":"開膛","en":"Evisceration","ja":"腹裂き"},{"zh":"內臟play","en":"Organ Play","ja":"臓器プレイ"},{"zh":"器官交換","en":"Organ Exchange","ja":"臓器交換"},{"zh":"傷口性交","en":"Wound Fucking","ja":"傷口姦"},{"zh":"體腔內射精","en":"Cum in Body Cavity","ja":"體腔內射精"},{"zh":"心臟觸碰","en":"Heart Touch","ja":"心臓觸れ"},{"zh":"子宮摘出","en":"Womb Removal","ja":"子宮摘出"},{"zh":"大量出血","en":"Blood Bath","ja":"大量出血"},{"zh":"嘔吐play","en":"Emeto","ja":"嘔吐プレイ"},{"zh":"血液性交","en":"Blood as Lube","ja":"血液潤滑"},{"zh":"窒息至失意識","en":"Asphyxiation to Unconscious","ja":"窒息失神"},{"zh":"Snuff幻想","en":"Snuff Fantasy","ja":"スナッフ"},{"zh":"Necro幻想","en":"Necrophilia Fantasy","ja":"ネクロフィリア"},{"zh":"臨死快感","en":"Edge of Death","ja":"死の淵"},{"zh":"截肢幻想","en":"Amputation Fantasy","ja":"切斷幻想"},{"zh":"身體融合","en":"Body Merge","ja":"肉體融合"},{"zh":"極端擴張","en":"Extreme Stretching","ja":"極限拡張"},{"zh":"永久穿孔","en":"Permanent Piercing","ja":"永久ピアッシング"},{"zh":"人體改造","en":"Body Modification","ja":"肉體改造"},{"zh":"肉壁","en":"Flesh Wall","ja":"肉壁化"},{"zh":"食人幻想","en":"Cannibalism Fantasy","ja":"カニバリズム"},{"zh":"吞噬","en":"Vore","ja":"ヴォア"},{"zh":"骨肉做紀念品","en":"Trophy","ja":"人體トロフィー"},{"zh":"剝皮","en":"Flaying","ja":"皮剝ぎ"},{"zh":"碎骨","en":"Bone Breaking","ja":"骨折り"},{"zh":"骨露出","en":"Bone Exposure","ja":"骨露出"},{"zh":"眼球play","en":"Eye Play","ja":"眼球プレイ"},{"zh":"拔齒","en":"Tooth Extraction","ja":"抜歯プレイ"},{"zh":"指甲拔除","en":"Nail Removal","ja":"爪剝がし"},{"zh":"舌切","en":"Tongue Cutting","ja":"舌切り"},{"zh":"鉤吊","en":"Hook Suspension","ja":"フック吊り"},{"zh":"絞窒","en":"Strangling","ja":"絞首"},{"zh":"溺水play","en":"Drowning Play","ja":"溺れプレイ"},{"zh":"酸蝕","en":"Acid Play","ja":"酸プレイ"},{"zh":"強制變形","en":"Forced Transformation","ja":"強制変形"},{"zh":"肋骨拆解","en":"Rib Removal","ja":"肋骨除去"},{"zh":"脊椎露出","en":"Spine Exposure","ja":"脊椎露出"},{"zh":"腦觸碰","en":"Brain Touch","ja":"脳觸れ"},{"zh":"人體標本","en":"Human Specimen","ja":"人體標本"},{"zh":"活體解剖","en":"Vivisection","ja":"生體解剖"},{"zh":"脫臼play","en":"Dislocation Play","ja":"脫臼プレイ"},{"zh":"肌肉露出","en":"Muscle Exposure","ja":"筋肉露出"},{"zh":"貫穿傷","en":"Through-and-Through","ja":"貫通傷"},{"zh":"燙傷","en":"Scalding","ja":"火傷"},{"zh":"強制吞嚥異物","en":"Forced Swallowing","ja":"異物嚥下"},{"zh":"強制食肉","en":"Forced Self-Cannibalism","ja":"自食強制"},{"zh":"去神經","en":"Denervation","ja":"神経切斷"},{"zh":"活體縫入","en":"Sewn Into Body","ja":"生體縫合"},{"zh":"聲帶切割","en":"Vocal Cord Cutting","ja":"聲帯切斷"},{"zh":"肌腱切斷","en":"Tendon Severing","ja":"腱切斷"},{"zh":"顱骨開放","en":"Trepanation","ja":"穿頭術"},{"zh":"寄生蟲","en":"Parasites","ja":"寄生蟲"},{"zh":"產卵破體","en":"Chestburster","ja":"體內破壊型出産"}]}];
+
+  /* ---------------- App ---------------- */
+  const App = {
+    reels: [], busy: false, gore: false, dims: [],
+    init() {
+      this.dims = JSON.parse(JSON.stringify(DIMS));
+      const custom = JSON.parse(localStorage.getItem('ero-slot-custom-tags') || '{}');
+      for (const [dimId, tags] of Object.entries(custom)) {
+        const dim = this.dims.find(d => d.id === dimId);
+        if (dim) tags.forEach(t => dim.tags.push(t));
+      }
+      const bank = document.getElementById("bank");
+      this.dims.forEach((d) => { const r = new Reel(d); this.reels.push(r); bank.appendChild(r.el); });
+      this.buildMarquee(); this.wireControls(); this.wireSearch(); this.wireHistory(); this.idleMarquee();
+    },
+    activeReels() { return this.reels.filter(r => r.active && !r.locked); },
+    activeCount() { return this.activeReels().length; },
+
+    buildMarquee() {
+      const edges = { top: 13, right: 9, bottom: 13, left: 9 };
+      let idx = 0; this.bulbs = [];
+      ["top", "right", "bottom", "left"].forEach(side => {
+        const edge = document.querySelector(".edge." + side);
+        for (let i = 0; i < edges[side]; i++) { const b = document.createElement("span"); b.className = "bulb"; b.dataset.p = idx++; edge.appendChild(b); this.bulbs.push(b); }
+      });
+      this.perim = this.bulbs.length;
+    },
+    idleMarquee() {
+      let p = 0; clearInterval(this._mq);
+      this._mq = setInterval(() => {
+        this.bulbs.forEach(b => b.classList.remove("lit"));
+        for (let k = 0; k < this.perim; k += 4) { const b = this.bulbs[(p + k) % this.perim]; if (b) b.classList.add("lit"); }
+        p = (p + 1) % this.perim;
+      }, 320);
+    },
+    runMarquee() {
+      let p = 0; clearInterval(this._mq);
+      this._mq = setInterval(() => {
+        this.bulbs.forEach(b => b.classList.remove("lit"));
+        for (let k = 0; k < this.perim; k += 3) { const b = this.bulbs[(p + k) % this.perim]; if (b) b.classList.add("lit"); }
+        p = (p + 2) % this.perim;
+      }, 55);
+    },
+    celebrateMarquee() {
+      clearInterval(this._mq); let f = 0;
+      this._mq = setInterval(() => { this.bulbs.forEach(b => b.classList.toggle("lit", f % 2 === 0)); if (++f > 5) this.idleMarquee(); }, 120);
+    },
+
+    wireControls() {
+      const helpVeil = document.getElementById("helpVeil");
+      document.getElementById("helpBtn").addEventListener("click", () => helpVeil.classList.add("show"));
+      document.getElementById("closeHelp").addEventListener("click", () => helpVeil.classList.remove("show"));
+      helpVeil.addEventListener("click", (e) => { if (e.target === helpVeil) helpVeil.classList.remove("show"); });
+      this.spinBtn = document.getElementById("spinBtn");
+      this.spinBtn.addEventListener("click", () => this.spinAll());
+      const leverCol = document.getElementById("leverCol");
+      const leverKnob = document.getElementById("leverKnob");
+      leverKnob.addEventListener("click", () => { leverCol.classList.add("pulled"); setTimeout(() => leverCol.classList.remove("pulled"), 520); this.spinAll(); });
+      const mute = document.getElementById("mute");
+      mute.addEventListener("click", () => { const n = !Audio.get(); Audio.set(n); mute.classList.toggle("sound", n); buzz(8); });
+      const housing = document.getElementById("goreHousing");
+      const cover = document.getElementById("goreCover");
+      const gbtn = document.getElementById("goreBtn");
+      const mod = document.getElementById("goreMod");
+      cover.addEventListener("click", () => { housing.classList.toggle("open"); buzz(12); Audio.tick(); });
+      const goreWarnVeil = document.getElementById("goreWarnVeil");
+      const armGore = () => {
+        this.toggleGore(!this.gore);
+        gbtn.classList.toggle("armed", this.gore);
+        mod.classList.toggle("armed", this.gore);
+        document.getElementById("goreState").textContent = this.gore ? "ARMED" : "SAFE";
+        Audio.arm(); buzz(this.gore ? [20, 30, 60] : 20);
+      };
+      gbtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!housing.classList.contains("open")) return;
+        if (this.gore) { armGore(); return; }
+        goreWarnVeil.classList.add("show");
+      });
+      document.getElementById("goreWarnConfirm").addEventListener("click", () => { goreWarnVeil.classList.remove("show"); armGore(); });
+      document.getElementById("goreWarnCancel").addEventListener("click", () => goreWarnVeil.classList.remove("show"));
+      goreWarnVeil.addEventListener("click", (e) => { if (e.target === goreWarnVeil) goreWarnVeil.classList.remove("show"); });
+      this.wireAddTag();
+      document.getElementById("omiAgain").addEventListener("click", () => { this.hideResult(); this.spinAll(); });
+      document.getElementById("omiClose").addEventListener("click", () => this.hideResult());
+      // 星汐：App 內才有 HoshioRuota 通道；網頁版維持原樣。
+      if (window.HoshioRuota) {
+        const send = document.getElementById("omiSend");
+        send.hidden = false;
+        send.addEventListener("click", () => this.sendToHoshio());
+      }
+      document.getElementById("resultVeil").addEventListener("click", (e) => { if (e.target.id === "resultVeil") this.hideResult(); });
+    },
+    toggleGore(v) {
+      this.gore = v; document.body.classList.toggle("gore", v);
+      const g = this.reels.find(r => r.dim.gore);
+      if (g) { g.locked = !v; g.active = v; g.refresh(); }
+      this.hideResult();
+    },
+
+    wireAddTag() {
+      const btn = document.getElementById("addTagBtn");
+      const panel = document.getElementById("addTagPanel");
+      const sel = document.getElementById("atDim");
+      this.dims.forEach(d => { const o = document.createElement("option"); o.value = d.id; o.textContent = (d.full || d.en); sel.appendChild(o); });
+      sel.addEventListener("change", () => {
+        const dim = this.dims.find(x => x.id === sel.value);
+        const zhField = document.getElementById("atZhField");
+        if (dim && dim.enOnly) {
+          zhField.classList.remove("req");
+          document.getElementById("atEn").parentElement.classList.add("req");
+        } else {
+          zhField.classList.add("req");
+          document.getElementById("atEn").parentElement.classList.remove("req");
+        }
+      });
+      sel.dispatchEvent(new Event("change"));
+      btn.addEventListener("click", () => { panel.classList.toggle("open"); btn.querySelector(".chev").textContent = panel.classList.contains("open") ? "—" : "+"; });
+      document.getElementById("atAdd").addEventListener("click", () => {
+        const id = sel.value;
+        const zh = document.getElementById("atZh").value.trim();
+        const en = document.getElementById("atEn").value.trim();
+        const ja = document.getElementById("atJa").value.trim();
+        const reel = this.reels.find(r => r.dim.id === id);
+        const primary = reel.dim.enOnly ? (en || zh) : zh;
+        if (!primary) { this.flashHint(reel.dim.enOnly ? "English required" : "中文為必填項"); return; }
+        reel.tags.push(reel.dim.enOnly ? { zh: primary, en: "", ja: "" } : { zh, en: en || "", ja: ja || "" });
+        const newTag = reel.tags[reel.tags.length - 1];
+        const _c = JSON.parse(localStorage.getItem('ero-slot-custom-tags') || '{}');
+        if (!_c[id]) _c[id] = [];
+        _c[id].push(newTag);
+        localStorage.setItem('ero-slot-custom-tags', JSON.stringify(_c));
+        reel.copies = calcCopies(reel.tags.length);
+        reel.baseCopy = Math.floor(reel.copies / 2);
+        reel.renderStrip(); reel.render();
+        if (!reel.active && !reel.locked) reel.setActive(true);
+        document.getElementById("atZh").value = ""; document.getElementById("atEn").value = ""; document.getElementById("atJa").value = "";
+        buzz(12); Audio.clunk();
+        this.flashHint("已加入 " + (reel.dim.short || reel.dim.en));
+      });
+    },
+
+    wireSearch() {
+      const input = document.getElementById("searchInput");
+      const results = document.getElementById("searchResults");
+      const self = this;
+      let debounce = null;
+
+      function doSearch() {
+        const q = input.value.trim().toLowerCase();
+        if (!q) { results.classList.remove("open"); results.innerHTML = ""; return; }
+        const matches = [];
+        for (const r of self.reels) {
+          for (let i = 0; i < r.tags.length; i++) {
+            const t = r.tags[i];
+            if ((t.zh && t.zh.toLowerCase().includes(q)) ||
+                (t.en && t.en.toLowerCase().includes(q)) ||
+                (t.ja && t.ja.toLowerCase().includes(q))) {
+              matches.push({ tag: t, dim: r.dim, reel: r, idx: i });
+              if (matches.length >= 30) break;
+            }
+          }
+          if (matches.length >= 30) break;
+        }
+        if (!matches.length) {
+          results.innerHTML = '<div class="search-empty">無結果 · No results</div>';
+        } else {
+          results.innerHTML = matches.map((m, mi) => {
+            let sub = [m.tag.en, m.tag.ja].filter(Boolean).join(" · ");
+            return '<div class="search-item"><div class="s-info"><span class="s-tag">' + m.tag.zh + '</span>' +
+              '<span class="s-dim">' + (m.dim.short || m.dim.en) + '</span>' +
+              (sub ? '<span class="s-sub">' + sub + '</span>' : '') + '</div>' +
+              '<button class="search-del" data-mi="' + mi + '" title="刪除">×</button></div>';
+          }).join("");
+          results.querySelectorAll(".search-del").forEach(btn => {
+            btn.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const m = matches[parseInt(btn.dataset.mi)];
+              if (!m) return;
+              self.deleteTag(m.reel, m.tag);
+              doSearch();
+            });
+          });
+        }
+        results.classList.add("open");
+      }
+
+      input.addEventListener("input", () => { clearTimeout(debounce); debounce = setTimeout(doSearch, 180); });
+      input.addEventListener("focus", () => { if (input.value.trim()) doSearch(); });
+      document.addEventListener("pointerdown", (e) => { if (!e.target.closest(".search-wrap")) results.classList.remove("open"); });
+    },
+
+    deleteTag(reel, tag) {
+      const idx = reel.tags.indexOf(tag);
+      if (idx < 0) return;
+      if (!confirm("刪除「" + tag.zh + "」？\nDelete \"" + (tag.en || tag.zh) + "\"?")) return;
+      reel.tags.splice(idx, 1);
+      if (!reel.tags.length) { this.flashHint("至少保留一個 tag"); reel.tags.splice(idx, 0, tag); return; }
+      reel.copies = calcCopies(reel.tags.length);
+      reel.baseCopy = Math.floor(reel.copies / 2);
+      reel.d = reel.baseCopy * reel.tags.length * ROW_H;
+      reel.result = null;
+      reel.renderStrip(); reel.render();
+      buzz(8); Audio.tick();
+      this.flashHint("已刪除 " + tag.zh);
+    },
+
+    wireHistory() {
+      const STORAGE_KEY = "ruota-history";
+      const MAX = 200;
+      const toggle = document.getElementById("historyToggle");
+      const panel = document.getElementById("historyPanel");
+      const list = document.getElementById("historyList");
+      const clear = document.getElementById("historyClear");
+
+      function load() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+      function save(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr.slice(0, MAX))); }
+
+      this._historySave = function (results) {
+        const arr = load();
+        arr.unshift({ ts: new Date().toISOString(), tags: results.map(r => ({ dim: r.dim.short || r.dim.en, zh: r.result.zh, en: r.result.en || "" })) });
+        save(arr);
+        renderList();
+      };
+
+      function renderList() {
+        const arr = load();
+        if (!arr.length) { list.innerHTML = '<div class="history-empty">暫無記錄 · No history</div>'; return; }
+        list.innerHTML = arr.map(e => {
+          const d = new Date(e.ts);
+          const ts = d.toLocaleDateString("zh", { month: "2-digit", day: "2-digit" }) + " " + d.toLocaleTimeString("zh", { hour: "2-digit", minute: "2-digit" });
+          const tags = e.tags.map(t => '<span>' + t.dim + '</span>' + t.zh).join(" · ");
+          return '<div class="history-entry"><div class="h-time">' + ts + '</div><div class="h-tags">' + tags + '</div></div>';
+        }).join("");
+      }
+
+      toggle.addEventListener("click", () => {
+        panel.classList.toggle("open");
+        toggle.querySelector(".chev").textContent = panel.classList.contains("open") ? "▾" : "▸";
+        if (panel.classList.contains("open")) renderList();
+      });
+      clear.addEventListener("click", () => { localStorage.removeItem(STORAGE_KEY); renderList(); });
+      renderList();
+    },
+
+    setBusy(v) { this.busy = v; document.body.classList.toggle("busy", v); this.spinBtn.disabled = v; },
+    spinAll() {
+      if (this.busy) return;
+      const live = this.activeReels();
+      if (!live.length) { this.flashHint("請先點亮卷軸"); return; }
+      this.setBusy(true); this.hideResult();
+      buzz(30); Audio.clunk(); this.runMarquee();
+      let remaining = live.length;
+      live.forEach((r, n) => { r.spin(700 + n * 360, () => { if (--remaining === 0) this.onAllStopped(); }); });
+    },
+    afterReroll(reel) { if (this.busy) return; if (this.activeReels().every(r => r.result)) this.showResult(); },
+    onAllStopped() {
+      this.setBusy(false); this.celebrateMarquee(); Audio.ding(); buzz([30, 40, 80]);
+      setTimeout(() => this.showResult(), 360);
+    },
+
+    showResult() {
+      const live = this.activeReels().filter(r => r.result);
+      if (!live.length) return;
+      const list = document.getElementById("omiList"); list.innerHTML = "";
+      live.forEach(r => {
+        const li = document.createElement("li");
+        li.className = "omi-row" + (r.dim.gore ? " gore-row" : "");
+        let supp = "";
+        if (r.result.en) supp += r.result.en;
+        if (r.result.ja) supp += (supp ? ' <span class="ja">· ' + r.result.ja + '</span>' : '<span class="ja">' + r.result.ja + '</span>');
+        li.innerHTML =
+          '<span class="dim">' + (r.dim.short || r.dim.en) + '</span>' +
+          '<span class="val"><span class="vjp">' + r.result.zh + '</span>' +
+          (supp ? '<span class="ven">' + supp + '</span>' : '') + '</span>';
+        list.appendChild(li);
+      });
+      document.getElementById("resultVeil").classList.add("show");
+      if (this._historySave) this._historySave(live);
+    },
+
+    sendToHoshio() {
+      const live = this.activeReels().filter(r => r.result);
+      if (!live.length || !window.HoshioRuota) return;
+      const lines = live.map(r => "・" + (r.dim.short || r.dim.en) + "：" + r.result.zh + (r.result.en ? "（" + r.result.en + "）" : ""));
+      window.HoshioRuota.postMessage(JSON.stringify({ type: "send", text: "🎰 幸運轉盤轉出了今晚的組合：\n" + lines.join("\n") }));
+      this.hideResult();
+    },
+
+    hideResult() { document.getElementById("resultVeil").classList.remove("show"); },
+
+    flashHint(msg) {
+      const h = document.getElementById("hint"); h.textContent = msg;
+      clearTimeout(this._ht); this._ht = setTimeout(() => { h.textContent = h.dataset.default; }, 2400);
+    }
+  };
+
+  window.App = App;
+  document.addEventListener("DOMContentLoaded", () => App.init());
+})();
+</script>
+</body>
+</html>

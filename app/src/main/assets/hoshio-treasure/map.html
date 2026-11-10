@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- Based on hidden-letters-map by Saekisui - https://github.com/Saekisui/hidden-letters-map -->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  html, body, #map { margin: 0; height: 100%; background: transparent; }
+  body { font-family: system-ui, sans-serif; }
+  #offline { display: none; position: absolute; inset: 0; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #888; font-size: 14px; }
+  .leaflet-popup-content { font-size: 14px; line-height: 1.5; margin: 10px 14px; }
+  .leaflet-popup-content b { font-size: 15px; }
+  .leaflet-control-attribution { font-size: 9px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="offline">地圖需要網路才能顯示。<br>藏寶清單在下方，仍然可以使用。</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  "use strict";
+  if (!window.L) { document.getElementById("offline").style.display = "flex"; window.hoshioRender = function () {}; return; }
+  let map = null, tiles = null, layer = null, tileDark = null, fitted = false;
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const icons = (l) => (l.contents || []).map((c) => (c === "letter" ? "✉️" : "🏅")).join(" ");
+
+  function ensure(dark) {
+    if (!map) {
+      map = L.map("map", { zoomControl: false, attributionControl: true }).setView([23.7, 121.0], 7);
+      layer = L.layerGroup().addTo(map);
+    }
+    if (tileDark !== dark) {
+      if (tiles) map.removeLayer(tiles);
+      tiles = L.tileLayer("https://{s}.basemaps.cartocdn.com/" + (dark ? "dark_all" : "light_all") + "/{z}/{x}/{y}{r}.png", {
+        subdomains: "abcd", maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      }).addTo(map);
+      tileDark = dark;
+    }
+  }
+
+  window.hoshioRender = function (data) {
+    ensure(!!data.dark);
+    layer.clearLayers();
+    const accent = data.accent || "#2f6f7c";
+    const bounds = [];
+    (data.letters || []).forEach((l) => {
+      if (l.status === "sealed") {
+        const c = L.circle([l.area.lat, l.area.lon], { radius: l.area.r, color: accent, weight: 1.5, dashArray: "4 6", fillColor: accent, fillOpacity: 0.12 });
+        const progress = l.visitsNeeded ? "<br>到訪 " + l.visits + " / " + l.visitsNeeded + " 天" : "";
+        c.bindPopup("🔒 <b>" + esc(l.hint) + "</b><br>" + icons(l) + progress);
+        c.addTo(layer);
+        bounds.push([l.area.lat, l.area.lon]);
+      } else {
+        const m = L.circleMarker([l.lat, l.lon], { radius: 8, color: "#fff", weight: 2, fillColor: l.status === "opened" ? "#d8a24a" : accent, fillOpacity: 0.95 });
+        m.bindPopup((l.status === "opened" ? "📖 " : "🎁 ") + "<b>" + esc(l.place) + "</b><br>" + (l.status === "opened" ? "已拆開" : "找到了，還沒拆"));
+        m.addTo(layer);
+        bounds.push([l.lat, l.lon]);
+      }
+    });
+    if (data.me) {
+      L.circle([data.me.lat, data.me.lon], { radius: Math.max(15, data.me.acc || 0), color: "#4a90e2", weight: 1, fillOpacity: 0.15 }).addTo(layer);
+      L.circleMarker([data.me.lat, data.me.lon], { radius: 6, color: "#fff", weight: 2, fillColor: "#4a90e2", fillOpacity: 1 }).addTo(layer);
+      bounds.push([data.me.lat, data.me.lon]);
+    }
+    if (data.focusMe && data.me) map.setView([data.me.lat, data.me.lon], 15);
+    else if (!fitted && bounds.length) { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 }); fitted = true; }
+  };
+  if (window.HoshioTreasure) window.HoshioTreasure.postMessage("ready");
+})();
+</script>
+</body>
+</html>

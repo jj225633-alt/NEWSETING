@@ -58,7 +58,7 @@ class LocalTools(
 
     val playTools by lazy { buildPlayTools(context) }
 
-    val togetherTools by lazy { buildTogetherTools(context) }
+    val togetherTools by lazy { buildTogetherTools(context) + buildTreasureTools(context) + buildSpacesTools(context) }
 
     val healthTool by lazy { buildHealthTool(context) }
 

@@ -28,6 +28,7 @@ import me.rerere.hugeicons.stroke.MessageQuestion
 import me.rerere.hugeicons.stroke.Pin
 import me.rerere.hugeicons.stroke.Play
 import me.rerere.hugeicons.stroke.Puzzle
+import me.rerere.hugeicons.stroke.Route01
 import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.Time02
 import me.rerere.rikkahub.Screen
@@ -82,6 +83,8 @@ fun PlayHubPage() = HubGrid(
         HubLink("海龜湯", "用是／不是猜出真相", HugeIcons.MessageQuestion, Screen.TurtleSoup),
         HubLink("每日一問", "每天一題，兩個人都回答", HugeIcons.Message01, Screen.DailyQuestion),
         HubLink("一起養寵物", "你和他一起照顧的小傢伙", HugeIcons.Sparkles, Screen.Pet),
+        HubLink("藏寶地圖", "他藏的信，走到附近才拿得到", HugeIcons.Route01, Screen.Treasure),
+        HubLink("幸運轉盤", "今晚轉什麼？", HugeIcons.Sparkles, Screen.Ruota),
         HubLink("遊戲室", "他做的小遊戲和小網頁", HugeIcons.Puzzle, Screen.Playroom),
     ),
 )
@@ -91,7 +94,8 @@ fun MemoriesHubPage() = HubGrid(
     title = "我們的回憶",
     intro = "你們的照片、說好的事、重要的日子，和寫給未來的信。",
     links = listOf(
-        HubLink("回憶相簿", "照片和他寫的一句話", HugeIcons.ImageAdd01, Screen.Album),
+        HubLink("秘密基地與共同空間", "你寫序章他寫番外；兩個人的動態", HugeIcons.Message01, Screen.Spaces),
+        HubLink("回憶相簿／照片牆", "照片和他寫的一句話", HugeIcons.ImageAdd01, Screen.Album),
         HubLink("我們的約定", "說好的事，做到就打勾", HugeIcons.Pin, Screen.Promises),
         HubLink("紀念日", "重要的日子和認識幾天", HugeIcons.Calendar03, Screen.Anniversary),
         HubLink("時光膠囊", "寫給未來，到那天才能打開", HugeIcons.Time02, Screen.Capsule),
