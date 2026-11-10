@@ -113,6 +113,7 @@ private fun Settings.withValuesInRange(): Settings = copy(
 private val OUTDATED_HOSHIO_PROMPT_HASHES = setOf(
     "9757f747f89f190abe9defd5233afc551ff47d1d75b5e665a98e13911126f44d",
     "a45743f3e7b6a46c0b686070a160b274d69bbf194d9b4dd4c28edd86261224fc",
+    "4bc15af9f2db6ca610acb89521a96a5f4e0595858c7b278cdc857893194d0853",
 )
 
 private fun String.isOutdatedHoshioPrompt(): Boolean {

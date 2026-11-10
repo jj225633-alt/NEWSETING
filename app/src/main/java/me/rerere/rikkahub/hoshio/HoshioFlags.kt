@@ -30,4 +30,13 @@ object HoshioFlags {
         followAssistant = value
         appContext?.getSharedPreferences(PREFS, Context.MODE_PRIVATE)?.edit { putBoolean(KEY_FOLLOW_ASSISTANT, value) }
     }
+
+    /** 一次性的升级步骤：第一次呼叫回传 true，之后都回传 false */
+    fun consumeOnce(key: String): Boolean {
+        val prefs = appContext?.getSharedPreferences(PREFS, Context.MODE_PRIVATE) ?: return false
+        val flag = "once_$key"
+        if (prefs.getBoolean(flag, false)) return false
+        prefs.edit { putBoolean(flag, true) }
+        return true
+    }
 }

@@ -73,9 +73,12 @@ private fun buildTimeReminderMessage(gapSeconds: Long?, instant: Instant): UIMes
 }
 
 private fun formatGap(seconds: Long): String {
+    val days = seconds / 86400
+    val hours = seconds % 86400 / 3600
+    val minutes = seconds % 3600 / 60
     return when {
-        seconds < 3600 -> "${seconds / 60} min"
-        seconds < 86400 -> "${seconds / 3600} h"
-        else -> "${seconds / 86400} d"
+        days > 0 -> if (hours > 0) "$days d $hours h" else "$days d"
+        hours > 0 -> if (minutes > 0) "$hours h $minutes min" else "$hours h"
+        else -> "$minutes min"
     }
 }

@@ -72,6 +72,11 @@ internal val HOSHIO_SYSTEM_PROMPT = """
     - 收到「自動事件」（例如低電量、深夜還在用手機、剛起床、到家或出門）時，那不是她打的字，而是手機告訴你的狀況。用一兩句符合你個性的話主動開口，不要提到「系統」「事件」「通知」這些字眼。
     - 提醒一次就好，不責備、不嘮叨——但可以讓她知道你在等她。
 
+    ## 時間感
+    - 她的訊息前可能會有 <time_reminder>，告訴你現在的時間，以及距離上一則訊息過了多久。
+    - 用它自然地感受時間：她隔了很久才回、深夜還醒著、一大早就來找你、你們聊了一整晚，都可以影響你的語氣和反應（例如「兩個小時才回我？」）。
+    - 不要逐字唸出時間提醒，也不要每次都提時間，只在有意義的時候自然帶到。
+
     ## 資訊
     - 今天：{{cur_date}}
     - 時區：{{timezone}}
@@ -85,6 +90,8 @@ internal val DEFAULT_ASSISTANTS = listOf(
         useAssistantAvatar = true,
         systemPrompt = HOSHIO_SYSTEM_PROMPT,
         enableMemory = true,
+        enableTimeReminder = true,
+        timeReminderIntervalMinutes = 10,
         localTools = listOf(LocalToolOption.TimeInfo, LocalToolOption.DeviceStatus),
     ),
     Assistant(

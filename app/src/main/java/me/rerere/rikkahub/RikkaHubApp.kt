@@ -119,6 +119,25 @@ class RikkaHubApp : Application() {
         resumeMediaCreations()
         resumeMemoryConsolidation()
 
+        // 星汐: 已安装的使用者升级时，帮内建的星汐打开时间提醒（只做一次，之后尊重使用者自己的设定）
+        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_time_reminder_v1")) {
+            get<AppScope>().launch(Dispatchers.IO) {
+                runCatching {
+                    val store = get<me.rerere.rikkahub.data.datastore.SettingsStore>()
+                    store.awaitLoaded()
+                    store.update { settings ->
+                        settings.copy(assistants = settings.assistants.map {
+                            if (it.id == me.rerere.rikkahub.data.datastore.HOSHIO_ASSISTANT_ID) {
+                                it.copy(enableTimeReminder = true, timeReminderIntervalMinutes = 10)
+                            } else {
+                                it
+                            }
+                        })
+                    }
+                }.onFailure { Log.e(TAG, "enable time reminder failed", it) }
+            }
+        }
+
         // 星汐: 依设定恢复「主动关心」的背景检查
         runCatching { me.rerere.rikkahub.hoshio.care.CareWorker.sync(this) }
             .onFailure { Log.e(TAG, "CareWorker.sync failed", it) }
