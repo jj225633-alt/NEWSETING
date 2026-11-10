@@ -48,6 +48,7 @@ jobs:
         run: |
           mkdir -p desktop/out
           cp "$(ls desktop/dist/*.exe | head -1)" desktop/out/hoshio-desktop-setup.exe
+          cp "$(ls desktop/dist/*.7z | head -1)" desktop/out/hoshio-desktop-portable.7z
           ls -la desktop/out
 
       # 備用下載：Releases 沒有 100MB 的限制
@@ -58,25 +59,33 @@ jobs:
           tag_name: desktop-latest
           name: 星汐電腦版（最新）
           prerelease: true
-          files: desktop/out/hoshio-desktop-setup.exe
+          files: |
+            desktop/out/hoshio-desktop-setup.exe
+            desktop/out/hoshio-desktop-portable.7z
 
       - name: Publish to desktop branch
         run: |
           out="$RUNNER_TEMP/desktop-branch"
           mkdir -p "$out"
-          size=$(stat -c %s desktop/out/hoshio-desktop-setup.exe)
-          if [ "$size" -ge 99000000 ]; then
-            echo "安裝檔 $size bytes 超過 GitHub 100MB 上限，只放 Releases"
-            exit 0
-          fi
-          cp desktop/out/hoshio-desktop-setup.exe "$out/hoshio-desktop-setup.exe"
           raw="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/desktop"
+          rel="https://github.com/${GITHUB_REPOSITORY}/releases/download/desktop-latest"
+          lines=""
+          for f in hoshio-desktop-setup.exe hoshio-desktop-portable.7z; do
+            size=$(stat -c %s "desktop/out/$f")
+            if [ "$size" -lt 99000000 ]; then
+              cp "desktop/out/$f" "$out/$f"
+              lines="$lines\n- $f（$((size / 1048576)) MB）：[下載]($raw/$f)"
+            else
+              lines="$lines\n- $f（$((size / 1048576)) MB，超過 100MB 只放 Releases）：[下載]($rel/$f)"
+            fi
+          done
           {
             echo "# 星汐電腦版下載"
             echo
-            echo "- Windows：[hoshio-desktop-setup.exe]($raw/hoshio-desktop-setup.exe)"
+            echo -e "$lines"
             echo
-            echo "這個分支只放最新一版的安裝檔（commit ${GITHUB_SHA::7}），每次更新會整個覆蓋。"
+            echo "- setup.exe：安裝版。portable.7z：免安裝，解壓縮後執行裡面的 Hoshio.exe。"
+            echo "- 這個分支只放最新一版（commit ${GITHUB_SHA::7}），每次更新會整個覆蓋。"
           } > "$out/README.md"
           cd "$out"
           git init -q -b desktop
