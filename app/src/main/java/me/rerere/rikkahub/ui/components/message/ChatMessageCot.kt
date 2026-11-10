@@ -42,6 +42,9 @@ sealed interface MessagePartBlock {
 
     /** 星汐: 成功的游戏室工具调用，在正文中显示作品卡片 */
     data class PlayroomBlock(val itemId: String, val index: Int) : MessagePartBlock
+
+    /** 星汐: 他传的语音讯息，在正文中显示成语音泡泡 */
+    data class VoiceBlock(val file: String, val seconds: Int, val text: String, val index: Int) : MessagePartBlock
 }
 
 /**
@@ -69,7 +72,11 @@ fun List<UIMessagePart>.groupMessageParts(): List<MessagePartBlock> {
 
             is UIMessagePart.Tool -> {
                 val playroomId = part.successfulPlayroomItemId()
-                if (part.isSuccessfulChartDisplay()) {
+                val voice = part.successfulVoiceMessage()
+                if (voice != null) {
+                    flushThinkingSteps()
+                    result.add(MessagePartBlock.VoiceBlock(voice.first, voice.second, voice.third, index))
+                } else if (part.isSuccessfulChartDisplay()) {
                     flushThinkingSteps()
                     result.add(MessagePartBlock.ChartBlock(part, index))
                 } else if (playroomId != null) {
@@ -114,4 +121,16 @@ private fun UIMessagePart.Tool.successfulPlayroomItemId(): String? {
     val result = runCatching { JsonInstant.parseToJsonElement(outputText) }.getOrNull() as? JsonObject ?: return null
     if ((result["success"] as? JsonPrimitive)?.booleanOrNull != true) return null
     return (result["id"] as? JsonPrimitive)?.content
+}
+
+/** 星汐: 语音讯息工具成功时回传 (档名, 秒数, 文字) */
+private fun UIMessagePart.Tool.successfulVoiceMessage(): Triple<String, Int, String>? {
+    if (toolName != me.rerere.rikkahub.data.ai.tools.local.VOICE_MESSAGE_TOOL || !isExecuted) return null
+    val outputText = output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
+    val result = runCatching { JsonInstant.parseToJsonElement(outputText) }.getOrNull() as? JsonObject ?: return null
+    if ((result["success"] as? JsonPrimitive)?.booleanOrNull != true) return null
+    val file = (result["file"] as? JsonPrimitive)?.content ?: return null
+    val seconds = (result["seconds"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 0
+    val text = (result["text"] as? JsonPrimitive)?.content.orEmpty()
+    return Triple(file, seconds, text)
 }

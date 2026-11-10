@@ -634,6 +634,7 @@ class CareWorker(
         val tools = newMessages.flatMap { it.parts.filterIsInstance<UIMessagePart.Tool>() }
         val silentCall = tools.firstOrNull { it.toolName == STAY_SILENT_TOOL }
         val usedTools = tools.map { it.toolName }.filter { it != STAY_SILENT_TOOL }.distinct()
+        val voiceSent = me.rerere.rikkahub.data.ai.tools.local.VOICE_MESSAGE_TOOL in usedTools
         val reply = newMessages
             .lastOrNull { it.role == MessageRole.ASSISTANT }
             ?.toText()
@@ -651,7 +652,7 @@ class CareWorker(
                 prefs.lastResult = "${event.title}：他醒來看了一下，選擇不打擾你（$time）"
             }
 
-            reply.isNotEmpty() -> {
+            reply.isNotEmpty() || voiceSent -> {
                 WakeLogStore.add(
                     applicationContext,
                     WakeRecord(
@@ -661,7 +662,7 @@ class CareWorker(
                     ),
                 )
                 prefs.lastResult = "${event.title}：已送出（$time）"
-                notify(assistantName, reply, conversation.id.toString())
+                notify(assistantName, if (voiceSent) "🎙️ 傳了一則語音訊息" + if (reply.isNotEmpty()) "\n$reply" else "" else reply, conversation.id.toString())
             }
 
             usedTools.isNotEmpty() -> {

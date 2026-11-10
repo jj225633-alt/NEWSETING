@@ -358,6 +358,12 @@ private fun AssistantLocalToolContent(
                 description = R.string.assistant_page_local_tools_pc_desc,
             )
             toolItem(
+                option = LocalToolOption.VoiceMessage,
+                icon = HugeIcons.MusicNote03,
+                title = R.string.assistant_page_local_tools_voice_message_title,
+                description = R.string.assistant_page_local_tools_voice_message_desc,
+            )
+            toolItem(
                 option = LocalToolOption.Location,
                 icon = HugeIcons.Route01,
                 title = R.string.assistant_page_local_tools_location_title,

@@ -692,6 +692,10 @@ private fun ExportedChatMessage(
                         Text("🎮 遊戲室作品", style = MaterialTheme.typography.bodyMedium)
                     }
 
+                    is MessagePartBlock.VoiceBlock -> {
+                        Text("🎙️ 語音訊息：${block.text}", style = MaterialTheme.typography.bodyMedium)
+                    }
+
                     is MessagePartBlock.ContentBlock -> {
                         when (val part = block.part) {
                             is UIMessagePart.Text -> {

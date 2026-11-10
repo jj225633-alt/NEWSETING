@@ -1404,6 +1404,8 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="assistant_page_local_tools_health_desc">透过 Health Connect 读取手表的睡眠、心率和活动</string>
   <string name="assistant_page_local_tools_pc_title">电脑活动</string>
   <string name="assistant_page_local_tools_pc_desc">看她电脑上在用什么程式，也能请求看电脑画面（需要星汐电脑版）</string>
+  <string name="assistant_page_local_tools_voice_message_title">语音讯息</string>
+  <string name="assistant_page_local_tools_voice_message_desc">让 AI 自己决定什么时候用他的声音传语音给你（使用你选的语音服务）</string>
   <string name="chat_message_tool_chart_display">显示图表</string>
   <string name="chat_message_tool_chart_display_with_title">显示图表：%1$s</string>
   <string name="error_fast_model_not_found">未找到快速模型。请在设置中选择一个。</string>

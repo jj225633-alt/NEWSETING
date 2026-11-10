@@ -64,6 +64,8 @@ class LocalTools(
 
     val pcTools by lazy { buildPcTools(context) }
 
+    val voiceMessageTool by lazy { buildVoiceMessageTool(context) }
+
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -141,6 +143,9 @@ class LocalTools(
         }
         if (options.contains(LocalToolOption.PcActivity)) {
             tools.addAll(pcTools)
+        }
+        if (options.contains(LocalToolOption.VoiceMessage)) {
+            tools.add(voiceMessageTool)
         }
         return tools
     }

@@ -413,6 +413,10 @@ private fun MessagePartsBlock(
                 me.rerere.rikkahub.ui.pages.hoshio.PlayroomCard(itemId = block.itemId)
             }
 
+            is MessagePartBlock.VoiceBlock -> key(block.index) {
+                me.rerere.rikkahub.ui.pages.hoshio.VoiceBubble(file = block.file, seconds = block.seconds, text = block.text)
+            }
+
             is MessagePartBlock.ContentBlock -> key(block.index) {
                 when (val part = block.part) {
                     is UIMessagePart.Text -> {

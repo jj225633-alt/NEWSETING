@@ -94,17 +94,19 @@ private fun SpacePaper(paper: String, modifier: Modifier = Modifier, content: @C
     }
 }
 
+/** 秘密基地（在「一起玩」里） */
 @Composable
-fun SpacesPage() {
-    var tab by remember { mutableStateOf(0) }
-    PlayScaffold("秘密基地與共同空間") { innerPadding ->
-        Column(Modifier.fillMaxSize().padding(innerPadding)) {
-            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("✉ 秘密基地") })
-                FilterChip(selected = tab == 1, onClick = { tab = 1 }, label = { Text("🌿 共同空間") })
-            }
-            if (tab == 0) SecretBaseTab() else SharedSpaceTab()
-        }
+fun SecretBasePage() {
+    PlayScaffold("秘密基地") { innerPadding ->
+        Column(Modifier.fillMaxSize().padding(innerPadding)) { SecretBaseTab() }
+    }
+}
+
+/** 共同空间（在「我们的回忆」里） */
+@Composable
+fun SharedSpacePage() {
+    PlayScaffold("共同空間") { innerPadding ->
+        Column(Modifier.fillMaxSize().padding(innerPadding)) { SharedSpaceTab() }
     }
 }
 

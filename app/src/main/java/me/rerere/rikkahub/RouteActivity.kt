@@ -473,7 +473,10 @@ class RouteActivity : ComponentActivity() {
                                 me.rerere.rikkahub.ui.pages.hoshio.atlas.MemoryAtlasPage()
                             }
                             entry<Screen.Spaces> {
-                                me.rerere.rikkahub.ui.pages.hoshio.SpacesPage()
+                                me.rerere.rikkahub.ui.pages.hoshio.SharedSpacePage()
+                            }
+                            entry<Screen.SecretBase> {
+                                me.rerere.rikkahub.ui.pages.hoshio.SecretBasePage()
                             }
                             entry<Screen.Ruota> {
                                 me.rerere.rikkahub.ui.pages.hoshio.RuotaPage()
@@ -850,6 +853,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Spaces : Screen
+
+    @Serializable
+    data object SecretBase : Screen
 
     @Serializable
     data object MemoryAtlas : Screen

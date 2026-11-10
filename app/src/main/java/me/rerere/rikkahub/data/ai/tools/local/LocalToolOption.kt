@@ -121,4 +121,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("pc_activity")
     data object PcActivity : LocalToolOption()
+
+    // 星汐: 他可以自己选择传语音讯息
+    @Serializable
+    @SerialName("voice_message")
+    data object VoiceMessage : LocalToolOption()
 }

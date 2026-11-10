@@ -219,7 +219,7 @@ internal fun buildAiPowerTools(context: Context): List<Tool> = listOf(
                 LocalToolOption.DeviceStatus, LocalToolOption.Location, LocalToolOption.ScreenView, LocalToolOption.Diary,
                 LocalToolOption.SelfReminder, LocalToolOption.Playroom, LocalToolOption.Anniversary, LocalToolOption.Weather,
                 LocalToolOption.PrivateRoom, LocalToolOption.Library, LocalToolOption.Music, LocalToolOption.Life,
-                LocalToolOption.AppLock, LocalToolOption.Play, LocalToolOption.Together, LocalToolOption.Health, LocalToolOption.PcActivity,
+                LocalToolOption.AppLock, LocalToolOption.Play, LocalToolOption.Together, LocalToolOption.Health, LocalToolOption.PcActivity, LocalToolOption.VoiceMessage,
             )
             fun toolName(o: LocalToolOption) = o.toString()
             suspend fun change(transform: (me.rerere.rikkahub.data.model.Assistant) -> me.rerere.rikkahub.data.model.Assistant) =
