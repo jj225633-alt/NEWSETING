@@ -95,6 +95,20 @@ class CarePrefs(context: Context) {
         get() = prefs.getInt(KEY_FREE_TIME_COUNT, 0)
         set(value) = prefs.edit { putInt(KEY_FREE_TIME_COUNT, value) }
 
+    /** 睡前问候：到了设定的时间她还醒着，就来道晚安 */
+    var bedtimeEnabled: Boolean
+        get() = prefs.getBoolean("bedtime_enabled", false)
+        set(value) = prefs.edit { putBoolean("bedtime_enabled", value) }
+
+    var bedtimeHour: Int
+        get() = prefs.getInt("bedtime_hour", 23)
+        set(value) = prefs.edit { putInt("bedtime_hour", value) }
+
+    /** 最近一次道晚安是哪一晚 */
+    var bedtimeGreetedFor: String?
+        get() = prefs.getString("bedtime_greeted_for", null)
+        set(value) = prefs.edit { putString("bedtime_greeted_for", value) }
+
     /** 每天自动写日记 */
     var diaryEnabled: Boolean
         get() = prefs.getBoolean(KEY_DIARY, false)
@@ -110,7 +124,7 @@ class CarePrefs(context: Context) {
         get() = prefs.getBoolean(KEY_ALWAYS_ON, false)
         set(value) = prefs.edit { putBoolean(KEY_ALWAYS_ON, value) }
 
-    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled || screenObservationEnabled || freeTimeEnabled || diaryEnabled
+    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled || screenObservationEnabled || freeTimeEnabled || diaryEnabled || bedtimeEnabled
 
     // ---- 可自订的条件 ----
 

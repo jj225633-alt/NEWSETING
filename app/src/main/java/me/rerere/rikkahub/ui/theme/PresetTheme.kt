@@ -9,6 +9,7 @@ import me.rerere.rikkahub.ui.theme.presets.MinimalThemePreset
 import me.rerere.rikkahub.ui.theme.presets.OceanThemePreset
 import me.rerere.rikkahub.ui.theme.presets.SakuraThemePreset
 import me.rerere.rikkahub.ui.theme.presets.SpringThemePreset
+import me.rerere.rikkahub.ui.theme.presets.StarryThemePreset
 
 data class PresetTheme(
     val id: String,
@@ -23,6 +24,7 @@ data class PresetTheme(
 
 val PresetThemes by lazy {
     listOf(
+        StarryThemePreset,
         SakuraThemePreset,
         OceanThemePreset,
         SpringThemePreset,

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 星汐: 桌面小工具，显示他最新说的话 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/hoshio_widget_root"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@drawable/hoshio_widget_bg"
+  android:orientation="vertical"
+  android:padding="16dp">
+
+  <TextView
+    android:id="@+id/hoshio_widget_name"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:maxLines="1"
+    android:text="✦ 時澈"
+    android:textColor="#FFFFE8AA"
+    android:textSize="14sp"
+    android:textStyle="bold" />
+
+  <TextView
+    android:id="@+id/hoshio_widget_message"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_marginTop="6dp"
+    android:layout_weight="1"
+    android:ellipsize="end"
+    android:maxLines="5"
+    android:text="點這裡和他聊天"
+    android:textColor="#FFFFFFFF"
+    android:textSize="15sp" />
+
+  <TextView
+    android:id="@+id/hoshio_widget_time"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="end"
+    android:textColor="#B3FFFFFF"
+    android:textSize="11sp" />
+</LinearLayout>

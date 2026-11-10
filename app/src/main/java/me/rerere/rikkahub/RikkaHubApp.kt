@@ -186,6 +186,17 @@ class RikkaHubApp : Application() {
             }
         }
 
+        // 星汐: 升级时换成星空主题（只做一次，之后可以在设定里换回）
+        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_starry_theme_v1")) {
+            get<AppScope>().launch(Dispatchers.IO) {
+                runCatching {
+                    val store = get<me.rerere.rikkahub.data.datastore.SettingsStore>()
+                    store.awaitLoaded()
+                    store.update { it.copy(themeId = "hoshio_starry", dynamicColor = false) }
+                }.onFailure { Log.e(TAG, "apply starry theme failed", it) }
+            }
+        }
+
         // 星汐: 依设定恢复自动备份
         runCatching { me.rerere.rikkahub.hoshio.backup.AutoBackupWorker.sync(this) }
             .onFailure { Log.e(TAG, "AutoBackupWorker.sync failed", it) }

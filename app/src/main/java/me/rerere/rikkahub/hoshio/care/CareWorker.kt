@@ -214,7 +214,33 @@ class CareWorker(
         if (prefs.placesEnabled) events += detectPlaces(prefs)
         if (prefs.screenObservationEnabled) detectScreenObservation(prefs)?.let { events += it }
         if (prefs.freeTimeEnabled) detectFreeTime(prefs)?.let { events += it }
+        if (prefs.bedtimeEnabled) detectBedtime(prefs)?.let { events += it }
         return events
+    }
+
+    /**
+     * 睡前问候：到了她设定的睡觉时间（之后两小时内）她还在用手机，就来道晚安。
+     * 一晚一次；她十分钟内刚跟他聊过天就不打扰（聊天里自然会说到）。
+     */
+    private suspend fun detectBedtime(prefs: CarePrefs): CareEvent? {
+        val now = LocalDateTime.now()
+        val start = prefs.bedtimeHour
+        val hoursSince = (now.hour - start + 24) % 24
+        if (hoursSince >= 2) return null
+        val night = (if (now.hour < start) now.toLocalDate().minusDays(1) else now.toLocalDate()).toString()
+        if (prefs.bedtimeGreetedFor == night) return null
+        val power = applicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        if (power?.isInteractive != true) return null
+        val lastUserAt = lastUserMessageAt(prefs)
+        if (lastUserAt != null && System.currentTimeMillis() - lastUserAt < TimeUnit.MINUTES.toMillis(10)) return null
+        prefs.bedtimeGreetedFor = night
+        return CareEvent(
+            key = "bedtime",
+            title = "該睡覺了",
+            text = "Automatic phone event (not typed by the user): it is about ${now.format(DateTimeFormatter.ofPattern("HH:mm"))}, " +
+                "the bedtime she chose, and she is still using her phone. Say good night to her in one or two warm sentences in character; " +
+                "you may mention something from today or tomorrow. Gently suggest sleeping, without lecturing.",
+        )
     }
 
     /** 她最后一次亲自传讯息给这个助手（不含自动事件）的时间 */
@@ -468,6 +494,8 @@ class CareWorker(
     }
 
     private fun notify(title: String, content: String, conversationId: String?) {
+        // 星汐: 他主动说的话也显示在桌面小工具
+        if (conversationId != null) me.rerere.rikkahub.hoshio.widget.HoshioWidget.update(applicationContext, title, content)
         val intent = if (conversationId != null) {
             conversationIntent(applicationContext, conversationId)
         } else {

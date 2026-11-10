@@ -1832,4 +1832,5 @@
   <string name="chat_page_deselect_all">Deselect all</string>
   <string name="chat_page_clear_selection">Clear selection</string>
   <string name="hoshio_accessibility_description">Lets Hoshio take a screenshot only when you ask the AI to look at your screen, or when scheduled screen observation is on. It only notices which app is in front; it does not read on-screen text or control anything.</string>
+  <string name="hoshio_widget_description">Shows his latest message on your home screen</string>
 </resources>

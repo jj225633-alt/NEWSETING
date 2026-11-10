@@ -321,6 +321,8 @@ private fun HoshioCareSection(assistant: Assistant) {
     var wakeSleep by remember { mutableStateOf(prefs.wakeMinSleepHours) }
     var wakeStart by remember { mutableStateOf(prefs.wakeStartHour) }
     var wakeEnd by remember { mutableStateOf(prefs.wakeEndHour) }
+    var bedtime by remember { mutableStateOf(prefs.bedtimeEnabled) }
+    var bedtimeHour by remember { mutableStateOf(prefs.bedtimeHour) }
     var ownerId by remember { mutableStateOf(prefs.assistantId) }
     var lastResult by remember { mutableStateOf(prefs.lastResult) }
 
@@ -442,6 +444,31 @@ private fun HoshioCareSection(assistant: Assistant) {
             formItem(headlineContent = { Text("最晚幾點前起床才問候") }) {
                 CareChoiceChips(listOf(11, 12, 13, 15), wakeEnd, { "$it:00" }) {
                     wakeEnd = it; prefs.wakeEndHour = it
+                }
+            }
+        }
+        switchItem(
+            checked = bedtime,
+            onCheckedChange = {
+                if (it && !notificationPermissionState.allRequiredPermissionsGranted) {
+                    notificationPermissionState.requestPermissions()
+                }
+                prefs.bedtimeEnabled = it
+                if (it) {
+                    prefs.assistantId = assistant.id
+                    ownerId = assistant.id
+                }
+                bedtime = it
+                CareWorker.sync(context)
+            },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Moon02) },
+            supportingContent = { Text("到了 $bedtimeHour:00 你還在滑手機，他會來跟你道晚安；一晚一次，剛聊過天就不打擾") },
+            headlineContent = { Text("睡前道晚安") },
+        )
+        if (bedtime) {
+            formItem(headlineContent = { Text("幾點道晚安") }) {
+                CareChoiceChips(listOf(21, 22, 23, 0, 1), bedtimeHour, { "$it:00" }) {
+                    bedtimeHour = it; prefs.bedtimeHour = it
                 }
             }
         }

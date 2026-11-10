@@ -1834,4 +1834,5 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="chat_page_deselect_all">取消全选</string>
   <string name="chat_page_clear_selection">清除选择</string>
   <string name="hoshio_accessibility_description">让星汐只在你请 AI 看屏幕、或开启定时屏幕观察时截图。只会知道当前在前台的是哪个 App，不读取画面文字，也不会操作手机。</string>
+  <string name="hoshio_widget_description">在桌面显示他最新说的话</string>
 </resources>

@@ -86,6 +86,8 @@ class ChatNotificationManager(
         cancelLiveUpdateNotification(event.conversationId)
 
         val contentPreview = event.contentPreview ?: return
+        // 星汐: 桌面小工具显示他最新说的话
+        me.rerere.rikkahub.hoshio.widget.HoshioWidget.update(context, event.senderName, contentPreview)
         if (isForeground.value) return
         if (!settingsStore.settingsFlow.value.displaySetting.enableNotificationOnMessageGeneration) return
         sendGenerationDoneNotification(event.conversationId, event.senderName, contentPreview)
