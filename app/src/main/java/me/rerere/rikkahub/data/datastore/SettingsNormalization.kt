@@ -115,6 +115,7 @@ private val OUTDATED_HOSHIO_PROMPT_HASHES = setOf(
     "a45743f3e7b6a46c0b686070a160b274d69bbf194d9b4dd4c28edd86261224fc",
     "4bc15af9f2db6ca610acb89521a96a5f4e0595858c7b278cdc857893194d0853",
     "d7458e14dfff6e49d9c3457785e7c356b857f451b6f1f0f5c890d0d83ae3d453",
+    "849606d27def6e78eaa3a68f1cb2459f182d6fbb4a6e128da1430f9a3031c896",
 )
 
 private fun String.isOutdatedHoshioPrompt(): Boolean {

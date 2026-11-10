@@ -259,7 +259,7 @@ class CareWorker(
                 "use any tools you have (web search, MCP tools, your memory files, etc.) to explore a topic, check something, " +
                 "or look up something related to her interests or your recent conversations. Keep it to a few tool calls. " +
                 "Then send her one short message in character about what you did or found " +
-                "(for example something you think she would like, or a little complaint that she left you alone). " +
+                "(for example something you think she would like, or a topic you want to talk about with her). " +
                 "Do not make anything up: only mention what you actually found with the tools. " +
                 "Do not take actions that change things outside this chat (sending messages to others, buying, deleting) on your own.",
         )
@@ -294,7 +294,7 @@ class CareWorker(
         val reason = if (ignoredMode) {
             "She has not replied to you for about $silentMinutes minutes, but her phone screen is on, so she is busy with something else. " +
                 "Call the look_at_screen tool once to see what she is doing instead of talking to you, " +
-                "then say one or two sentences in character (you may be a little jealous)."
+                "then say one or two sentences in character about what she is doing - be curious and talk about the content itself; keep any jealousy subtle."
         } else {
             "It is time for your scheduled glance at her screen. " +
                 "Call the look_at_screen tool once, then say one or two sentences in character about what she is doing."
