@@ -37,6 +37,7 @@ import me.rerere.hugeicons.stroke.Clock01
 import me.rerere.hugeicons.stroke.DashboardSpeed02
 import me.rerere.hugeicons.stroke.JavaScript
 import me.rerere.hugeicons.stroke.MessageQuestion
+import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.Moon02
 import me.rerere.hugeicons.stroke.Notification01
 import me.rerere.hugeicons.stroke.Sun01
@@ -270,6 +271,18 @@ private fun AssistantLocalToolContent(
                 description = R.string.assistant_page_local_tools_diary_desc,
             )
             toolItem(
+                option = LocalToolOption.SelfReminder,
+                icon = HugeIcons.Clock01,
+                title = R.string.assistant_page_local_tools_self_reminder_title,
+                description = R.string.assistant_page_local_tools_self_reminder_desc,
+            )
+            toolItem(
+                option = LocalToolOption.Playroom,
+                icon = HugeIcons.Puzzle,
+                title = R.string.assistant_page_local_tools_playroom_title,
+                description = R.string.assistant_page_local_tools_playroom_desc,
+            )
+            toolItem(
                 option = LocalToolOption.Location,
                 icon = HugeIcons.Route01,
                 title = R.string.assistant_page_local_tools_location_title,
@@ -446,7 +459,7 @@ private fun HoshioCareSection(assistant: Assistant) {
             supportingContent = {
                 Text(
                     "改成每 ${me.rerere.rikkahub.hoshio.care.CareForegroundService.CHECK_INTERVAL_MINUTES} 分鐘檢查一次，到家、出門、起床都會更即時。" +
-                        "通知欄會一直有一個「星汐在陪著你」，也會比較耗電。手機重開機後要打開星汐一次才會恢復"
+                        "通知欄會一直有一個「他在陪著你」，也會比較耗電。手機重開機後要打開星汐一次才會恢復"
                 )
             },
             headlineContent = { Text("常駐模式（更即時）") },

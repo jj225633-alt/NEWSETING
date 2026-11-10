@@ -409,6 +409,10 @@ private fun MessagePartsBlock(
                 spec?.let { ChartCard(spec = it) }
             }
 
+            is MessagePartBlock.PlayroomBlock -> key(block.index) {
+                me.rerere.rikkahub.ui.pages.hoshio.PlayroomCard(itemId = block.itemId)
+            }
+
             is MessagePartBlock.ContentBlock -> key(block.index) {
                 when (val part = block.part) {
                     is UIMessagePart.Text -> {

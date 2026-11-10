@@ -73,6 +73,23 @@ class CareWorker(
 
     override suspend fun doWork(): Result {
         val prefs = CarePrefs(applicationContext)
+        inputData.getString(SelfReminders.KEY_REMINDER_ID)?.let { id ->
+            // 他自己约好的时间到了；被取消的就不做事
+            val reminder = SelfReminders.take(applicationContext, id) ?: return Result.success()
+            runCatching {
+                dispatch(
+                    prefs,
+                    CareEvent(
+                        key = "self_reminder_${reminder.id}",
+                        title = "你約好的時間到了",
+                        text = "Automatic event (not typed by the user): earlier you scheduled yourself to come back and talk to her now. " +
+                            "Your note to yourself: \"${reminder.note}\". Act on it and send her a message in character. " +
+                            "If it makes sense, you may schedule your next check-in again.",
+                    ),
+                )
+            }.onFailure { prefs.lastResult = "約定的時間：送出失敗（${it.message ?: it.javaClass.simpleName}）" }
+            return Result.success()
+        }
         if (inputData.getBoolean(KEY_DIARY_NOW, false)) {
             writeDiary(prefs, java.time.LocalDate.now(), force = true)
             return Result.success()
@@ -127,7 +144,7 @@ class CareWorker(
                 prefs.diaryAttemptedDates = prefs.diaryAttemptedDates + date.toString()
                 prefs.lastResult = "日記：已寫好 $date 的日記"
                 notify(
-                    settingsStore.awaitLoaded().let { s -> s.assistants.firstOrNull { it.id == (prefs.assistantId ?: s.assistantId) }?.name?.ifBlank { null } } ?: "星汐",
+                    settingsStore.awaitLoaded().let { s -> s.assistants.firstOrNull { it.id == (prefs.assistantId ?: s.assistantId) }?.name?.ifBlank { null } } ?: "時澈",
                     "寫好今天的日記了：" + result.entry.content.take(80) + "…",
                     null,
                 )
@@ -412,7 +429,7 @@ class CareWorker(
     private suspend fun dispatch(prefs: CarePrefs, event: CareEvent) {
         val settings = settingsStore.awaitLoaded()
         val assistantId = prefs.assistantId ?: settings.assistantId
-        val assistantName = settings.assistants.firstOrNull { it.id == assistantId }?.name?.ifBlank { null } ?: "星汐"
+        val assistantName = settings.assistants.firstOrNull { it.id == assistantId }?.name?.ifBlank { null } ?: "時澈"
         val conversation = conversationRepository.getRecentConversations(assistantId, limit = 1).firstOrNull()
         if (conversation == null) {
             prefs.lastResult = "沒有可用的對話：請先和「$assistantName」聊一句"

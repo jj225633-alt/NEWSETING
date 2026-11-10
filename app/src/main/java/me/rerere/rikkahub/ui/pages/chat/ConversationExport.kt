@@ -687,6 +687,11 @@ private fun ExportedChatMessage(
                         spec?.let { ChartCard(spec = it) }
                     }
 
+                    // 星汐: 汇出图片时只写作品名称，不渲染网页
+                    is MessagePartBlock.PlayroomBlock -> {
+                        Text("🎮 遊戲室作品", style = MaterialTheme.typography.bodyMedium)
+                    }
+
                     is MessagePartBlock.ContentBlock -> {
                         when (val part = block.part) {
                             is UIMessagePart.Text -> {

@@ -1380,6 +1380,10 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="assistant_page_local_tools_location_desc">让 AI 在需要时查询手机所在位置（需要定位权限，不会在后台追踪）</string>
   <string name="assistant_page_local_tools_diary_title">日记</string>
   <string name="assistant_page_local_tools_diary_desc">让 AI 翻阅日记（他写的，以及你分享给他的），并在你要求时写一篇</string>
+  <string name="assistant_page_local_tools_self_reminder_title">自己约下次</string>
+  <string name="assistant_page_local_tools_self_reminder_desc">让 AI 自己决定什么时候再主动来找你（5 分钟～14 天）</string>
+  <string name="assistant_page_local_tools_playroom_title">游戏室</string>
+  <string name="assistant_page_local_tools_playroom_desc">让 AI 做小游戏、小网页，存进游戏室，也会直接显示在对话里</string>
   <string name="chat_message_tool_chart_display">显示图表</string>
   <string name="chat_message_tool_chart_display_with_title">显示图表：%1$s</string>
   <string name="error_fast_model_not_found">未找到快速模型。请在设置中选择一个。</string>

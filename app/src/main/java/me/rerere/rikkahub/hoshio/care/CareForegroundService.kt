@@ -70,7 +70,7 @@ class CareForegroundService : Service() {
         NotificationManagerCompat.from(this).createNotificationChannel(
             NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_LOW)
                 .setName("星汐常駐")
-                .setDescription("常駐模式開啟時顯示，讓星汐更即時地關心你")
+                .setDescription("常駐模式開啟時顯示，讓他更即時地關心你")
                 .setVibrationEnabled(false)
                 .setShowBadge(false)
                 .build()
@@ -80,7 +80,7 @@ class CareForegroundService : Service() {
         }
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_rikkahub)
-            .setContentTitle("星汐在陪著你")
+            .setContentTitle("他在陪著你")
             .setContentText("每 $CHECK_INTERVAL_MINUTES 分鐘留意一次手機狀況和位置")
             .setOngoing(true)
             .setSilent(true)

@@ -1,6 +1,13 @@
 package me.rerere.rikkahub.ui.pages.hoshio
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -70,6 +77,9 @@ fun DiaryPage() {
     var editing by remember { mutableStateOf<DiaryEntry?>(null) }
     var creating by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<DiaryEntry?>(null) }
+    var calendarMode by remember { mutableStateOf(true) }
+    var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
+    var newEntryDate by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) { DiaryStore.load(context) }
 
@@ -136,7 +146,26 @@ fun DiaryPage() {
                     }
                 }
             }
-            if (entries.isEmpty()) {
+            item {
+                androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.FilterChip(
+                        selected = calendarMode,
+                        onClick = { calendarMode = true },
+                        label = { Text("月曆") },
+                    )
+                    androidx.compose.material3.FilterChip(
+                        selected = !calendarMode,
+                        onClick = { calendarMode = false },
+                        label = { Text("列表") },
+                    )
+                }
+            }
+            if (calendarMode) {
+                item {
+                    DiaryCalendar(entries = entries, onDayClick = { selectedDay = it })
+                }
+            }
+            if (!calendarMode && entries.isEmpty()) {
                 item {
                     Text(
                         "還沒有日記。打開上面的開關，或按右下角自己寫一篇。",
@@ -145,7 +174,7 @@ fun DiaryPage() {
                     )
                 }
             }
-            items(entries, key = { it.id }) { entry ->
+            if (!calendarMode) items(entries, key = { it.id }) { entry ->
                 DiaryEntryCard(
                     entry = entry,
                     onEdit = { editing = entry },
@@ -158,11 +187,13 @@ fun DiaryPage() {
     if (creating || editing != null) {
         DiaryEditorDialog(
             initial = editing,
-            onDismiss = { creating = false; editing = null },
+            initialDate = newEntryDate,
+            onDismiss = { creating = false; editing = null; newEntryDate = null },
             onSave = { content, date, visible ->
                 val original = editing
                 creating = false
                 editing = null
+                newEntryDate = null
                 scope.launch {
                     if (original == null) {
                         DiaryStore.add(
@@ -175,6 +206,41 @@ fun DiaryPage() {
                 }
             },
         )
+    }
+
+    selectedDay?.let { day ->
+        val dayEntries = entries.filter { it.date == day.toString() }.sortedBy { it.createdAt }
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { selectedDay = null }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    day.format(DateTimeFormatter.ofPattern("yyyy 年 M 月 d 日 EEEE", java.util.Locale.TRADITIONAL_CHINESE)),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (dayEntries.isEmpty()) {
+                    Text("這一天還沒有日記。", style = MaterialTheme.typography.bodyMedium)
+                }
+                dayEntries.forEach { entry ->
+                    DiaryEntryCard(
+                        entry = entry,
+                        onEdit = { selectedDay = null; editing = entry },
+                        onDelete = { deleting = entry },
+                    )
+                }
+                TextButton(onClick = {
+                    newEntryDate = day.toString()
+                    selectedDay = null
+                    creating = true
+                }) { Text("寫這一天的日記") }
+            }
+        }
     }
 
     deleting?.let { entry ->
@@ -231,11 +297,12 @@ private fun DiaryEntryCard(entry: DiaryEntry, onEdit: () -> Unit, onDelete: () -
 @Composable
 private fun DiaryEditorDialog(
     initial: DiaryEntry?,
+    initialDate: String? = null,
     onDismiss: () -> Unit,
     onSave: (content: String, date: String, visibleToAi: Boolean) -> Unit,
 ) {
     var content by remember { mutableStateOf(initial?.content.orEmpty()) }
-    var date by remember { mutableStateOf(initial?.date ?: LocalDate.now().toString()) }
+    var date by remember { mutableStateOf(initial?.date ?: initialDate ?: LocalDate.now().toString()) }
     var visible by remember { mutableStateOf(initial?.visibleToAi ?: true) }
     val dateValid = runCatching { LocalDate.parse(date) }.isSuccess
     AlertDialog(
@@ -274,5 +341,132 @@ private fun DiaryEditorDialog(
             ) { Text("儲存") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
+}
+
+private const val CALENDAR_PAGE_COUNT = 2400
+private const val CALENDAR_START_PAGE = CALENDAR_PAGE_COUNT / 2
+
+/**
+ * 可左右滑动翻页的月历：有日记的日子会标上小点（他写的、我写的颜色不同），点一天看当天所有日记。
+ */
+@Composable
+private fun DiaryCalendar(entries: List<DiaryEntry>, onDayClick: (LocalDate) -> Unit) {
+    val scope = rememberCoroutineScope()
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(initialPage = CALENDAR_START_PAGE) { CALENDAR_PAGE_COUNT }
+    val thisMonth = remember { java.time.YearMonth.now() }
+    val byDate = remember(entries) { entries.groupBy { it.date } }
+    val shownMonth = thisMonth.plusMonths((pagerState.currentPage - CALENDAR_START_PAGE).toLong())
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } }) { Text("‹ 上個月") }
+                Text(
+                    "${shownMonth.year} 年 ${shownMonth.monthValue} 月",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } }) { Text("下個月 ›") }
+            }
+            if (shownMonth != thisMonth) {
+                TextButton(
+                    onClick = { scope.launch { pagerState.animateScrollToPage(CALENDAR_START_PAGE) } },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) { Text("回到這個月") }
+            }
+            Row(Modifier.fillMaxWidth()) {
+                listOf("日", "一", "二", "三", "四", "五", "六").forEach {
+                    Text(
+                        it,
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            androidx.compose.foundation.pager.HorizontalPager(state = pagerState) { page ->
+                val month = thisMonth.plusMonths((page - CALENDAR_START_PAGE).toLong())
+                MonthGrid(month = month, byDate = byDate, onDayClick = onDayClick)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                CalendarDot(MaterialTheme.colorScheme.primary)
+                Text("他寫的", style = MaterialTheme.typography.labelSmall)
+                CalendarDot(MaterialTheme.colorScheme.tertiary)
+                Text("我寫的", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthGrid(month: java.time.YearMonth, byDate: Map<String, List<DiaryEntry>>, onDayClick: (LocalDate) -> Unit) {
+    val today = LocalDate.now()
+    val first = month.atDay(1)
+    // 星期日排第一格
+    val leading = first.dayOfWeek.value % 7
+    val days = month.lengthOfMonth()
+    val cells = leading + days
+    val rows = (cells + 6) / 7
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (row in 0 until rows) {
+            Row(Modifier.fillMaxWidth()) {
+                for (col in 0 until 7) {
+                    val dayNumber = row * 7 + col - leading + 1
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.weight(1f).aspectRatio(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (dayNumber in 1..days) {
+                            val date = month.atDay(dayNumber)
+                            val dayEntries = byDate[date.toString()].orEmpty()
+                            val isToday = date == today
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(2.dp)
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .background(
+                                        when {
+                                            isToday -> MaterialTheme.colorScheme.secondaryContainer
+                                            dayEntries.isNotEmpty() -> MaterialTheme.colorScheme.surfaceContainerHighest
+                                            else -> androidx.compose.ui.graphics.Color.Transparent
+                                        }
+                                    )
+                                    .clickable { onDayClick(date) },
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(
+                                    "$dayNumber",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    if (dayEntries.any { it.author == DiaryAuthor.AI }) CalendarDot(MaterialTheme.colorScheme.primary)
+                                    if (dayEntries.any { it.author == DiaryAuthor.HUMAN }) CalendarDot(MaterialTheme.colorScheme.tertiary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarDot(color: androidx.compose.ui.graphics.Color) {
+    androidx.compose.foundation.layout.Box(
+        Modifier
+            .size(6.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(color)
     )
 }

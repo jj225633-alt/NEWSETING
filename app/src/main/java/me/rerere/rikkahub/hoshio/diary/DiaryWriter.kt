@@ -50,7 +50,7 @@ object DiaryWriter : KoinComponent {
         val zone = ZoneId.systemDefault()
         val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
         val nickname = settings.displaySetting.userNickname.ifBlank { "她" }
-        val assistantName = assistant.name.ifBlank { "星汐" }
+        val assistantName = assistant.name.ifBlank { "時澈" }
 
         // 当天的对话，依时间排好
         val lines = conversationRepository.getRecentConversations(assistantId, limit = 40)

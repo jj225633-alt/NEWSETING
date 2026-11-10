@@ -56,4 +56,14 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("diary")
     data object Diary : LocalToolOption()
+
+    // 星汐: 自己约下次来找她
+    @Serializable
+    @SerialName("self_reminder")
+    data object SelfReminder : LocalToolOption()
+
+    // 星汐: 游戏室（他写的小东西、小网页）
+    @Serializable
+    @SerialName("playroom")
+    data object Playroom : LocalToolOption()
 }

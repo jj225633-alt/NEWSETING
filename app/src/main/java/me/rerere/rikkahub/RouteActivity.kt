@@ -429,6 +429,10 @@ class RouteActivity : ComponentActivity() {
                                 me.rerere.rikkahub.ui.pages.hoshio.DiaryPage()
                             }
 
+                            entry<Screen.Playroom> {
+                                me.rerere.rikkahub.ui.pages.hoshio.PlayroomPage()
+                            }
+
 
                             entry<Screen.MediaCreationSessions> {
                                 MediaCreationSessionsPage()
@@ -710,6 +714,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Diary : Screen
+
+    @Serializable
+    data object Playroom : Screen
 
 
     @Serializable

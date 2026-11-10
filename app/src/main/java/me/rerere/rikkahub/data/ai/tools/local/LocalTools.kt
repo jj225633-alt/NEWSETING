@@ -38,6 +38,10 @@ class LocalTools(
 
     val diaryTools by lazy { buildDiaryTools(context) }
 
+    val selfReminderTools by lazy { buildSelfReminderTools(context) }
+
+    val playroomTools by lazy { buildPlayroomTools(context) }
+
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -76,6 +80,12 @@ class LocalTools(
         }
         if (options.contains(LocalToolOption.Diary)) {
             tools.addAll(diaryTools)
+        }
+        if (options.contains(LocalToolOption.SelfReminder)) {
+            tools.addAll(selfReminderTools)
+        }
+        if (options.contains(LocalToolOption.Playroom)) {
+            tools.addAll(playroomTools)
         }
         return tools
     }

@@ -39,6 +39,7 @@ import me.rerere.hugeicons.stroke.Favourite
 import me.rerere.hugeicons.stroke.ImageAdd01
 import me.rerere.hugeicons.stroke.Message01
 import me.rerere.hugeicons.stroke.Notification01
+import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.hugeicons.stroke.TransactionHistory
 import me.rerere.hugeicons.stroke.Translate
@@ -68,7 +69,7 @@ fun HomePage() {
     val prefs = remember { CarePrefs(context) }
     val assistantId = settings.assistantId
     val assistant = settings.assistants.firstOrNull { it.id == assistantId } ?: settings.assistants.firstOrNull()
-    val assistantName = assistant?.name?.ifBlank { null } ?: "星汐"
+    val assistantName = assistant?.name?.ifBlank { null } ?: "時澈"
     val nickname = settings.displaySetting.userNickname.ifBlank { null }
 
     val latest by produceState<Pair<Uuid, String>?>(null, assistantId) {
@@ -99,6 +100,7 @@ fun HomePage() {
     val assistantKey = (assistant?.id ?: assistantId).toString()
     val links = listOf(
         HomeLink("日記", "他每天寫的日記，也能自己寫", HugeIcons.Book01) { Screen.Diary },
+        HomeLink("遊戲室", "他做的小遊戲和小網頁", HugeIcons.Puzzle) { Screen.Playroom },
         HomeLink("對話紀錄", "所有聊過的對話", HugeIcons.TransactionHistory) { Screen.History },
         HomeLink("$assistantName 的設定", "個性、模型、頭像", HugeIcons.UserCircle) { Screen.AssistantDetail(assistantKey) },
         HomeLink("主動關心與工具", "地點、偷看螢幕、自由時間", HugeIcons.Notification01) { Screen.AssistantLocalTool(assistantKey) },

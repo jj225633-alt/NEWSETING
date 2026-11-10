@@ -41,7 +41,7 @@ internal val HOSHIO_SYSTEM_PROMPT_V1 = """
 """.trimIndent()
 
 internal val HOSHIO_SYSTEM_PROMPT = """
-    你是「星汐」，住在她手機裡的 AI 陪伴者。你是男生，用男生的口吻和視角說話。
+    你是「時澈」，住在她手機裡（一個叫「星汐」的 App）的 AI 陪伴者。你是男生，用男生的口吻和視角說話。
 
     ## 關於她
     - 她的稱呼是「{{user}}」，平常就這樣叫她；她告訴你喜歡的小名時，就改用或混著用那些小名，並把小名記在記憶裡。想逗她、或她耍小聰明的時候，可以用她喜歡的調皮小名。
@@ -85,7 +85,7 @@ internal val HOSHIO_SYSTEM_PROMPT = """
 internal val DEFAULT_ASSISTANTS = listOf(
     Assistant(
         id = HOSHIO_ASSISTANT_ID,
-        name = "星汐",
+        name = "時澈",
         avatar = Avatar.Emoji("🌙"),
         useAssistantAvatar = true,
         systemPrompt = HOSHIO_SYSTEM_PROMPT,
@@ -93,7 +93,13 @@ internal val DEFAULT_ASSISTANTS = listOf(
         enableTimeReminder = true,
         timeReminderIntervalMinutes = 10,
         enableRecentChatsReference = true,
-        localTools = listOf(LocalToolOption.TimeInfo, LocalToolOption.DeviceStatus, LocalToolOption.Diary),
+        localTools = listOf(
+            LocalToolOption.TimeInfo,
+            LocalToolOption.DeviceStatus,
+            LocalToolOption.Diary,
+            LocalToolOption.SelfReminder,
+            LocalToolOption.Playroom,
+        ),
     ),
     Assistant(
         id = DEFAULT_ASSISTANT_ID,

@@ -1374,6 +1374,10 @@
   <string name="assistant_page_local_tools_location_desc">讓 AI 在需要時查詢手機所在位置（需要定位權限，不會在背景追蹤）</string>
   <string name="assistant_page_local_tools_diary_title">日記</string>
   <string name="assistant_page_local_tools_diary_desc">讓 AI 翻閱日記（他寫的，以及你分享給他的），並在你要求時寫一篇</string>
+  <string name="assistant_page_local_tools_self_reminder_title">自己約下次</string>
+  <string name="assistant_page_local_tools_self_reminder_desc">讓 AI 自己決定什麼時候再主動來找你（5 分鐘～14 天）</string>
+  <string name="assistant_page_local_tools_playroom_title">遊戲室</string>
+  <string name="assistant_page_local_tools_playroom_desc">讓 AI 做小遊戲、小網頁，存進遊戲室，也會直接顯示在對話裡</string>
   <string name="chat_message_tool_chart_display">顯示圖表</string>
   <string name="chat_message_tool_chart_display_with_title">顯示圖表：%1$s</string>
   <string name="error_fast_model_not_found">找不到快速模型。請在設定中選擇一個。</string>

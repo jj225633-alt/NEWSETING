@@ -39,6 +39,9 @@ sealed interface MessagePartBlock {
 
     /** 成功执行的 chart_display 工具调用, 在正文中以图表卡片展示 */
     data class ChartBlock(val tool: UIMessagePart.Tool, val index: Int) : MessagePartBlock
+
+    /** 星汐: 成功的游戏室工具调用，在正文中显示作品卡片 */
+    data class PlayroomBlock(val itemId: String, val index: Int) : MessagePartBlock
 }
 
 /**
@@ -65,9 +68,13 @@ fun List<UIMessagePart>.groupMessageParts(): List<MessagePartBlock> {
             }
 
             is UIMessagePart.Tool -> {
+                val playroomId = part.successfulPlayroomItemId()
                 if (part.isSuccessfulChartDisplay()) {
                     flushThinkingSteps()
                     result.add(MessagePartBlock.ChartBlock(part, index))
+                } else if (playroomId != null) {
+                    flushThinkingSteps()
+                    result.add(MessagePartBlock.PlayroomBlock(playroomId, index))
                 } else {
                     currentThinkingSteps.add(ThinkingStep.ToolStep(part))
                 }
@@ -96,4 +103,15 @@ private fun UIMessagePart.Tool.isSuccessfulChartDisplay(): Boolean {
     val outputText = output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
     val result = runCatching { JsonInstant.parseToJsonElement(outputText) }.getOrNull() as? JsonObject
     return (result?.get("success") as? JsonPrimitive)?.booleanOrNull == true
+}
+
+private val PLAYROOM_TOOLS = setOf("playroom_create", "playroom_update")
+
+/** 星汐: 游戏室工具成功执行时回传作品 id */
+private fun UIMessagePart.Tool.successfulPlayroomItemId(): String? {
+    if (toolName !in PLAYROOM_TOOLS || !isExecuted) return null
+    val outputText = output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
+    val result = runCatching { JsonInstant.parseToJsonElement(outputText) }.getOrNull() as? JsonObject ?: return null
+    if ((result["success"] as? JsonPrimitive)?.booleanOrNull != true) return null
+    return (result["id"] as? JsonPrimitive)?.content
 }

@@ -160,6 +160,32 @@ class RikkaHubApp : Application() {
             }
         }
 
+        // 星汐: 内建助手改名为「時澈」（使用者没自己改过名字时才改），并打开「自己约下次」与「游戏室」（只做一次）
+        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_rename_shiche_v1")) {
+            get<AppScope>().launch(Dispatchers.IO) {
+                runCatching {
+                    val store = get<me.rerere.rikkahub.data.datastore.SettingsStore>()
+                    store.awaitLoaded()
+                    store.update { settings ->
+                        settings.copy(assistants = settings.assistants.map {
+                            if (it.id == me.rerere.rikkahub.data.datastore.HOSHIO_ASSISTANT_ID) {
+                                it.copy(
+                                    name = if (it.name == "星汐") "時澈" else it.name,
+                                    localTools = (
+                                        it.localTools +
+                                            me.rerere.rikkahub.data.ai.tools.local.LocalToolOption.SelfReminder +
+                                            me.rerere.rikkahub.data.ai.tools.local.LocalToolOption.Playroom
+                                        ).distinct(),
+                                )
+                            } else {
+                                it
+                            }
+                        })
+                    }
+                }.onFailure { Log.e(TAG, "rename assistant failed", it) }
+            }
+        }
+
         // 星汐: 依设定恢复自动备份
         runCatching { me.rerere.rikkahub.hoshio.backup.AutoBackupWorker.sync(this) }
             .onFailure { Log.e(TAG, "AutoBackupWorker.sync failed", it) }
