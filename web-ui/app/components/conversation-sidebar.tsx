@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import * as React from "react";
 
 import dayjs from "dayjs";
@@ -19,6 +20,7 @@ import {
   Pin,
   PinOff,
   Plus,
+  Sparkles,
   RefreshCw,
   LogOut,
   Sun,
@@ -106,6 +108,10 @@ const COLOR_THEME_OPTIONS: Array<{
   value: ColorTheme;
   labelKey: string;
 }> = [
+  {
+    value: "starry",
+    labelKey: "color_starry",
+  },
   {
     value: "default",
     labelKey: "color_default",
@@ -918,6 +924,13 @@ export const ConversationSidebar = React.memo(
               </Button>
 
               <ConversationSearchButton onSelect={onSelect} />
+
+              <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
+                <Link to="/hoshio">
+                  <Sparkles className="size-4" />
+                  星汐空間
+                </Link>
+              </Button>
             </div>
           </SidebarGroup>
 

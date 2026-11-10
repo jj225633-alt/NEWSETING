@@ -348,8 +348,8 @@ fun ChatDrawerContent(
                 )
             }
 
-            // 助手选择器
-            AssistantPicker(
+            // 助手选择器（星汐只有時澈一个助手时不显示）
+            if (settings.assistants.size > 1) AssistantPicker(
                 settings = settings,
                 onSelectAssistant = { assistant ->
                     val updateJob = vm.updateSettings { it.copy(assistantId = assistant.id) }

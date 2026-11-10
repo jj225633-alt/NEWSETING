@@ -269,6 +269,29 @@ class RikkaHubApp : Application() {
             }
         }
 
+        // 星汐: 只保留時澈，删除其他助手、它们的对话和记忆（只做一次）
+        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_single_assistant_v1")) {
+            get<AppScope>().launch(Dispatchers.IO) {
+                runCatching {
+                    val store = get<me.rerere.rikkahub.data.datastore.SettingsStore>()
+                    store.awaitLoaded()
+                    val hoshioId = me.rerere.rikkahub.data.datastore.HOSHIO_ASSISTANT_ID
+                    val others = store.settingsFlow.value.assistants.filter { it.id != hoshioId }
+                    if (store.settingsFlow.value.assistants.any { it.id == hoshioId }) {
+                        store.update { settings ->
+                            settings.copy(assistants = settings.assistants.filter { it.id == hoshioId }, assistantId = hoshioId)
+                        }
+                        val chatService = get<me.rerere.rikkahub.service.ChatService>()
+                        val memory = get<me.rerere.rikkahub.data.repository.MemoryRepository>()
+                        others.forEach { assistant ->
+                            runCatching { memory.deleteFilesOfAssistant(assistant.id.toString()) }
+                            runCatching { chatService.deleteConversationsOfAssistant(assistant.id) }
+                        }
+                    }
+                }.onFailure { Log.e(TAG, "single assistant migration failed", it) }
+            }
+        }
+
         // 星汐: 升级时帮時澈打开「一起玩」（只做一次）
         if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_tools_v8_together")) {
             get<AppScope>().launch(Dispatchers.IO) {

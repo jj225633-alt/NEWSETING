@@ -10,7 +10,6 @@ import me.rerere.ai.ui.ModelSnapshot
 import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.ai.util.InstantSerializer
-import me.rerere.rikkahub.data.datastore.DEFAULT_ASSISTANT_ID
 import me.rerere.rikkahub.data.datastore.Settings
 import java.time.Instant
 import kotlin.uuid.Uuid
@@ -114,7 +113,7 @@ data class Conversation(
     companion object {
         fun ofId(
             id: Uuid,
-            assistantId: Uuid = DEFAULT_ASSISTANT_ID,
+            assistantId: Uuid = me.rerere.rikkahub.data.datastore.HOSHIO_ASSISTANT_ID,
             messages: List<MessageNode> = emptyList(),
             newConversation: Boolean = false
         ) = Conversation(

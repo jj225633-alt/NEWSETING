@@ -11,7 +11,7 @@ import kotlin.uuid.Uuid
 
 internal val DEFAULT_ASSISTANT_ID = Uuid.parse("0950e2dc-9bd5-4801-afa3-aa887aa36b4e")
 
-// 星汐: 内建的陪伴角色。列在 DEFAULT_ASSISTANTS 里，已安装的用户读取设定时也会自动补上
+// 星汐: 只保留内建的陪伴角色（時澈）。列在 DEFAULT_ASSISTANTS 里，已安装的用户读取设定时也会自动补上
 internal val HOSHIO_ASSISTANT_ID = Uuid.parse("5b0a7c3e-1f2d-4e6a-9c8b-7d4e3f2a1b0c")
 
 // 第一版的星汐设定。使用者没改过时，读取设定会自动换成最新版（见 SettingsNormalization）
@@ -118,30 +118,6 @@ internal val DEFAULT_ASSISTANTS = listOf(
             LocalToolOption.Play,
             LocalToolOption.Together,
         ),
-    ),
-    Assistant(
-        id = DEFAULT_ASSISTANT_ID,
-        name = "",
-        systemPrompt = ""
-    ),
-    Assistant(
-        id = Uuid.parse("3d47790c-c415-4b90-9388-751128adb0a0"),
-        name = "",
-        systemPrompt = """
-            You are a helpful assistant, called {{char}}, based on model {{model_name}}.
-
-            ## Info
-            - Date: {{cur_date}}
-            - Locale: {{locale}}
-            - Timezone: {{timezone}}
-            - Device Info: {{device_info}}
-            - System Version: {{system_version}}
-            - User Nickname: {{user}}
-
-            ## Hint
-            - If the user does not specify a language, reply in the user's primary language.
-            - Remember to use Markdown syntax for formatting, and use latex for mathematical expressions.
-        """.trimIndent()
     ),
 )
 
