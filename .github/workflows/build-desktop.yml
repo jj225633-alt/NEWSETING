@@ -44,12 +44,32 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npm run dist
 
+      - name: Prepare installer
+        run: |
+          mkdir -p desktop/out
+          cp "$(ls desktop/dist/*.exe | head -1)" desktop/out/hoshio-desktop-setup.exe
+          ls -la desktop/out
+
+      # 備用下載：Releases 沒有 100MB 的限制
+      - name: Publish to release
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
+        with:
+          tag_name: desktop-latest
+          name: 星汐電腦版（最新）
+          prerelease: true
+          files: desktop/out/hoshio-desktop-setup.exe
+
       - name: Publish to desktop branch
         run: |
           out="$RUNNER_TEMP/desktop-branch"
           mkdir -p "$out"
-          exe=$(ls desktop/dist/*.exe | head -1)
-          cp "$exe" "$out/hoshio-desktop-setup.exe"
+          size=$(stat -c %s desktop/out/hoshio-desktop-setup.exe)
+          if [ "$size" -ge 99000000 ]; then
+            echo "安裝檔 $size bytes 超過 GitHub 100MB 上限，只放 Releases"
+            exit 0
+          fi
+          cp desktop/out/hoshio-desktop-setup.exe "$out/hoshio-desktop-setup.exe"
           raw="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/desktop"
           {
             echo "# 星汐電腦版下載"

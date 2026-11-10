@@ -26,7 +26,14 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.png"
     },
     "nsis": {
@@ -34,7 +41,13 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "星汐"
-    }
+    },
+    "compression": "maximum",
+    "electronLanguages": [
+      "zh-TW",
+      "zh-CN",
+      "en-US"
+    ]
   },
   "allowScripts": {
     "electron@44.9.0": true
