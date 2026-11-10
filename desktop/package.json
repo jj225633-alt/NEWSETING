@@ -9,7 +9,7 @@
     "start": "electron .",
     "check": "node --check src/main.js && node --check src/activity.js && node --check src/screenshot.js && node --check src/mcp-bridge.js && node --check src/preload.js",
     "icon": "electron scripts/make-icon.js",
-    "dist": "electron scripts/make-icon.js && electron-builder --win nsis"
+    "dist": "electron-builder --win nsis"
   },
   "devDependencies": {
     "electron": "44.9.0",
