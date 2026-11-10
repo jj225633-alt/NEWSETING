@@ -101,7 +101,7 @@ internal fun buildTogetherTools(context: Context): List<Tool> = listOf(
                 tJson(
                     "routines" to routines.filter { it.enabled }.joinToString("; ") { r ->
                         "[${r.id}] ${r.label} at ${r.times.joinToString(",")}; done today at " +
-                            today.filter { it.routineId == r.id }.joinToString(",") { it.hm().substringAfter(' ') }.ifEmpty { "-" }
+                            today.filter { it.routineId == r.id }.joinToString(",") { it.at.hm().substringAfter(' ') }.ifEmpty { "-" }
                     }.ifEmpty { "She has not set up any routines (首頁 → 生活照顧)." },
                 )
             }
