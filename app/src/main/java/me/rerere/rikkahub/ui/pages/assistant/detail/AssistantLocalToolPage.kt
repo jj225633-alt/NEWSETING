@@ -38,6 +38,7 @@ import me.rerere.hugeicons.stroke.DashboardSpeed02
 import me.rerere.hugeicons.stroke.JavaScript
 import me.rerere.hugeicons.stroke.Key01
 import me.rerere.hugeicons.stroke.MessageQuestion
+import me.rerere.hugeicons.stroke.MusicNote03
 import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.Moon02
 import me.rerere.hugeicons.stroke.Notification01
@@ -156,6 +157,17 @@ private fun AssistantLocalToolContent(
         if (enabled && option == LocalToolOption.Calendar && !calendarPermissionState.allPermissionsGranted) {
             calendarPermissionState.requestPermissions()
             return
+        }
+        if (enabled && option == LocalToolOption.Music &&
+            !me.rerere.rikkahub.hoshio.music.HoshioNotificationListener.isEnabled(context)
+        ) {
+            toaster.show(message = "請在接下來的頁面允許「星汐」的通知存取，他才看得到你在聽什麼", type = ToastType.Warning)
+            runCatching {
+                context.startActivity(
+                    android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }
         }
         if (enabled && option == LocalToolOption.Location && !locationPermissionState.allRequiredPermissionsGranted) {
             locationPermissionState.requestPermissions()
@@ -306,6 +318,12 @@ private fun AssistantLocalToolContent(
                 icon = HugeIcons.Book01,
                 title = R.string.assistant_page_local_tools_library_title,
                 description = R.string.assistant_page_local_tools_library_desc,
+            )
+            toolItem(
+                option = LocalToolOption.Music,
+                icon = HugeIcons.MusicNote03,
+                title = R.string.assistant_page_local_tools_music_title,
+                description = R.string.assistant_page_local_tools_music_desc,
             )
             toolItem(
                 option = LocalToolOption.Location,

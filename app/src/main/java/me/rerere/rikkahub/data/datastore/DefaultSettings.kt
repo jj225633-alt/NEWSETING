@@ -101,6 +101,7 @@ internal val DEFAULT_ASSISTANTS = listOf(
             LocalToolOption.Weather,
             LocalToolOption.PrivateRoom,
             LocalToolOption.Library,
+            LocalToolOption.Music,
         ),
     ),
     Assistant(

@@ -86,4 +86,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("library")
     data object Library : LocalToolOption()
+
+    // 星汐: 一起听音乐
+    @Serializable
+    @SerialName("music")
+    data object Music : LocalToolOption()
 }
