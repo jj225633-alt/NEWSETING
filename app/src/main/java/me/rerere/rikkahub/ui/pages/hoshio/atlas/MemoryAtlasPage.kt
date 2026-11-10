@@ -46,6 +46,7 @@ import me.rerere.rikkahub.hoshio.atlas.OrbisMemoryAtlas as Atlas
 
 private val AtlasInk = Color(0xFFF2EBDD)
 private val AtlasMuted = Color(0xFFBAA484)
+internal val AtlasGold = Color(0xFFD4B77C)
 private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd")
 
 /** 一颗记忆星：哪个档案、哪一行 */
