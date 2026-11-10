@@ -74,6 +74,7 @@ object PetStore {
             if (pet == null) remove("pet") else putString("pet", petJson.encodeToString(pet.copy(updatedAt = System.currentTimeMillis())))
         }
         _pet.value = pet
+        me.rerere.rikkahub.hoshio.widget.HoshioWidget.refresh(context)
     }
 
     fun adopt(context: Context, name: String, species: String, by: String): Pet {

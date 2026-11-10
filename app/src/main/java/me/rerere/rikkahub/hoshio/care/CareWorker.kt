@@ -114,6 +114,10 @@ class CareWorker(
             return Result.success()
         }
         if (prefs.diaryEnabled) maybeWriteDiary(prefs)
+        // 星汐: 更新桌面小工具的状态行；对话太长时自动交接
+        runCatching { me.rerere.rikkahub.hoshio.widget.HoshioWidget.refresh(applicationContext) }
+        runCatching { me.rerere.rikkahub.hoshio.handoff.Handoff.maybeAuto(applicationContext) }
+            .onFailure { Log.w(TAG, "handoff failed", it) }
         val isTest = inputData.getBoolean(KEY_TEST, false)
         val events = if (isTest) {
             listOf(
@@ -249,10 +253,31 @@ class CareWorker(
         if (prefs.bedtimeEnabled) detectBedtime(prefs)?.let { events += it }
         detectAnniversary()?.let { events += it }
         detectHighHeartRate()?.let { events += it }
+        detectWeeklyHealthLetter()?.let { events += it }
         me.rerere.rikkahub.hoshio.together.TogetherEvents.detect(applicationContext).forEach {
             events += CareEvent(key = it.key, title = it.title, text = it.text)
         }
         return events
+    }
+
+    /** 手表：每周日晚上 8 点后，他看这周的健康资料写一封信 */
+    private suspend fun detectWeeklyHealthLetter(): CareEvent? {
+        val health = me.rerere.rikkahub.hoshio.health.HealthPrefs(applicationContext)
+        if (!health.weeklyReportEnabled) return null
+        val now = LocalDateTime.now()
+        if (now.dayOfWeek != java.time.DayOfWeek.SUNDAY || now.hour < 20) return null
+        val week = now.toLocalDate().toString()
+        if (health.weeklyReportFor == week) return null
+        if (!me.rerere.rikkahub.hoshio.health.HealthData.hasSleepPermission(applicationContext)) return null
+        health.weeklyReportFor = week
+        return CareEvent(
+            key = "weekly_health_letter",
+            title = "這週的你",
+            text = "Automatic event (not typed by the user): it is Sunday evening. Look back on her week: call her_health with action=week " +
+                "(and her_mood_calendar if you have it). Then write her a warm letter with write_letter titled like 「這週的你」: " +
+                "what you noticed (sleep, activity, mood, anything that changed), what you are proud of her for, and one or two gentle wishes for next week. " +
+                "No lecturing, no diagnosis, not a list of numbers. Afterwards send her one short line in chat that a letter is waiting for her.",
+        )
     }
 
     /** 手表：没在运动、心率却持续偏高时关心一下（3 小时最多一次） */
@@ -694,7 +719,8 @@ class CareWorker(
             val workManager = WorkManager.getInstance(context)
             if (CarePrefs(context).anyEnabled || hasAnniversaryReminders(context) ||
                 me.rerere.rikkahub.hoshio.together.TogetherEvents.hasReminders(context) ||
-                me.rerere.rikkahub.hoshio.health.HealthPrefs(context).heartAlertEnabled
+                me.rerere.rikkahub.hoshio.health.HealthPrefs(context).heartAlertEnabled ||
+                me.rerere.rikkahub.hoshio.handoff.HandoffPrefs(context).autoEnabled
             ) {
                 workManager.enqueueUniquePeriodicWork(
                     PERIODIC_WORK,

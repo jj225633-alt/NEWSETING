@@ -156,6 +156,7 @@ fun HomePage() {
         HomeLink("favorite", "收藏", "收藏的訊息", HugeIcons.Favourite, SECTION_US) { Screen.Favorite },
         HomeLink("assistant", "$assistantName 的設定", "個性、模型、頭像", HugeIcons.UserCircle, SECTION_TOOLS) { Screen.AssistantDetail(assistantKey) },
         HomeLink("tools", "主動關心與工具", "地點、偷看螢幕、自由時間", HugeIcons.Notification01, SECTION_TOOLS) { Screen.AssistantLocalTool(assistantKey) },
+        HomeLink("handoff", "對話交接", "對話太長時換新對話接著聊", HugeIcons.TransactionHistory, SECTION_TOOLS) { Screen.Handoff },
         HomeLink("selfcheck", "自我檢查", "哪個權限沒開、為什麼沒反應", HugeIcons.CheckmarkCircle02, SECTION_TOOLS) { Screen.SelfCheck },
         HomeLink("media", "媒體創作", "生成圖片與影片", HugeIcons.ImageAdd01, SECTION_TOOLS) { Screen.MediaCreationSessions },
         HomeLink("translator", "翻譯", "翻譯工具", HugeIcons.Translate, SECTION_TOOLS) { Screen.Translator },

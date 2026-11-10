@@ -51,6 +51,7 @@ object MoodStore {
             reason = reason?.take(120) ?: now.reason,
         )
         prefs(context).edit { putString("mood", lifeJson.encodeToString(updated)) }
+        me.rerere.rikkahub.hoshio.widget.HoshioWidget.refresh(context)
         return updated
     }
 

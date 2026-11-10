@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 星汐: 精简的桌面小工具：名字与时间一行，下面两行是他最新说的话 -->
+<!-- 星汐: 精简的桌面小工具：名字・心情与时间一行，中间两行是他最新说的话，最下面一行是宠物和接下来的待办 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
   android:id="@+id/hoshio_widget_root"
   android:layout_width="match_parent"
@@ -49,4 +49,15 @@
     android:text="點這裡和他聊天"
     android:textColor="#F2FFFFFF"
     android:textSize="13sp" />
+
+  <TextView
+    android:id="@+id/hoshio_widget_status"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="2dp"
+    android:ellipsize="end"
+    android:maxLines="1"
+    android:textColor="#B3FFE8AA"
+    android:textSize="10sp"
+    android:visibility="gone" />
 </LinearLayout>

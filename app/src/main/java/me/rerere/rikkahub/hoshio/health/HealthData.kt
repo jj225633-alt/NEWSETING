@@ -10,6 +10,7 @@ import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
+import androidx.health.connect.client.records.SkinTemperatureRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
@@ -40,6 +41,15 @@ class HealthPrefs(context: Context) {
     var heartAlertBpm: Int
         get() = prefs.getInt("heart_alert_bpm", 110)
         set(value) = prefs.edit { putInt("heart_alert_bpm", value) }
+
+    /** 每周日晚上他写一封「这周的你」 */
+    var weeklyReportEnabled: Boolean
+        get() = prefs.getBoolean("weekly_report", true)
+        set(value) = prefs.edit { putBoolean("weekly_report", value) }
+
+    var weeklyReportFor: String?
+        get() = prefs.getString("weekly_report_for", null)
+        set(value) = prefs.edit { putString("weekly_report_for", value) }
 
     var lastHeartAlertAt: Long
         get() = prefs.getLong("heart_alert_last", 0L)
@@ -83,6 +93,7 @@ object HealthData {
         StepsRecord::class,
         TotalCaloriesBurnedRecord::class,
         ExerciseSessionRecord::class,
+        SkinTemperatureRecord::class,
     )
 
     val READ_PERMISSIONS: Set<String> = RECORD_TYPES.map { HealthPermission.getReadPermission(it) }.toSet()
@@ -176,6 +187,41 @@ object HealthData {
         }.getOrNull()
     }
 
+    /** 皮肤温度：最近一笔相对基准的变化（°C） */
+    suspend fun skinTemperature(context: Context, days: Long = 3): String? {
+        val client = client(context) ?: return null
+        val now = Instant.now()
+        val latest = read<SkinTemperatureRecord>(client, now.minus(Duration.ofDays(days)), now).maxByOrNull { it.endTime } ?: return null
+        val deltas = latest.deltas.map { it.delta.inCelsius }
+        if (deltas.isEmpty()) return null
+        val avg = deltas.average()
+        return "skin temperature ${latest.endTime.atZone(ZoneId.systemDefault()).toLocalDate()}: " +
+            "${if (avg >= 0) "+" else ""}${"%.1f".format(avg)}°C vs her baseline" +
+            (latest.baseline?.let { " (baseline ${"%.1f".format(it.inCelsius)}°C)" } ?: "")
+    }
+
+    /** 最近 7 天，每天一行：睡眠、步数、静止心率 */
+    suspend fun week(context: Context): String {
+        val client = client(context) ?: return "Health Connect is not available."
+        val zone = ZoneId.systemDefault()
+        val sleeps = sleeps(context, 8)
+        val resting = read<RestingHeartRateRecord>(client, Instant.now().minus(Duration.ofDays(8)), Instant.now())
+        val lines = (6 downTo 0).map { back ->
+            val day = LocalDate.now().minusDays(back.toLong())
+            val from = day.atStartOfDay(zone).toInstant()
+            val to = day.plusDays(1).atStartOfDay(zone).toInstant()
+            val sleep = sleeps.firstOrNull { it.end.atZone(zone).toLocalDate() == day }
+            val steps = steps(context, from, minOf(to, Instant.now()))
+            val rhr = resting.filter { it.time.atZone(zone).toLocalDate() == day }.maxByOrNull { it.time }?.beatsPerMinute
+            "$day (${day.dayOfWeek.toString().take(3)}): " + listOfNotNull(
+                sleep?.let { "sleep ${it.asleepMinutes / 60}h${it.asleepMinutes % 60}m (${it.start.atZone(zone).toLocalTime().withSecond(0).withNano(0)}→${it.end.atZone(zone).toLocalTime().withSecond(0).withNano(0)})" },
+                steps?.let { "steps $it" },
+                rhr?.let { "resting HR $it" },
+            ).ifEmpty { listOf("no data") }.joinToString(", ")
+        }
+        return (lines + listOfNotNull(skinTemperature(context, 7))).joinToString("\n")
+    }
+
     /** 今天的摘要（给他看） */
     suspend fun today(context: Context): String {
         if (!available(context)) return "Health Connect is not available on this phone."
@@ -207,6 +253,7 @@ object HealthData {
             lines += "respiratory rate: ${"%.1f".format(it.rate)} /min"
         }
         exercises(context, start).takeIf { it.isNotEmpty() }?.let { lines += "exercise today: ${it.joinToString("; ")}" }
+        skinTemperature(context)?.let { lines += it }
         if (lines.isEmpty()) lines += "No data yet today (the watch may not have synced; opening the Fitbit app helps)."
         return lines.joinToString("\n")
     }

@@ -55,24 +55,41 @@ object HoshioChat : KoinComponent {
      */
     suspend fun ask(title: String, text: String, timeoutMinutes: Long = 5): Reply? {
         val (conversation, name) = latestConversation() ?: return null
-        val before = conversation.currentMessages.size
+        return askIn(conversation.id, conversation.currentMessages.size, name, title, text, timeoutMinutes)
+    }
+
+    /** 开一个新对话，放一则提示进去（新对话会成为最近的那个），等他回完 */
+    suspend fun askInNewConversation(title: String, text: String, timeoutMinutes: Long = 5): Reply {
+        val settings = settingsStore.awaitLoaded()
+        val name = settings.assistants.firstOrNull { it.id == settings.assistantId }?.name?.ifBlank { null } ?: "時澈"
+        return askIn(kotlin.uuid.Uuid.random(), 0, name, title, text, timeoutMinutes)
+    }
+
+    private suspend fun askIn(
+        conversationId: kotlin.uuid.Uuid,
+        before: Int,
+        name: String,
+        title: String,
+        text: String,
+        timeoutMinutes: Long,
+    ): Reply {
         chatService.postNotice(
-            conversationId = conversation.id,
+            conversationId = conversationId,
             key = "hoshio_ask:${System.currentTimeMillis()}",
             notice = UIMessagePart.Notice(title = title, text = text),
         )
-        val jobs = chatService.getGenerationJobStateFlow(conversation.id)
+        val jobs = chatService.getGenerationJobStateFlow(conversationId)
         withTimeoutOrNull(TimeUnit.MINUTES.toMillis(timeoutMinutes)) {
             withTimeoutOrNull(30_000) { jobs.filterNotNull().first() }
             jobs.first { it == null }
         }
-        val reply = chatService.getConversation(conversation.id)
+        val reply = chatService.getConversation(conversationId)
             ?.currentMessages
             ?.drop(before)
             ?.lastOrNull { it.role == MessageRole.ASSISTANT }
             ?.toText()
             ?.trim()
             .orEmpty()
-        return Reply(conversation.id.toString(), name, reply)
+        return Reply(conversationId.toString(), name, reply)
     }
 }

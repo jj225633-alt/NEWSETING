@@ -20,14 +20,14 @@ internal fun buildHealthTool(context: Context): Tool = Tool(
     name = "her_health",
     description = """
         Read her health data from her Pixel Watch (via Health Connect). action=today: last sleep, steps, calories, resting heart rate,
-        recent heart rate, HRV, respiratory rate and today's exercise. action=sleep: the last few nights (nights, default 3).
+        recent heart rate, HRV, respiratory rate, skin temperature change and today's exercise. action=week: the last 7 days day by day (sleep, steps, resting heart rate). action=sleep: the last few nights (nights, default 3).
         action=heart: heart rate over the last few hours (hours, default 6). action=exercise: workouts in the last days (days, default 7).
         Use it to care about her naturally (sleep, activity, stress). Never diagnose; data can lag because the watch syncs through the Fitbit app.
     """.trimIndent().replace("\n", " "),
     parameters = {
         InputSchema.Obj(
             properties = buildJsonObject {
-                put("action", tEnum("What to read", "today", "sleep", "heart", "exercise"))
+                put("action", tEnum("What to read", "today", "week", "sleep", "heart", "exercise"))
                 put("nights", buildJsonObject { put("type", "integer") })
                 put("hours", buildJsonObject { put("type", "integer") })
                 put("days", buildJsonObject { put("type", "integer") })
@@ -40,6 +40,7 @@ internal fun buildHealthTool(context: Context): Tool = Tool(
         fun num(k: String, default: Int, max: Int) = obj[k]?.jsonPrimitive?.contentOrNull?.toIntOrNull()?.coerceIn(1, max) ?: default
         val now = Instant.now()
         val result = when (obj["action"]?.jsonPrimitive?.contentOrNull) {
+            "week" -> HealthData.week(context)
             "sleep" -> HealthData.sleeps(context, num("nights", 3, 14)).joinToString("\n") { it.describe() }.ifEmpty { "No sleep data." }
             "heart" -> {
                 val hours = num("hours", 6, 48)

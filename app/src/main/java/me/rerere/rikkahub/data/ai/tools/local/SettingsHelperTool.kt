@@ -73,6 +73,24 @@ private val SETTINGS = listOf(
     int("diary_write_hour", "hour after which you write the diary", 18..23, { it.diaryWriteHour }, { p, v -> p.diaryWriteHour = v }),
     bool("always_on", "always-on mode: check every 2 minutes with a persistent notification (more battery)", { it.alwaysOnEnabled }, { p, v -> p.alwaysOnEnabled = v }),
     SettingKey(
+        "handoff_auto", "automatically move to a fresh conversation (with your handoff note) when this one gets too long (true/false)",
+        { _, c -> me.rerere.rikkahub.hoshio.handoff.HandoffPrefs(c).autoEnabled.toString() },
+        { _, c, v -> me.rerere.rikkahub.hoshio.handoff.HandoffPrefs(c).autoEnabled = v.lowercase() in listOf("true", "on", "1"); null },
+    ),
+    SettingKey(
+        "handoff_threshold_k", "context size in thousands of tokens that triggers the handoff (20-1000)",
+        { _, c -> me.rerere.rikkahub.hoshio.handoff.HandoffPrefs(c).thresholdK.toString() },
+        { _, c, v ->
+            val n = v.trim().toIntOrNull()
+            if (n == null || n !in 20..1000) "value must be 20-1000" else { me.rerere.rikkahub.hoshio.handoff.HandoffPrefs(c).thresholdK = n; null }
+        },
+    ),
+    SettingKey(
+        "weekly_health_letter", "write her a weekly letter about her week's health every Sunday evening (true/false)",
+        { _, c -> me.rerere.rikkahub.hoshio.health.HealthPrefs(c).weeklyReportEnabled.toString() },
+        { _, c, v -> me.rerere.rikkahub.hoshio.health.HealthPrefs(c).weeklyReportEnabled = v.lowercase() in listOf("true", "on", "1"); null },
+    ),
+    SettingKey(
         "watch_wake", "use her watch's sleep data to detect waking up (true/false)",
         { _, c -> me.rerere.rikkahub.hoshio.health.HealthPrefs(c).watchWakeEnabled.toString() },
         { _, c, v -> me.rerere.rikkahub.hoshio.health.HealthPrefs(c).watchWakeEnabled = v.lowercase() in listOf("true", "on", "1"); null },

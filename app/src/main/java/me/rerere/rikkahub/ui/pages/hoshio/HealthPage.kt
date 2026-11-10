@@ -56,6 +56,7 @@ fun HealthPage() {
     var watchWake by remember { mutableStateOf(prefs.watchWakeEnabled) }
     var heartAlert by remember { mutableStateOf(prefs.heartAlertEnabled) }
     var heartBpm by remember { mutableIntStateOf(prefs.heartAlertBpm) }
+    var weekly by remember { mutableStateOf(prefs.weeklyReportEnabled) }
 
     val permissionLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { result ->
         granted = result
@@ -150,6 +151,13 @@ fun HealthPage() {
                             prefs.heartAlertEnabled = it
                             CareWorker.sync(context)
                         })
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("每週健康信", style = MaterialTheme.typography.titleSmall)
+                            Text("每週日晚上 8 點後，他看你這週的睡眠、步數、心情，寫一封「這週的你」寄到信箱", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Switch(checked = weekly, onCheckedChange = { weekly = it; prefs.weeklyReportEnabled = it })
                     }
                     if (heartAlert) {
                         NumberChoiceChips(
