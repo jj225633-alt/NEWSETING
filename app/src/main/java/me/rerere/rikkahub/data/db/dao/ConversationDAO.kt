@@ -141,6 +141,10 @@ interface ConversationDAO {
     @Query("SELECT COUNT(*) FROM conversationentity")
     suspend fun countAll(): Int
 
+    /** 星汐首页「在一起的第 N 天」：最早一段对话的建立时间（毫秒），没有对话时为 null */
+    @Query("SELECT MIN(create_at) FROM conversationentity")
+    suspend fun firstCreateAt(): Long?
+
     @Query("SELECT assistant_id AS assistantId, COUNT(*) AS count FROM conversationentity GROUP BY assistant_id")
     suspend fun countByAssistant(): List<AssistantConversationCount>
 

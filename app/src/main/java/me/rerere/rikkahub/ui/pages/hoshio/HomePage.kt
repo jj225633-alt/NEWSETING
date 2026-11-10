@@ -1,6 +1,18 @@
 package me.rerere.rikkahub.ui.pages.hoshio
 
 import androidx.compose.foundation.layout.Arrangement
+import me.rerere.rikkahub.ui.pages.hoshio.splash.drawSparkle
+import me.rerere.rikkahub.ui.pages.hoshio.splash.HoshioGlass
+import dev.chrisbanes.haze.hazeSource
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -127,8 +139,8 @@ fun HomePage() {
             in 5..10 -> "早安"
             in 11..13 -> "午安"
             in 14..17 -> "午後好"
-            in 18..22 -> "晚上好"
-            else -> "這麼晚了還醒著"
+            in 18..22 -> "晚安"
+            else -> "夜深了"
         }
     }
 
@@ -175,119 +187,250 @@ fun HomePage() {
         homePrefs.edit().putStringSet("hidden", hidden).apply()
     }
 
+    // 「在一起的日子」热力图：最近 20 周每天她传了几则讯息；另外算总对话数、连续天数、本周讯息
+    val conversationDao = koinInject<me.rerere.rikkahub.data.db.dao.ConversationDAO>()
+    val messageDao = koinInject<me.rerere.rikkahub.data.db.dao.MessageNodeDAO>()
+    val today = remember { java.time.LocalDate.now() }
+    val heat by produceState(HomeHeat(), assistantId) {
+        value = runCatching {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val start = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.SUNDAY))
+                    .minusWeeks((HEATMAP_WEEKS - 1).toLong())
+                val perDay = messageDao.getMessageCountPerDay(start.toString())
+                    .mapNotNull { e -> runCatching { java.time.LocalDate.parse(e.day) to e.count }.getOrNull() }.toMap()
+                HomeHeat(true, conversationDao.countAll(), perDay)
+            }
+        }.getOrElse { HomeHeat(loaded = true) }
+    }
+
+    val dark = me.rerere.rikkahub.ui.theme.LocalDarkMode.current
+    val haze = dev.chrisbanes.haze.rememberHazeState()
+    val ink = MaterialTheme.colorScheme.onSurface
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val accent = MaterialTheme.colorScheme.primary
     val hoshioTheme = settings.themeId == "hoshio" && !settings.dynamicColor
-    Scaffold(
-        containerColor = if (hoshioTheme) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background,
-    ) { innerPadding ->
-        // 星汐主题：白天淺海焦散、晚上星空的背景
+
+    Box(Modifier.fillMaxSize().background(if (hoshioTheme) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background)) {
+        // 星汐主题：白天淺海焦散、晚上星空；同时当作毛玻璃的模糊来源
         if (hoshioTheme) {
             me.rerere.rikkahub.ui.pages.hoshio.splash.HoshioChatBackdrop(
-                dark = me.rerere.rikkahub.ui.theme.LocalDarkMode.current,
+                dark = dark,
                 animate = true,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().then(Modifier.hazeSource(haze)),
             )
         }
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        androidx.compose.runtime.CompositionLocalProvider(
+            me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioHaze provides (if (hoshioTheme) haze else null),
         ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Column(
-                    modifier = Modifier.statusBarsPadding().padding(top = 8.dp, bottom = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = if (nickname != null) "$greeting，$nickname" else greeting,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = stats?.let { (days, count) -> "和 $assistantName 認識的第 $days 天・聊了 $count 則訊息" }
-                            ?: if (prefs.anyEnabled) "$assistantName 正在陪著你" else "今天想做什麼？",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Card(
-                    onClick = { openChat() },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        if (assistant != null) {
-                            UIAvatar(name = assistantName, value = assistant.avatar, modifier = Modifier.size(56.dp))
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                // 页首：HOSHIO · 星汐／晚安，YAN
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(Modifier.statusBarsPadding().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("HOSHIO · 星汐", fontSize = 11.sp, letterSpacing = 3.sp, color = accent)
+                            Text(
+                                if (nickname != null) "$greeting，$nickname" else greeting,
+                                fontSize = 24.sp,
+                                fontFamily = FontFamily.Serif,
+                                color = ink,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("和 $assistantName 聊天", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                // 最大张：和他聊天
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    HoshioGlass(Modifier.fillMaxWidth().clickable { openChat() }, shape = RoundedCornerShape(28.dp), strong = true) {
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                                if (assistant != null) UIAvatar(name = assistantName, value = assistant.avatar, modifier = Modifier.size(56.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("和 $assistantName 聊天", fontSize = 20.sp, fontFamily = FontFamily.Serif, color = ink)
+                                    Text(if (prefs.anyEnabled) "他正在陪著你" else "繼續剛才的話題", fontSize = 12.sp, color = muted)
+                                }
+                                Icon(HugeIcons.Message01, contentDescription = null, tint = accent)
+                            }
                             val preview = latest?.second.orEmpty()
                             Text(
-                                text = if (preview.isNotBlank()) "他最後說：$preview" else "點這裡開始聊天",
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 2,
+                                text = if (preview.isNotBlank()) "「$preview」" else "點這裡開始聊天",
+                                fontSize = 15.sp,
+                                lineHeight = 22.sp,
+                                color = ink,
+                                maxLines = 3,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
-                        Icon(HugeIcons.Message01, contentDescription = null)
                     }
                 }
-            }
-            listOf(SECTION_HIM, SECTION_US, SECTION_TOOLS).forEach { section ->
-                val sectionLinks = links.filter { it.section == section && (editing || it.key !in hidden) }
-                if (sectionLinks.isEmpty()) return@forEach
+                // 在一起的第 N 天
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        section,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(top = 8.dp, start = 4.dp),
-                    )
-                }
-                items(sectionLinks, key = { it.key }) { link ->
-                    val isHidden = link.key in hidden
-                    Card(
-                        onClick = { if (editing) toggleHidden(link.key) else navController.navigate(link.screen()) },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (editing && isHidden) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        ),
-                        shape = MaterialTheme.shapes.extraLarge,
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(
-                                link.icon,
-                                contentDescription = null,
-                                tint = if (editing && isHidden) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary,
-                            )
-                            Text(link.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                if (editing) (if (isHidden) "已隱藏・點一下顯示" else "顯示中・點一下隱藏") else link.subtitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                    HoshioGlass(Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(horizontal = 22.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("和 $assistantName 在一起的第", fontSize = 13.sp, color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    Text(stats?.first?.toString() ?: "—", fontSize = 54.sp, lineHeight = 58.sp, fontFamily = FontFamily.Serif, color = ink)
+                                    Text("天", fontSize = 18.sp, fontFamily = FontFamily.Serif, color = ink, modifier = Modifier.padding(start = 6.dp, bottom = 10.dp))
+                                }
+                                stats?.let { (days, _) ->
+                                    val start = today.minusDays(days - 1)
+                                    Text("從 ${start.year} 年 ${start.monthValue} 月 ${start.dayOfMonth} 日開始", fontSize = 12.sp, color = muted)
+                                }
+                            }
+                            HomeSparkleMark(Modifier.size(64.dp), accent)
                         }
                     }
                 }
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                androidx.compose.material3.TextButton(onClick = { editing = !editing }) {
-                    Text(if (editing) "完成" else "整理首頁（隱藏不常用的）")
+                // 统计小卡
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        HomeStatChip("${stats?.second ?: "—"}", "則訊息", Modifier.weight(1f))
+                        HomeStatChip("${heat.conversations}", "段對話", Modifier.weight(1f))
+                        HomeStatChip("${heat.streak(today)}", "天連續", Modifier.weight(1f))
+                        HomeStatChip("${heat.weekMessages(today)}", "則本週", Modifier.weight(1f))
+                    }
+                }
+                // 功能入口（毛玻璃小卡，依「他／我們／设定与工具」分区，可以整理隐藏）
+                listOf(SECTION_HIM, SECTION_US, SECTION_TOOLS).forEach { section ->
+                    val sectionLinks = links.filter { it.section == section && (editing || it.key !in hidden) }
+                    if (sectionLinks.isEmpty()) return@forEach
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Text(section, fontSize = 12.sp, letterSpacing = 2.sp, color = accent, modifier = Modifier.padding(top = 6.dp, start = 4.dp))
+                    }
+                    items(sectionLinks, key = { it.key }) { link ->
+                        val isHidden = link.key in hidden
+                        HoshioGlass(
+                            Modifier.heightIn(min = 76.dp).clickable { if (editing) toggleHidden(link.key) else navController.navigate(link.screen()) },
+                            shape = RoundedCornerShape(20.dp),
+                        ) {
+                            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp).graphicsLayer { alpha = if (editing && isHidden) .4f else 1f }) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(link.icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
+                                    Text(
+                                        "  " + link.title,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = ink,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Text(
+                                    if (editing) (if (isHidden) "已隱藏・點一下顯示" else "顯示中・點一下隱藏") else link.subtitle,
+                                    fontSize = 11.sp,
+                                    color = muted,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 3.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+                // 在一起的日子
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    HoshioGlass(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text("在一起的日子", fontSize = 16.sp, fontFamily = FontFamily.Serif, color = ink)
+                                Box(Modifier.weight(1f))
+                                Text("最近 $HEATMAP_WEEKS 週", fontSize = 11.sp, color = muted)
+                            }
+                            HomeHeatmap(heat.perDay, today, accent, ink, Modifier.fillMaxWidth().padding(top = 12.dp))
+                            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("少", fontSize = 10.sp, color = muted)
+                                listOf(0f, .3f, .55f, .8f, 1f).forEach { level ->
+                                    androidx.compose.foundation.Canvas(Modifier.padding(start = 4.dp).size(10.dp)) {
+                                        drawRoundRect(heatColor(level, accent, ink), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()))
+                                    }
+                                }
+                                Text("  多", fontSize = 10.sp, color = muted)
+                            }
+                        }
+                    }
+                }
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    androidx.compose.material3.TextButton(onClick = { editing = !editing }) {
+                        Text(if (editing) "完成" else "整理首頁（隱藏不常用的）", color = accent)
+                    }
                 }
             }
+        }
+    }
+}
+
+private const val HEATMAP_WEEKS = 20
+
+private data class HomeHeat(
+    val loaded: Boolean = false,
+    val conversations: Int = 0,
+    val perDay: Map<java.time.LocalDate, Int> = emptyMap(),
+) {
+    fun weekMessages(today: java.time.LocalDate): Int = (0L..6L).sumOf { perDay[today.minusDays(it)] ?: 0 }
+
+    /** 连续有聊天的天数；今天还没聊时从昨天往回算 */
+    fun streak(today: java.time.LocalDate): Int {
+        var day = if ((perDay[today] ?: 0) > 0) today else today.minusDays(1)
+        var count = 0
+        while ((perDay[day] ?: 0) > 0) { count++; day = day.minusDays(1) }
+        return count
+    }
+}
+
+@Composable
+private fun HomeStatChip(value: String, label: String, modifier: Modifier) {
+    HoshioGlass(modifier, shape = RoundedCornerShape(18.dp)) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(value, fontSize = 20.sp, fontFamily = FontFamily.Serif, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+            Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun HomeSparkleMark(modifier: Modifier, color: androidx.compose.ui.graphics.Color) {
+    androidx.compose.foundation.Canvas(modifier) {
+        val c = androidx.compose.ui.geometry.Offset(size.width * .55f, size.height * .45f)
+        drawCircle(color.copy(alpha = .10f), size.minDimension * .42f, c)
+        drawSparkle(c, size.minDimension * .34f, color.copy(alpha = .85f))
+        drawSparkle(androidx.compose.ui.geometry.Offset(size.width * .2f, size.height * .82f), size.minDimension * .1f, color.copy(alpha = .6f))
+        drawSparkle(androidx.compose.ui.geometry.Offset(size.width * .9f, size.height * .12f), size.minDimension * .08f, color.copy(alpha = .5f))
+    }
+}
+
+private fun heatColor(level: Float, accent: androidx.compose.ui.graphics.Color, ink: androidx.compose.ui.graphics.Color) =
+    if (level <= 0f) ink.copy(alpha = .08f) else accent.copy(alpha = .25f + .7f * level.coerceIn(0f, 1f))
+
+@Composable
+private fun HomeHeatmap(
+    perDay: Map<java.time.LocalDate, Int>,
+    today: java.time.LocalDate,
+    accent: androidx.compose.ui.graphics.Color,
+    ink: androidx.compose.ui.graphics.Color,
+    modifier: Modifier,
+) {
+    val start = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.SUNDAY)).minusWeeks((HEATMAP_WEEKS - 1).toLong())
+    val max = (perDay.values.maxOrNull() ?: 0).coerceAtLeast(1)
+    androidx.compose.foundation.Canvas(modifier.aspectRatio(HEATMAP_WEEKS / 7.2f)) {
+        val gap = 3.dp.toPx()
+        val cell = ((size.width - gap * (HEATMAP_WEEKS - 1)) / HEATMAP_WEEKS).coerceAtMost((size.height - gap * 6) / 7)
+        val radius = androidx.compose.ui.geometry.CornerRadius(cell * .22f)
+        for (w in 0 until HEATMAP_WEEKS) for (d in 0 until 7) {
+            val date = start.plusWeeks(w.toLong()).plusDays(d.toLong())
+            if (date.isAfter(today)) continue
+            val count = perDay[date] ?: 0
+            val level = if (count == 0) 0f else (.15f + .85f * count / max.toFloat())
+            val topLeft = androidx.compose.ui.geometry.Offset(w * (cell + gap), d * (cell + gap))
+            val cellSize = androidx.compose.ui.geometry.Size(cell, cell)
+            drawRoundRect(heatColor(level, accent, ink), topLeft, cellSize, radius)
+            if (date == today) drawRoundRect(accent, topLeft, cellSize, radius, style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
         }
     }
 }
