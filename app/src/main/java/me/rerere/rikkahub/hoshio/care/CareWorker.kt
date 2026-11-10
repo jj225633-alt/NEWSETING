@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit
 private const val TAG = "HoshioCare"
 private const val PERIODIC_WORK = "hoshio_care_periodic"
 private const val TEST_WORK = "hoshio_care_test"
+private const val TICK_WORK = "hoshio_care_tick"
 private const val KEY_TEST = "test"
 private const val CARE_NOTIFICATION_ID = 7301
 
@@ -337,6 +338,16 @@ class CareWorker(
             } else {
                 workManager.cancelUniqueWork(PERIODIC_WORK)
             }
+            CareForegroundService.sync(context)
+        }
+
+        /** 常驻模式用：马上检查一次（上一次还没跑完就不重复排） */
+        fun checkNow(context: Context) {
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                TICK_WORK,
+                ExistingWorkPolicy.KEEP,
+                OneTimeWorkRequestBuilder<CareWorker>().build(),
+            )
         }
 
         /** 立刻测试一次：让 AI 主动打个招呼 */

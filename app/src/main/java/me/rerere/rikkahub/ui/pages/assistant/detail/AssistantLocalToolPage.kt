@@ -287,6 +287,7 @@ private fun HoshioCareSection(assistant: Assistant) {
     var lowBattery by remember { mutableStateOf(prefs.lowBatteryEnabled) }
     var nightUsage by remember { mutableStateOf(prefs.nightUsageEnabled) }
     var wakeUp by remember { mutableStateOf(prefs.wakeUpEnabled) }
+    var alwaysOn by remember { mutableStateOf(prefs.alwaysOnEnabled) }
     var ownerId by remember { mutableStateOf(prefs.assistantId) }
     var lastResult by remember { mutableStateOf(prefs.lastResult) }
 
@@ -369,6 +370,25 @@ private fun HoshioCareSection(assistant: Assistant) {
                 )
             },
             headlineContent = { Text("起床打招呼") },
+        )
+        switchItem(
+            checked = alwaysOn,
+            onCheckedChange = {
+                if (it && !notificationPermissionState.allRequiredPermissionsGranted) {
+                    notificationPermissionState.requestPermissions()
+                }
+                prefs.alwaysOnEnabled = it
+                alwaysOn = it
+                CareWorker.sync(context)
+            },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Zap) },
+            supportingContent = {
+                Text(
+                    "改成每 ${me.rerere.rikkahub.hoshio.care.CareForegroundService.CHECK_INTERVAL_MINUTES} 分鐘檢查一次，到家、出門、起床都會更即時。" +
+                        "通知欄會一直有一個「星汐在陪著你」，也會比較耗電。手機重開機後要打開星汐一次才會恢復"
+                )
+            },
+            headlineContent = { Text("常駐模式（更即時）") },
         )
         item(
             onClick = {
