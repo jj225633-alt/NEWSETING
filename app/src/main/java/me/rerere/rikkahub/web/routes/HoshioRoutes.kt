@@ -41,7 +41,7 @@ import java.time.ZoneId
 data class HoshioStateDto(val mood: String, val energy: Int, val reason: String, val updatedAt: Long)
 
 @Serializable
-data class HoshioPetDto(val name: String, val species: String, val status: String, val fullness: Int, val happiness: Int, val cleanliness: Int, val ageDays: Long)
+data class HoshioPetDto(val name: String, val species: String, val status: String, val fullness: Int, val happiness: Int, val water: Int, val health: Int, val ageDays: Long)
 
 @Serializable
 data class HoshioRoutineDto(val id: String, val emoji: String, val label: String, val times: List<String>, val doneToday: List<Long>)
@@ -110,7 +110,7 @@ fun Route.hoshioRoutes(context: Context, settingsStore: SettingsStore) {
                         // 她还没回答时，先不给他的答案
                         if (it.herAnswer.isBlank()) it.copy(hisAnswer = "") else it
                     },
-                    pet = PetStore.load(context)?.let { HoshioPetDto(it.name, it.species, it.status, it.fullness, it.happiness, it.cleanliness, it.ageDays) },
+                    pet = PetStore.load(context)?.let { HoshioPetDto(it.name, it.species, it.status, it.fullness, it.happiness, it.water, it.health, it.ageDays) },
                     routines = RoutineStore.load(context).filter { it.active }.map { r ->
                         HoshioRoutineDto(r.id, r.emoji, r.label, r.times, logs.filter { it.routineId == r.id }.map { it.at })
                     },
@@ -231,7 +231,7 @@ fun Route.hoshioRoutes(context: Context, settingsStore: SettingsStore) {
         // 宠物与生活照顾
         post("/pet/{action}") {
             val action = call.parameters["action"] ?: throw BadRequestException("action")
-            if (action !in listOf("feed", "play", "clean", "pet")) throw BadRequestException("bad action")
+            if (action !in listOf("feed", "water", "play", "tidy", "clean", "pet", "sleep")) throw BadRequestException("bad action")
             PetStore.care(context, action, PetStore.BY_HER) ?: throw NotFoundException("No pet")
             call.respond(HttpStatusCode.OK, ok)
         }

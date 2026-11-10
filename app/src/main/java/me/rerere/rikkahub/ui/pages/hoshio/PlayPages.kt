@@ -4,6 +4,10 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -49,6 +54,7 @@ import kotlinx.coroutines.launch
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.hoshio.HoshioChat
+import me.rerere.rikkahub.hoshio.play.PetCatalog
 import me.rerere.rikkahub.hoshio.play.PetStore
 import me.rerere.rikkahub.hoshio.play.TurtleSoup
 import me.rerere.rikkahub.hoshio.play.TurtleSoupStore
@@ -269,30 +275,31 @@ fun PetPage() {
     val callHim = rememberCallHim()
     var renaming by remember { mutableStateOf(false) }
     var releasing by remember { mutableStateOf(false) }
+    var choosingLook by remember { mutableStateOf(false) }
+    var frameOverride by remember { mutableStateOf<String?>(null) }
 
     LifecycleResumeEffect(Unit) {
         PetStore.load(context)
         onPauseOrDispose { }
     }
+    // 动作图停留一下再回到平常的样子
+    LaunchedEffect(frameOverride) {
+        if (frameOverride != null) {
+            kotlinx.coroutines.delay(2500)
+            frameOverride = null
+        }
+    }
 
     PlayScaffold("一起養寵物") { innerPadding ->
         val p = pet
-        if (p == null) {
-            var species by remember { mutableStateOf(PetStore.SPECIES.first()) }
-            var name by remember { mutableStateOf("") }
-            Column(
-                Modifier.fillMaxSize().padding(innerPadding).padding(16.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Text("還沒有寵物。挑一隻帶回家吧，你在這裡照顧牠，他也會自己來看牠。", style = MaterialTheme.typography.bodyMedium)
-                Text(species, fontSize = 72.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PetStore.SPECIES.forEach { s ->
-                        FilterChip(selected = species == s, onClick = { species = s }, label = { Text(s, fontSize = 22.sp) })
-                    }
-                }
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("名字（也可以等等跟他一起取）") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Button(onClick = { PetStore.adopt(context, name, species, PetStore.BY_HER) }, modifier = Modifier.fillMaxWidth()) { Text("帶回家") }
+        if (p == null || choosingLook) {
+            PetChooser(
+                modifier = Modifier.padding(innerPadding),
+                changing = p != null,
+                onCancel = { choosingLook = false },
+            ) { name, appearance ->
+                if (p == null) PetStore.adopt(context, name, appearance, PetStore.BY_HER) else PetStore.changeAppearance(context, appearance, PetStore.BY_HER)
+                choosingLook = false
             }
         } else {
             LazyColumn(
@@ -301,30 +308,84 @@ fun PetPage() {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = MaterialTheme.shapes.extraLarge) {
-                        Column(Modifier.padding(20.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(p.species, fontSize = 80.sp)
+                    val look = PetCatalog.find(p.appearance)
+                    val tint = when (p.decoration) {
+                        "rose" -> androidx.compose.ui.graphics.Color(0x33E8A0B4)
+                        "sky" -> androidx.compose.ui.graphics.Color(0x3390B8E8)
+                        else -> androidx.compose.ui.graphics.Color(0x3390B89A)
+                    }
+                    Card(shape = MaterialTheme.shapes.extraLarge) {
+                        androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().aspectRatio(1.25f)) {
+                            coil3.compose.AsyncImage(
+                                model = PetCatalog.room(p.family, p.messy),
+                                contentDescription = null,
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(tint))
+                            if (look != null) {
+                                coil3.compose.AsyncImage(
+                                    model = PetCatalog.image(look.id, frameOverride ?: p.frame),
+                                    contentDescription = look.label,
+                                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(0.55f).aspectRatio(1f).padding(bottom = 12.dp),
+                                )
+                            } else {
+                                Text(p.species, fontSize = 80.sp, modifier = Modifier.align(Alignment.Center))
+                            }
+                            if (p.boarding) {
+                                Text(
+                                    "🏨 寄養中",
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = .85f), MaterialTheme.shapes.small).padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        }
+                        Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(p.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                            Text("來家裡第 ${p.ageDays + 1} 天・${p.status}", style = MaterialTheme.typography.labelLarge)
+                            Text(
+                                (look?.label?.let { "$it・" } ?: "") + "來家裡第 ${p.ageDays + 1} 天・${p.status}",
+                                style = MaterialTheme.typography.labelLarge,
+                            )
                             StatBar("飽足", p.fullness)
+                            StatBar("水分", p.water)
                             StatBar("心情", p.happiness)
-                            StatBar("清潔", p.cleanliness)
+                            StatBar("健康", p.health)
+                            Text(
+                                "🏅 好好照顧 ${p.careDays.size} 天・已得到 ${p.rewards} 次獎勵（每 10 天一次，四項都 80 以上時照顧才算）",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         }
                     }
                 }
                 item {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("feed" to "🍖 餵食", "play" to "🧶 玩耍", "clean" to "🛁 洗澡", "pet" to "🤲 摸摸").forEach { (action, label) ->
-                            FilledTonalButton(onClick = { PetStore.care(context, action, PetStore.BY_HER) }) { Text(label) }
+                        PetStore.ACTIONS.forEach { (action, label) ->
+                            FilledTonalButton(enabled = !p.boarding || action == "pet", onClick = {
+                                val result = PetStore.care(context, action, PetStore.BY_HER)
+                                frameOverride = when (action) { "feed", "water" -> "eat"; "play" -> "play"; "pet" -> "greet"; "sleep" -> "sleep"; else -> null }
+                                if (result?.rewardEarned == true) frameOverride = "content"
+                            }) { Text(label) }
                         }
                     }
                 }
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        OutlinedButton(onClick = { PetStore.care(context, if (p.boarding) "return" else "board", PetStore.BY_HER) }) {
+                            Text(if (p.boarding) "🏠 接回家" else "🏨 送去寄養")
+                        }
+                        PetStore.DECORATIONS.forEach { (key, label) ->
+                            FilterChip(selected = p.decoration == key, onClick = { PetStore.care(context, "decorate", PetStore.BY_HER, decoration = key) }, label = { Text(label) })
+                        }
+                    }
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Button(onClick = {
                             callHim("寵物", "She wants you to come see ${p.name}. Call our_pet status, take care of it if you like, and talk to her about it.")
-                        }) { Text("叫他來看看牠") }
+                        }) { Text("叫他來看看") }
                         TextButton(onClick = { renaming = true }) { Text("改名") }
+                        TextButton(onClick = { choosingLook = true }) { Text("換樣子") }
                         TextButton(onClick = { releasing = true }) { Text("送走") }
                     }
                 }
@@ -332,7 +393,7 @@ fun PetPage() {
                 items(p.log) { log ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            (if (log.by == PetStore.BY_HIM) "他" else "你") + " " + log.text,
+                            (if (log.by == PetStore.BY_HIM) "他 " else "你 ") + log.text,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
                         )
@@ -361,6 +422,68 @@ fun PetPage() {
             confirmButton = { TextButton(onClick = { PetStore.release(context); releasing = false }) { Text("送走") } },
             dismissButton = { TextButton(onClick = { releasing = false }) { Text("取消") } },
         )
+    }
+}
+
+/** 挑宠物：先选种类，再从图里挑一只 */
+@Composable
+private fun PetChooser(modifier: Modifier, changing: Boolean, onCancel: () -> Unit, onChoose: (name: String, appearance: String) -> Unit) {
+    var family by remember { mutableStateOf("cat") }
+    var selected by remember { mutableStateOf<String?>(null) }
+    var name by remember { mutableStateOf("") }
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Text(
+                if (changing) "幫牠換一個樣子（名字和紀錄都會留著）" else "還沒有寵物。挑一隻帶回家吧，你在這裡照顧牠，他也會自己來看牠。",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PetCatalog.families.forEach { (key, label) ->
+                    FilterChip(selected = family == key, onClick = { family = key }, label = { Text(label) })
+                }
+            }
+        }
+        item {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PetCatalog.appearances.filter { it.family == family }.forEach { look ->
+                    Card(
+                        onClick = { selected = look.id },
+                        shape = MaterialTheme.shapes.large,
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selected == look.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ),
+                    ) {
+                        Column(Modifier.padding(8.dp).width(96.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            coil3.compose.AsyncImage(model = PetCatalog.image(look.id), contentDescription = look.label, modifier = Modifier.size(80.dp))
+                            Text(look.label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
+        if (!changing) {
+            item {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("名字（也可以等等跟他一起取）") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(enabled = selected != null, onClick = { onChoose(name, selected!!) }) { Text(if (changing) "換這個樣子" else "帶回家") }
+                if (changing) TextButton(onClick = onCancel) { Text("取消") }
+            }
+        }
     }
 }
 

@@ -114,18 +114,19 @@ internal fun buildPlayTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "our_pet",
         description = """
-            The pet you and she raise together (she cares for it in the app too). action=status to see how it is;
-            feed / play / clean / pet to take care of it (add a short note in your own words, e.g. 偷偷多給了一塊肉乾);
-            adopt (with name and species emoji) only if you have no pet yet and she agrees; rename with a new name.
-            Its stats drop over time, so check on it now and then, especially during free time, and mention it to her naturally.
+            The pet you and she raise together (she cares for it in the app too). action=status to see how it is (food, water, mood, health, room).
+            feed / water / pet / play / tidy / sleep to take care of it (add a short note in your own words, e.g. 偷偷多給了一塊肉乾);
+            board sends it to boarding (food and water are kept up, mood still drops slowly) and return brings it home - only when she agrees or is away for days.
+            adopt (name + appearance id) only if there is no pet yet and she agrees; rename with a new name.
+            Good care (all four stats ≥ 80) counts one day; every 10 days you two earn a reward badge. Check on it now and then and mention it naturally.
         """.trimIndent().replace("\n", " "),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
-                    put("action", enumOf("What to do", "status", "feed", "play", "clean", "pet", "adopt", "rename"))
+                    put("action", enumOf("What to do", "status", "feed", "water", "pet", "play", "tidy", "sleep", "board", "return", "adopt", "rename"))
                     put("note", str("A short note about what you did, in your words"))
                     put("name", str("adopt / rename: the pet's name"))
-                    put("species", str("adopt: one of " + PetStore.SPECIES.joinToString(" ")))
+                    put("appearance", str("adopt: one of " + PetStore.APPEARANCE_HINT))
                 },
                 required = listOf("action"),
             )
@@ -134,10 +135,12 @@ internal fun buildPlayTools(context: Context): List<Tool> = listOf(
             val obj = args.jsonObject
             fun arg(k: String) = obj[k]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
             val action = arg("action")
+            var reward = false
             val result = when (action) {
-                "adopt" -> if (PetStore.load(context) != null) null else PetStore.adopt(context, arg("name"), arg("species"), PetStore.BY_HIM)
+                "adopt" -> if (PetStore.load(context) != null) null else PetStore.adopt(context, arg("name"), arg("appearance"), PetStore.BY_HIM)
                 "rename" -> PetStore.rename(context, arg("name"), PetStore.BY_HIM)
-                "feed", "play", "clean", "pet" -> PetStore.care(context, action, PetStore.BY_HIM, arg("note"))
+                "feed", "water", "pet", "play", "tidy", "clean", "sleep", "board", "return" ->
+                    PetStore.care(context, action, PetStore.BY_HIM, arg("note"))?.also { reward = it.rewardEarned }?.pet
                 else -> PetStore.load(context)
             }
             when {
@@ -145,6 +148,7 @@ internal fun buildPlayTools(context: Context): List<Tool> = listOf(
                 result == null -> text("status" to "No pet yet. She can adopt one on the home page (一起養寵物), or you can adopt one with her agreement.")
                 else -> text(
                     "pet" to PetStore.describe(context),
+                    "reward" to if (reward) "You just reached ${result.careDays.size} good-care days - a reward badge was added to her achievement wall! Tell her." else null,
                     "recent_care" to result.log.take(5).joinToString("; ") { "${if (it.by == PetStore.BY_HIM) "you" else "her"}: ${it.text}" },
                 )
             }

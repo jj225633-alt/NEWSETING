@@ -54,7 +54,8 @@ interface Overview {
     status: string;
     fullness: number;
     happiness: number;
-    cleanliness: number;
+    water: number;
+    health: number;
     ageDays: number;
   } | null;
   routines: { id: string; emoji: string; label: string; times: string[]; doneToday: number[] }[];
@@ -304,8 +305,9 @@ function OverviewTab() {
           {(
             [
               ["飽足", data.pet.fullness],
+              ["水分", data.pet.water],
               ["心情", data.pet.happiness],
-              ["清潔", data.pet.cleanliness],
+              ["健康", data.pet.health],
             ] as const
           ).map(([label, value]) => (
             <div key={label} className="flex items-center gap-3 text-sm">
@@ -318,9 +320,10 @@ function OverviewTab() {
             {(
               [
                 ["feed", "🍖 餵食"],
-                ["play", "🧶 玩耍"],
-                ["clean", "🛁 洗澡"],
+                ["water", "💧 加水"],
                 ["pet", "🤲 摸摸"],
+                ["play", "🧶 玩耍"],
+                ["tidy", "🧹 整理"],
               ] as const
             ).map(([action, label]) => (
               <Button key={action} size="sm" variant="outline" onClick={() => act(() => api.post(`hoshio/pet/${action}`), undefined, reload)}>
