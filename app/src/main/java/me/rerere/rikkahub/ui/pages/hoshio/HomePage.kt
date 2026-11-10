@@ -1,6 +1,7 @@
 package me.rerere.rikkahub.ui.pages.hoshio
 
 import androidx.compose.foundation.layout.Arrangement
+import me.rerere.rikkahub.data.db.dao.getMessageCountPerDay
 import me.rerere.rikkahub.ui.pages.hoshio.splash.drawSparkle
 import me.rerere.rikkahub.ui.pages.hoshio.splash.HoshioGlass
 import dev.chrisbanes.haze.hazeSource
