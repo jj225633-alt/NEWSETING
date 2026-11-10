@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -39,6 +40,8 @@ import me.rerere.hugeicons.stroke.Calendar03
 import me.rerere.hugeicons.stroke.Key01
 import me.rerere.hugeicons.stroke.CloudUpload
 import me.rerere.hugeicons.stroke.Favourite
+import me.rerere.hugeicons.stroke.FavouriteCircle
+import me.rerere.hugeicons.stroke.InLove
 import me.rerere.hugeicons.stroke.ImageAdd01
 import me.rerere.hugeicons.stroke.Message01
 import me.rerere.hugeicons.stroke.Notification01
@@ -117,8 +120,17 @@ fun HomePage() {
         navigateToChatPage(navigator = navController, chatId = latest?.first ?: Uuid.random())
     }
 
+    val letters by me.rerere.rikkahub.hoshio.life.LetterStore.letters.collectAsState()
+    remember { me.rerere.rikkahub.hoshio.life.LetterStore.load(context) }
+    val unreadLetters = letters.count { !it.read }
     val assistantKey = (assistant?.id ?: assistantId).toString()
     val links = listOf(
+        HomeLink(
+            if (unreadLetters > 0) "信箱（$unreadLetters 封未讀）" else "信箱",
+            "他寫給你的信",
+            HugeIcons.InLove,
+        ) { Screen.Letters },
+        HomeLink("他的狀態", "心情、精神與醒來紀錄", HugeIcons.FavouriteCircle) { Screen.HoshioLife },
         HomeLink("日記", "他每天寫的日記，也能自己寫", HugeIcons.Book01) { Screen.Diary },
         HomeLink("遊戲室", "他做的小遊戲和小網頁", HugeIcons.Puzzle) { Screen.Playroom },
         HomeLink("書房", "一起讀書、寫批註", HugeIcons.Book02) { Screen.Library },

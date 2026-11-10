@@ -449,6 +449,14 @@ class RouteActivity : ComponentActivity() {
                                 me.rerere.rikkahub.ui.pages.hoshio.BookReaderPage(key.id)
                             }
 
+                            entry<Screen.Letters> {
+                                me.rerere.rikkahub.ui.pages.hoshio.LettersPage()
+                            }
+
+                            entry<Screen.HoshioLife> {
+                                me.rerere.rikkahub.ui.pages.hoshio.HoshioLifePage()
+                            }
+
 
                             entry<Screen.MediaCreationSessions> {
                                 MediaCreationSessionsPage()
@@ -745,6 +753,12 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data class BookReader(val id: String) : Screen
+
+    @Serializable
+    data object Letters : Screen
+
+    @Serializable
+    data object HoshioLife : Screen
 
 
     @Serializable

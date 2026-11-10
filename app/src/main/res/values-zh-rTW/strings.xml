@@ -1388,6 +1388,8 @@
   <string name="assistant_page_local_tools_library_desc">讓 AI 讀你匯入的書，有自己的書籤，還會寫批註</string>
   <string name="assistant_page_local_tools_music_title">一起聽音樂</string>
   <string name="assistant_page_local_tools_music_desc">讓 AI 知道你正在聽什麼（YouTube、YT Music、Spotify…）、幫你暫停或切歌、在 YouTube 幫你放歌。需要通知存取權限</string>
+  <string name="assistant_page_local_tools_life_title">他的生活</string>
+  <string name="assistant_page_local_tools_life_desc">讓 AI 有自己的心情和精神、被喚醒時可以選擇不說話繼續睡，還會寫信給你</string>
   <string name="chat_message_tool_chart_display">顯示圖表</string>
   <string name="chat_message_tool_chart_display_with_title">顯示圖表：%1$s</string>
   <string name="error_fast_model_not_found">找不到快速模型。請在設定中選擇一個。</string>

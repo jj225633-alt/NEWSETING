@@ -37,6 +37,7 @@ import me.rerere.hugeicons.stroke.Clock01
 import me.rerere.hugeicons.stroke.DashboardSpeed02
 import me.rerere.hugeicons.stroke.JavaScript
 import me.rerere.hugeicons.stroke.Key01
+import me.rerere.hugeicons.stroke.FavouriteCircle
 import me.rerere.hugeicons.stroke.MessageQuestion
 import me.rerere.hugeicons.stroke.MusicNote03
 import me.rerere.hugeicons.stroke.Puzzle
@@ -324,6 +325,12 @@ private fun AssistantLocalToolContent(
                 icon = HugeIcons.MusicNote03,
                 title = R.string.assistant_page_local_tools_music_title,
                 description = R.string.assistant_page_local_tools_music_desc,
+            )
+            toolItem(
+                option = LocalToolOption.Life,
+                icon = HugeIcons.FavouriteCircle,
+                title = R.string.assistant_page_local_tools_life_title,
+                description = R.string.assistant_page_local_tools_life_desc,
             )
             toolItem(
                 option = LocalToolOption.Location,

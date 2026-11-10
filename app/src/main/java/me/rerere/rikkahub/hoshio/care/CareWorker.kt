@@ -36,6 +36,9 @@ import me.rerere.rikkahub.hoshio.anniversary.AnniversaryStore
 import me.rerere.rikkahub.hoshio.diary.DiaryStore
 import me.rerere.rikkahub.hoshio.diary.DiaryAuthor
 import me.rerere.rikkahub.hoshio.diary.DiaryWriter
+import me.rerere.rikkahub.hoshio.life.WakeLogStore
+import me.rerere.rikkahub.hoshio.life.WakeRecord
+import me.rerere.rikkahub.data.ai.tools.local.STAY_SILENT_TOOL
 import me.rerere.rikkahub.hoshio.screen.HoshioAccessibilityService
 import me.rerere.rikkahub.service.ChatService
 import me.rerere.rikkahub.utils.hasUsageStatsPermission
@@ -60,6 +63,12 @@ private const val CARE_NOTIFICATION_ID = 7301
 /** 有纪念日而且开着当天提醒 */
 internal fun hasAnniversaryReminders(context: Context): Boolean =
     AnniversaryStore.remindEnabled(context) && AnniversaryStore.load(context).isNotEmpty()
+
+/** 每次自动唤醒都附上：他可以选择说话、不说话继续睡、或只做事 */
+private const val WAKE_CHOICE_HINT =
+    "\n\n(You woke up because of this event. You decide what to do: message her; or, if you honestly don't feel like talking " +
+        "or it would be intrusive, call stay_silent with a short note and write no reply; or quietly do something with your tools " +
+        "(diary, private room, reading...) without messaging her. Whatever you choose is recorded in your wake log.)"
 
 /** 一次要让 AI 知道的手机事件 */
 private data class CareEvent(val key: String, val title: String, val text: String)
@@ -501,7 +510,7 @@ class CareWorker(
         chatService.postNotice(
             conversationId = conversation.id,
             key = "hoshio_care:${event.key}:${System.currentTimeMillis()}",
-            notice = UIMessagePart.Notice(title = event.title, text = event.text),
+            notice = UIMessagePart.Notice(title = event.title, text = event.text + WAKE_CHOICE_HINT),
         )
 
         // 等这一轮开始再结束，最多 8 分钟（自由时间可能会用好几次工具）
@@ -513,17 +522,55 @@ class CareWorker(
         } ?: false
 
         val latest = chatService.getConversation(conversation.id)
-        val reply = latest?.currentMessages
-            ?.drop(before)
-            ?.lastOrNull { it.role == MessageRole.ASSISTANT }
+        val newMessages = latest?.currentMessages?.drop(before).orEmpty()
+        val tools = newMessages.flatMap { it.parts.filterIsInstance<UIMessagePart.Tool>() }
+        val silentCall = tools.firstOrNull { it.toolName == STAY_SILENT_TOOL }
+        val usedTools = tools.map { it.toolName }.filter { it != STAY_SILENT_TOOL }.distinct()
+        val reply = newMessages
+            .lastOrNull { it.role == MessageRole.ASSISTANT }
             ?.toText()
             ?.trim()
             .orEmpty()
-        if (reply.isNotEmpty()) {
-            prefs.lastResult = "${event.title}：已送出（${LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd HH:mm"))}）"
-            notify(assistantName, reply, conversation.id.toString())
-        } else {
-            prefs.lastResult = if (finished) "${event.title}：AI 沒有回覆內容" else "${event.title}：等待 AI 回覆逾時"
+        val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd HH:mm"))
+        when {
+            silentCall != null -> {
+                val note = runCatching {
+                    kotlinx.serialization.json.Json.parseToJsonElement(silentCall.input)
+                        .let { (it as? kotlinx.serialization.json.JsonObject)?.get("note") }
+                        ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                }.getOrNull().orEmpty()
+                WakeLogStore.add(applicationContext, WakeRecord(trigger = event.title, action = "silent", note = note))
+                prefs.lastResult = "${event.title}：他醒來看了一下，選擇不打擾你（$time）"
+            }
+
+            reply.isNotEmpty() -> {
+                WakeLogStore.add(
+                    applicationContext,
+                    WakeRecord(
+                        trigger = event.title,
+                        action = "talked",
+                        note = (if (usedTools.isNotEmpty()) "用了 ${usedTools.joinToString("、")}・" else "") + reply.take(80),
+                    ),
+                )
+                prefs.lastResult = "${event.title}：已送出（$time）"
+                notify(assistantName, reply, conversation.id.toString())
+            }
+
+            usedTools.isNotEmpty() -> {
+                WakeLogStore.add(
+                    applicationContext,
+                    WakeRecord(trigger = event.title, action = "tools", note = "用了 ${usedTools.joinToString("、")}，沒有傳訊息"),
+                )
+                prefs.lastResult = "${event.title}：他做了些事，沒有傳訊息（$time）"
+            }
+
+            else -> {
+                WakeLogStore.add(
+                    applicationContext,
+                    WakeRecord(trigger = event.title, action = "failed", note = if (finished) "沒有回覆" else "等待回覆逾時"),
+                )
+                prefs.lastResult = if (finished) "${event.title}：AI 沒有回覆內容" else "${event.title}：等待 AI 回覆逾時"
+            }
         }
     }
 

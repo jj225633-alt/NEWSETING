@@ -52,6 +52,8 @@ class LocalTools(
 
     val musicTools by lazy { buildMusicTools(context) }
 
+    val lifeTools by lazy { buildLifeTools(context) }
+
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -111,6 +113,9 @@ class LocalTools(
         }
         if (options.contains(LocalToolOption.Music)) {
             tools.addAll(musicTools)
+        }
+        if (options.contains(LocalToolOption.Life)) {
+            tools.addAll(lifeTools)
         }
         return tools
     }
