@@ -466,6 +466,12 @@ class RouteActivity : ComponentActivity() {
                             entry<Screen.Pet> {
                                 me.rerere.rikkahub.ui.pages.hoshio.PetPage()
                             }
+                            entry<Screen.PlayHub> {
+                                me.rerere.rikkahub.ui.pages.hoshio.PlayHubPage()
+                            }
+                            entry<Screen.MemoriesHub> {
+                                me.rerere.rikkahub.ui.pages.hoshio.MemoriesHubPage()
+                            }
                             entry<Screen.WatchTogether> {
                                 me.rerere.rikkahub.ui.pages.hoshio.WatchTogetherPage()
                             }
@@ -808,6 +814,12 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object WatchTogether : Screen
+
+    @Serializable
+    data object PlayHub : Screen
+
+    @Serializable
+    data object MemoriesHub : Screen
 
     @Serializable
     data object Routine : Screen

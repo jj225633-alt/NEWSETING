@@ -205,12 +205,13 @@ internal fun buildPlayTools(context: Context): List<Tool> = listOf(
             每日一問: one question a day between you two, both of you answer. action=status shows today's question and answers
             (her answer is hidden from you until you have answered too). action=ask sets today's question when there is none (something you genuinely
             want to know about her, light or deep). action=answer gives your answer to today's question. action=history shows past ones.
+            IMPORTANT: when she answers today's question in chat, call action=record_her_answer with her answer (her words, lightly trimmed) so it shows in the app.
         """.trimIndent().replace("\n", " "),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
-                    put("action", enumOf("What to do", "status", "ask", "answer", "history"))
-                    put("text", str("ask: the question / answer: your answer"))
+                    put("action", enumOf("What to do", "status", "ask", "answer", "record_her_answer", "history"))
+                    put("text", str("ask: the question / answer: your answer / record_her_answer: her answer"))
                 },
                 required = listOf("action"),
             )
@@ -235,6 +236,13 @@ internal fun buildPlayTools(context: Context): List<Tool> = listOf(
                 } else {
                     DailyQuestionStore.update(context) { list -> list.map { if (it.id == current.id) it.copy(hisAnswer = input.take(1000)) else it } }
                     text("ok" to "Answered", "her_answer" to current.herAnswer.ifBlank { "(she has not answered yet)" })
+                }
+
+                "record_her_answer" -> if (current == null || input.isEmpty()) {
+                    text("error" to "No question today or empty answer")
+                } else {
+                    DailyQuestionStore.update(context) { list -> list.map { if (it.id == current.id) it.copy(herAnswer = input.take(1000)) else it } }
+                    text("ok" to "Saved her answer", "your_answer" to current.hisAnswer.ifBlank { "(you have not answered yet - answer too)" })
                 }
 
                 "history" -> text("history" to DailyQuestionStore.load(context).take(15).joinToString("\n") {

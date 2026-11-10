@@ -1,8 +1,6 @@
 package me.rerere.rikkahub.ui.pages.hoshio
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -71,14 +69,11 @@ import me.rerere.rikkahub.hoshio.together.RoutineStore
 import me.rerere.rikkahub.hoshio.together.SleepMode
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.ui.toast.ToastType
-import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.math.max
-import kotlin.math.roundToInt
 
 private val T_FMT: DateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd HH:mm")
 private fun Long.tFmt() = Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).format(T_FMT)
@@ -125,15 +120,27 @@ fun RoutinePage() {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Text("設定喝水、吃飯、吃藥的時間。時間到了你還沒按「做了」，他會來提醒你。跟他說「吃過了」也可以，他會幫你記。", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "設定喝水、吃飯、吃藥的時間。時間到了你還沒按「做了」，他會來提醒你。\n" +
+                        "也可以直接跟他說，例如「接下來三天早中晚提醒我吃藥」，他會幫你設好；跟他說「吃過了」他也會幫你記。",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
             items(routines, key = { it.id }) { r ->
                 val doneToday = logs.filter { it.routineId == r.id && it.at >= startOfDay }
-                SoftCard(highlight = r.enabled, onClick = { editing = r }) {
+                SoftCard(highlight = r.active, onClick = { editing = r }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text("${r.emoji} ${r.label}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                            Text(r.times.joinToString("、") + if (r.enabled) "" else "・已暫停", style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                r.times.joinToString("、") + (r.until?.let { "・到 ${it.substring(5).replace('-', '/')}" } ?: "・每天") +
+                                    when {
+                                        !r.enabled -> "・已暫停"
+                                        r.ended() -> "・已結束"
+                                        else -> ""
+                                    },
+                                style = MaterialTheme.typography.labelMedium,
+                            )
                             Text(
                                 if (doneToday.isEmpty()) "今天還沒做" else "今天：" + doneToday.joinToString("、") { l ->
                                     l.at.tFmt().substringAfter(' ') + if (l.by == BY_HIM) "（他記的）" else ""
@@ -169,6 +176,9 @@ fun RoutinePage() {
         var label by remember(r.id) { mutableStateOf(r.label) }
         var times by remember(r.id) { mutableStateOf(r.times.joinToString(" ")) }
         var enabled by remember(r.id) { mutableStateOf(r.enabled) }
+        var days by remember(r.id) {
+            mutableStateOf(r.until?.let { runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(it)).toInt() + 1 }.getOrNull() } ?: 0)
+        }
         val parsed = times.split(' ', ',', '、', '，').mapNotNull { t ->
             runCatching { java.time.LocalTime.parse(t.trim().padStart(5, '0')).toString() }.getOrNull()
         }.distinct().sorted()
@@ -180,6 +190,12 @@ fun RoutinePage() {
                     OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("名稱") }, singleLine = true)
                     OutlinedTextField(value = times, onValueChange = { times = it }, label = { Text("時間（用空格分開，例如 10:00 14:00）") })
                     Text("會在：${parsed.joinToString("、").ifEmpty { "（時間格式不對）" }}", style = MaterialTheme.typography.bodySmall)
+                    Text("持續多久", style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(0 to "每天", 1 to "只有今天", 3 to "3 天", 5 to "5 天", 7 to "7 天", 14 to "14 天").forEach { (d, l) ->
+                            FilterChip(selected = days == d, onClick = { days = d }, label = { Text(l) })
+                        }
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("開啟提醒", modifier = Modifier.weight(1f))
                         Switch(checked = enabled, onCheckedChange = { enabled = it })
@@ -188,7 +204,12 @@ fun RoutinePage() {
             },
             confirmButton = {
                 TextButton(enabled = label.isNotBlank() && parsed.isNotEmpty(), onClick = {
-                    val updated = r.copy(label = label.trim(), times = parsed, enabled = enabled)
+                    val updated = r.copy(
+                        label = label.trim(),
+                        times = parsed,
+                        enabled = enabled,
+                        until = if (days > 0) LocalDate.now().plusDays(days - 1L).toString() else null,
+                    )
                     RoutineStore.update(context) { list -> if (exists) list.map { if (it.id == r.id) updated else it } else list + updated }
                     CareWorker.sync(context)
                     editing = null
@@ -278,57 +299,57 @@ fun MoodCalendarPage() {
         }
     }
 
-    picking?.let { date ->
-        val existing = byDate[date.toString()]
-        var selected by remember(date) { mutableStateOf(existing?.let { it.emoji to it.label }) }
-        var note by remember(date) { mutableStateOf(existing?.note.orEmpty()) }
-        var tell by remember(date) { mutableStateOf(date == today) }
-        AlertDialog(
-            onDismissRequest = { picking = null },
-            title = { Text(if (date == today) "今天的心情" else "${date.monthValue}/${date.dayOfMonth} 的心情") },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        MoodCheckinStore.MOODS.forEach { m ->
-                            FilterChip(selected = selected == m, onClick = { selected = m }, label = { Text("${m.first} ${m.second}") })
-                        }
-                    }
-                    OutlinedTextField(value = note, onValueChange = { note = it }, label = { Text("想說點什麼（可不填）") }, minLines = 2)
-                    if (date == today) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("讓他知道", modifier = Modifier.weight(1f))
-                            Switch(checked = tell, onCheckedChange = { tell = it })
-                        }
+    picking?.let { date -> MoodPickerDialog(date = date, onDismiss = { picking = null }) }
+}
+
+/** 记录某一天的心情；今天的可以选要不要让他知道 */
+@Composable
+internal fun MoodPickerDialog(date: LocalDate, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val checkins by MoodCheckinStore.items.collectAsState()
+    remember { MoodCheckinStore.load(context) }
+    val callHim = rememberCallHim()
+    val today = LocalDate.now()
+    val existing = checkins.firstOrNull { it.date == date.toString() }
+    var selected by remember(date) { mutableStateOf(existing?.let { it.emoji to it.label }) }
+    var note by remember(date) { mutableStateOf(existing?.note.orEmpty()) }
+    var tell by remember(date) { mutableStateOf(date == today) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (date == today) "今天的心情" else "${date.monthValue}/${date.dayOfMonth} 的心情") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    MoodCheckinStore.MOODS.forEach { m ->
+                        FilterChip(selected = selected == m, onClick = { selected = m }, label = { Text("${m.first} ${m.second}") })
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(enabled = selected != null, onClick = {
-                    val (emoji, label) = selected!!
-                    MoodCheckinStore.checkIn(context, emoji, label, note, date)
-                    picking = null
-                    if (tell && date == today) {
-                        callHim("心情打卡", "She just checked in her mood for today on the mood calendar: $emoji $label" +
-                            (if (note.isNotBlank()) " — \"$note\"" else "") + ". Respond to her in character.")
+                OutlinedTextField(value = note, onValueChange = { note = it }, label = { Text("想說點什麼（可不填）") }, minLines = 2)
+                if (date == today) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("讓他知道", modifier = Modifier.weight(1f))
+                        Switch(checked = tell, onCheckedChange = { tell = it })
                     }
-                }) { Text("打卡") }
-            },
-            dismissButton = { TextButton(onClick = { picking = null }) { Text("取消") } },
-        )
-    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = selected != null, onClick = {
+                val (emoji, label) = selected!!
+                MoodCheckinStore.checkIn(context, emoji, label, note, date)
+                onDismiss()
+                if (tell && date == today) {
+                    callHim("心情打卡", "She just checked in her mood for today: $emoji $label" +
+                        (if (note.isNotBlank()) " — \"$note\"" else "") + ". Respond to her in character.")
+                }
+            }) { Text("打卡") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
 }
 
 // ───────────────────────── 回忆相簿 ─────────────────────────
 
-private fun importPhoto(context: Context, uri: Uri): String? = runCatching {
-    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
-    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
-    val scale = 1600f / max(bitmap.width, bitmap.height)
-    val scaled = if (scale < 1f) Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).roundToInt(), (bitmap.height * scale).roundToInt(), true) else bitmap
-    val name = "photo_${System.currentTimeMillis()}.jpg"
-    File(AlbumStore.dir(context), name).outputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, 85, it) }
-    name
-}.getOrNull()
 
 @Composable
 fun AlbumPage() {
@@ -342,7 +363,7 @@ fun AlbumPage() {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(20)) { uris ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
         scope.launch {
-            val names = withContext(Dispatchers.IO) { uris.mapNotNull { importPhoto(context, it) } }
+            val names = withContext(Dispatchers.IO) { uris.mapNotNull { AlbumStore.importImage(context, it) } }
             AlbumStore.update(context) { list -> names.map { AlbumPhoto(fileName = it) } + list }
             toaster.show(message = "加了 ${names.size} 張", type = ToastType.Success)
         }
@@ -355,6 +376,9 @@ fun AlbumPage() {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                Text("你可以在這裡加照片；也可以在聊天時傳照片給他，說「把這張放進相簿」，他會自己存進來並寫一句話。", style = MaterialTheme.typography.bodySmall)
+            }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) { Text("加照片") }

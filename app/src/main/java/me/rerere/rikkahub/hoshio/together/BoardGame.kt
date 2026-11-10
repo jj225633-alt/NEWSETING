@@ -5,6 +5,7 @@ import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 /**
@@ -47,6 +48,58 @@ data class BoardGame(
 
 object BoardGameStore {
     private const val PREFS = "hoshio_board_game"
+    private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+    private val _thinking = MutableStateFlow(false)
+    val thinking: StateFlow<Boolean> = _thinking.asStateFlow()
+    private var askedKey: Pair<Long, Int>? = null
+
+    /**
+     * 轮到他时请他下一步。为了快，不走工具：请他直接回「C4｜一句话」，一次生成就好。
+     * 在 App 自己的 scope 里跑，离开页面也会下完；他没回或看不懂就帮他随手下。
+     */
+    fun requestHisMove(context: Context) {
+        val g = load(context) ?: return
+        if (g.turn != "him" || g.winner != null) return
+        val key = g.startedAt to g.moves
+        if (askedKey == key) return
+        askedKey = key
+        _thinking.value = true
+        scope.launch {
+            try {
+                val herMove = g.lastMove?.let { "She just played ${g.coord(it)}. " } ?: "You move first. "
+                val reply = me.rerere.rikkahub.hoshio.HoshioChat.ask(
+                    title = "下棋",
+                    text = "Your move in ${g.name} (she is X, you are O, ${g.winLength} in a row wins). $herMove Board:\n${g.ascii()}\n" +
+                        "Reply with ONLY your move and one short in-character comment, exactly like: C4｜comment. Do not call any tools.",
+                    timeoutMinutes = 3,
+                )
+                val now = load(context)
+                if (now != null && now.startedAt == g.startedAt && now.moves == g.moves && now.turn == "him") {
+                    val parsed = reply?.text?.let { parseReply(now, it) }
+                    if (parsed != null) {
+                        move(context, "him", parsed.first, parsed.second)
+                    } else {
+                        move(context, "him", fallbackMove(now), if (reply == null) "（還沒有對話，他隨手下了一步）" else "（他想太久，隨手下了一步）")
+                    }
+                }
+            } finally {
+                _thinking.value = false
+            }
+        }
+    }
+
+    private val COORD = Regex("([A-Ka-k])\\s*(1[01]|[1-9])")
+
+    private fun parseReply(game: BoardGame, text: String): Pair<Int, String>? {
+        val match = COORD.findAll(text).firstOrNull { m ->
+            parseCoord(game, m.groupValues[1] + m.groupValues[2])?.let { game.cells[it] == '.' } == true
+        } ?: return null
+        val index = parseCoord(game, match.groupValues[1] + match.groupValues[2]) ?: return null
+        val comment = text.substringAfter('｜', text.substringAfter('|', text.removeRange(match.range)))
+            .replace(Regex("<think>[\\s\\S]*?</think>"), "")
+            .trim().take(120)
+        return index to comment
+    }
     const val HER = 'X'
     const val HIM = 'O'
 

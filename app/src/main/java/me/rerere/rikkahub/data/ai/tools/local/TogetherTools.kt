@@ -21,6 +21,7 @@ import me.rerere.rikkahub.hoshio.together.MoodCheckinStore
 import me.rerere.rikkahub.hoshio.together.OurPromise
 import me.rerere.rikkahub.hoshio.together.PromiseStore
 import me.rerere.rikkahub.hoshio.together.RoutineLogStore
+import me.rerere.rikkahub.hoshio.together.Routine
 import me.rerere.rikkahub.hoshio.together.RoutineStore
 import java.time.Instant
 import java.time.LocalDate
@@ -70,15 +71,22 @@ internal fun buildTogetherTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "care_routine",
         description = """
-            Her daily care routines (drinking water, meals, medicine) that she set up in the app, and today's log.
-            action=status to see the routines and what she has done today. action=log when she tells you she already did one
-            (give routine_id) so the reminder will not fire again.
+            Her daily care reminders (water, meals, medicine, anything at fixed times). You will be woken at those times to remind her
+            if she has not marked it done. action=status: see routines and today's log. action=add: create one (label, kind, times like "08:00,13:00,20:00",
+            optional days = how many days including today, e.g. medicine for 3 days → days=3; omit for every day). Call add once per routine; you can call it
+            several times in a row. action=update (routine_id + any of label/times/days/enabled) and action=delete (routine_id). action=log when she tells you
+            she already did one, so the reminder will not fire. Confirm with her what you set.
         """.trimIndent().replace("\n", " "),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
-                    put("action", tEnum("What to do", "status", "log"))
-                    put("routine_id", tStr("log: which routine"))
+                    put("action", tEnum("What to do", "status", "add", "update", "delete", "log"))
+                    put("routine_id", tStr("update / delete / log: which routine"))
+                    put("label", tStr("add / update: e.g. 吃感冒藥"))
+                    put("kind", tEnum("add: type", "water", "meal", "medicine", "custom"))
+                    put("times", tStr("add / update: daily times, comma separated HH:mm"))
+                    put("days", buildJsonObject { put("type", "integer"); put("description", "add / update: number of days including today; omit or 0 = every day") })
+                    put("enabled", buildJsonObject { put("type", "boolean"); put("description", "update: pause or resume") })
                     put("note", tStr("log: optional note, e.g. 吃了牛肉麵"))
                 },
                 required = listOf("action"),
@@ -87,23 +95,66 @@ internal fun buildTogetherTools(context: Context): List<Tool> = listOf(
         execute = { args ->
             val obj = args.jsonObject
             fun arg(k: String) = obj[k]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+            fun parseTimes(raw: String) = raw.split(',', ' ', '、', '，').mapNotNull { t ->
+                runCatching { java.time.LocalTime.parse(t.trim().padStart(5, '0')).toString() }.getOrNull()
+            }.distinct().sorted()
+            fun untilFor(raw: String): String? = raw.toIntOrNull()?.takeIf { it > 0 }?.let { LocalDate.now().plusDays(it - 1L).toString() }
             val routines = RoutineStore.load(context)
-            if (arg("action") == "log") {
-                val routine = routines.firstOrNull { it.id == arg("routine_id") }
-                if (routine == null) {
+            val routine = routines.firstOrNull { it.id == arg("routine_id") }
+            when (arg("action")) {
+                "add" -> {
+                    val times = parseTimes(arg("times"))
+                    if (arg("label").isEmpty() || times.isEmpty()) {
+                        tJson("error" to "label and times (HH:mm) are required")
+                    } else {
+                        val kind = arg("kind").takeIf { it in listOf("water", "meal", "medicine", "custom") } ?: "custom"
+                        val created = Routine(kind = kind, label = arg("label").take(30), times = times, until = untilFor(arg("days")))
+                        RoutineStore.update(context) { it + created }
+                        me.rerere.rikkahub.hoshio.care.CareWorker.sync(context)
+                        tJson("ok" to "Added [${created.id}] ${created.label} at ${times.joinToString(",")}" + (created.until?.let { " until $it" } ?: " every day"))
+                    }
+                }
+
+                "update" -> if (routine == null) {
+                    tJson("error" to "Unknown routine_id")
+                } else {
+                    val times = parseTimes(arg("times")).ifEmpty { routine.times }
+                    val updated = routine.copy(
+                        label = arg("label").ifEmpty { routine.label }.take(30),
+                        times = times,
+                        until = if (obj.containsKey("days")) untilFor(arg("days")) else routine.until,
+                        enabled = obj["enabled"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: routine.enabled,
+                    )
+                    RoutineStore.update(context) { list -> list.map { if (it.id == routine.id) updated else it } }
+                    me.rerere.rikkahub.hoshio.care.CareWorker.sync(context)
+                    tJson("ok" to "Updated")
+                }
+
+                "delete" -> if (routine == null) {
+                    tJson("error" to "Unknown routine_id")
+                } else {
+                    RoutineStore.update(context) { list -> list.filterNot { it.id == routine.id } }
+                    tJson("ok" to "Deleted ${routine.label}")
+                }
+
+                "log" -> if (routine == null) {
                     tJson("error" to "Unknown routine_id", "routines" to routines.joinToString("; ") { "[${it.id}] ${it.label}" })
                 } else {
                     RoutineLogStore.log(context, routine.id, BY_HIM, arg("note"))
                     tJson("ok" to "Logged ${routine.label}")
                 }
-            } else {
-                val today = RoutineLogStore.today(context)
-                tJson(
-                    "routines" to routines.filter { it.enabled }.joinToString("; ") { r ->
-                        "[${r.id}] ${r.label} at ${r.times.joinToString(",")}; done today at " +
-                            today.filter { it.routineId == r.id }.joinToString(",") { it.at.hm().substringAfter(' ') }.ifEmpty { "-" }
-                    }.ifEmpty { "She has not set up any routines (首頁 → 生活照顧)." },
-                )
+
+                else -> {
+                    val today = RoutineLogStore.today(context)
+                    tJson(
+                        "routines" to routines.joinToString("; ") { r ->
+                            "[${r.id}] ${r.label} at ${r.times.joinToString(",")}" +
+                                (r.until?.let { " until $it" } ?: "") + (if (!r.enabled) " (paused)" else if (r.ended()) " (ended)" else "") +
+                                "; done today at " +
+                                today.filter { it.routineId == r.id }.joinToString(",") { it.at.hm().substringAfter(' ') }.ifEmpty { "-" }
+                        }.ifEmpty { "No routines yet." },
+                    )
+                }
             }
         }
     ),
@@ -128,13 +179,15 @@ internal fun buildTogetherTools(context: Context): List<Tool> = listOf(
             Your shared memory album. She adds photos in the app. action=list shows photos and captions;
             action=view with photo_id lets you see the photo; action=caption with photo_id and text writes your one-line caption for it
             (warm, specific to what you see, in your own voice). When she asks you to caption new photos, view each uncaptioned one and caption it.
+            action=save_her_photo saves the photo(s) she most recently sent you in chat into the album (with your caption in text) - use it when she asks,
+            or when she shares a photo that is clearly a precious memory and she agrees.
         """.trimIndent().replace("\n", " "),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
-                    put("action", tEnum("What to do", "list", "view", "caption"))
+                    put("action", tEnum("What to do", "list", "view", "caption", "save_her_photo"))
                     put("photo_id", tStr("view / caption: which photo"))
-                    put("text", tStr("caption: your caption"))
+                    put("text", tStr("caption / save_her_photo: your caption"))
                 },
                 required = listOf("action"),
             )
@@ -150,6 +203,22 @@ internal fun buildTogetherTools(context: Context): List<Tool> = listOf(
                 } else {
                     listOf(UIMessagePart.Image(url = Uri.fromFile(AlbumStore.file(context, photo)).toString())) +
                         tJson("photo_id" to photo.id, "added" to photo.at.hm(), "her_caption" to photo.herCaption, "your_caption" to photo.hisCaption)
+                }
+
+                "save_her_photo" -> {
+                    val conversation = me.rerere.rikkahub.hoshio.HoshioChat.latestConversation()?.first?.let { me.rerere.rikkahub.hoshio.HoshioChat.fresh(it) }
+                    val images = conversation?.currentMessages
+                        ?.takeLast(30)
+                        ?.lastOrNull { m -> m.role == me.rerere.ai.core.MessageRole.USER && m.parts.any { it is UIMessagePart.Image } }
+                        ?.parts?.filterIsInstance<UIMessagePart.Image>()
+                        .orEmpty()
+                    if (images.isEmpty()) {
+                        tJson("error" to "Could not find a photo she sent recently in this chat")
+                    } else {
+                        val names = images.mapNotNull { AlbumStore.importImage(context, Uri.parse(it.url)) }
+                        AlbumStore.update(context) { list -> names.map { me.rerere.rikkahub.hoshio.together.AlbumPhoto(fileName = it, hisCaption = arg("text").take(200)) } + list }
+                        if (names.isEmpty()) tJson("error" to "Could not copy the photo") else tJson("ok" to "Saved ${names.size} photo(s) to the album")
+                    }
                 }
 
                 "caption" -> if (photo == null || arg("text").isEmpty()) {

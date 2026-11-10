@@ -25,7 +25,12 @@ data class Routine(
     /** 每天的时间 "HH:mm" */
     val times: List<String>,
     val enabled: Boolean = true,
+    /** 最后一天 yyyy-MM-dd，没有就是每天 */
+    val until: String? = null,
 ) {
+    fun ended(today: LocalDate = LocalDate.now()) = until?.let { runCatching { LocalDate.parse(it).isBefore(today) }.getOrDefault(false) } ?: false
+    val active: Boolean get() = enabled && !ended()
+
     val emoji: String get() = when (kind) {
         "water" -> "💧"
         "meal" -> "🍚"
@@ -91,6 +96,21 @@ data class AlbumPhoto(
 )
 
 object AlbumStore : JsonListStore<AlbumPhoto>("hoshio_album", AlbumPhoto.serializer(), limit = 1000) {
+    /** 把一张图（content:// 或 file://）缩到最长边 1600 存进相簿资料夹，回传档名 */
+    fun importImage(context: Context, uri: android.net.Uri): String? = runCatching {
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+        val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+        val scale = 1600f / maxOf(bitmap.width, bitmap.height)
+        val scaled = if (scale < 1f) {
+            android.graphics.Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true)
+        } else {
+            bitmap
+        }
+        val name = "photo_${System.currentTimeMillis()}_${newId()}.jpg"
+        File(dir(context), name).outputStream().use { scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, it) }
+        name
+    }.getOrNull()
+
     fun dir(context: Context) = File(context.filesDir, "hoshio_album").apply { mkdirs() }
     fun file(context: Context, photo: AlbumPhoto) = File(dir(context), photo.fileName)
 

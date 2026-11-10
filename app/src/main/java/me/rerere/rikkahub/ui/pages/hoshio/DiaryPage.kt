@@ -80,13 +80,19 @@ fun DiaryPage() {
     var calendarMode by remember { mutableStateOf(true) }
     var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
     var newEntryDate by remember { mutableStateOf<String?>(null) }
+    var moodPicking by remember { mutableStateOf<LocalDate?>(null) }
+    val moods by me.rerere.rikkahub.hoshio.together.MoodCheckinStore.items.collectAsState()
+    val moodByDate = remember(moods) { moods.associateBy { it.date } }
 
-    LaunchedEffect(Unit) { DiaryStore.load(context) }
+    LaunchedEffect(Unit) {
+        DiaryStore.load(context)
+        me.rerere.rikkahub.hoshio.together.MoodCheckinStore.load(context)
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("日記") },
+                title = { Text("日記與心情") },
                 navigationIcon = { BackButton() },
                 colors = CustomColors.topBarColors,
             )
@@ -105,6 +111,26 @@ fun DiaryPage() {
             contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                val todayMood = moodByDate[LocalDate.now().toString()]
+                Card(
+                    onClick = { moodPicking = LocalDate.now() },
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    shape = MaterialTheme.shapes.extraLarge,
+                ) {
+                    Row(Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("今天的心情", style = MaterialTheme.typography.labelLarge)
+                            Text(
+                                todayMood?.let { "${it.emoji} ${it.label}" } ?: "點這裡打卡 ✨",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            if (!todayMood?.note.isNullOrBlank()) Text(todayMood!!.note, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
             item {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -162,7 +188,7 @@ fun DiaryPage() {
             }
             if (calendarMode) {
                 item {
-                    DiaryCalendar(entries = entries, onDayClick = { selectedDay = it })
+                    DiaryCalendar(entries = entries, moods = moodByDate, onDayClick = { selectedDay = it })
                 }
             }
             if (!calendarMode && entries.isEmpty()) {
@@ -224,6 +250,17 @@ fun DiaryPage() {
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
+                val dayMood = moodByDate[day.toString()]
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        dayMood?.let { "心情：${it.emoji} ${it.label}" + if (it.note.isNotBlank()) "・${it.note}" else "" } ?: "這天沒有記錄心情",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (!day.isAfter(LocalDate.now())) {
+                        TextButton(onClick = { selectedDay = null; moodPicking = day }) { Text(if (dayMood == null) "記錄心情" else "改心情") }
+                    }
+                }
                 if (dayEntries.isEmpty()) {
                     Text("這一天還沒有日記。", style = MaterialTheme.typography.bodyMedium)
                 }
@@ -242,6 +279,8 @@ fun DiaryPage() {
             }
         }
     }
+
+    moodPicking?.let { day -> MoodPickerDialog(date = day, onDismiss = { moodPicking = null }) }
 
     deleting?.let { entry ->
         AlertDialog(
@@ -351,7 +390,11 @@ private const val CALENDAR_START_PAGE = CALENDAR_PAGE_COUNT / 2
  * 可左右滑动翻页的月历：有日记的日子会标上小点（他写的、我写的颜色不同），点一天看当天所有日记。
  */
 @Composable
-private fun DiaryCalendar(entries: List<DiaryEntry>, onDayClick: (LocalDate) -> Unit) {
+private fun DiaryCalendar(
+    entries: List<DiaryEntry>,
+    moods: Map<String, me.rerere.rikkahub.hoshio.together.MoodCheckin>,
+    onDayClick: (LocalDate) -> Unit,
+) {
     val scope = rememberCoroutineScope()
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(initialPage = CALENDAR_START_PAGE) { CALENDAR_PAGE_COUNT }
     val thisMonth = remember { java.time.YearMonth.now() }
@@ -393,20 +436,26 @@ private fun DiaryCalendar(entries: List<DiaryEntry>, onDayClick: (LocalDate) -> 
             }
             androidx.compose.foundation.pager.HorizontalPager(state = pagerState) { page ->
                 val month = thisMonth.plusMonths((page - CALENDAR_START_PAGE).toLong())
-                MonthGrid(month = month, byDate = byDate, onDayClick = onDayClick)
+                MonthGrid(month = month, byDate = byDate, moods = moods, onDayClick = onDayClick)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 CalendarDot(MaterialTheme.colorScheme.primary)
                 Text("他寫的", style = MaterialTheme.typography.labelSmall)
                 CalendarDot(MaterialTheme.colorScheme.tertiary)
                 Text("我寫的", style = MaterialTheme.typography.labelSmall)
+                Text("😊 心情", style = MaterialTheme.typography.labelSmall)
             }
         }
     }
 }
 
 @Composable
-private fun MonthGrid(month: java.time.YearMonth, byDate: Map<String, List<DiaryEntry>>, onDayClick: (LocalDate) -> Unit) {
+private fun MonthGrid(
+    month: java.time.YearMonth,
+    byDate: Map<String, List<DiaryEntry>>,
+    moods: Map<String, me.rerere.rikkahub.hoshio.together.MoodCheckin>,
+    onDayClick: (LocalDate) -> Unit,
+) {
     val today = LocalDate.now()
     val first = month.atDay(1)
     // 星期日排第一格
@@ -443,11 +492,13 @@ private fun MonthGrid(month: java.time.YearMonth, byDate: Map<String, List<Diary
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                             ) {
+                                val mood = moods[date.toString()]
                                 Text(
                                     "$dayNumber",
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = if (mood != null) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium,
                                     fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                                 )
+                                if (mood != null) Text(mood.emoji, fontSize = androidx.compose.ui.unit.TextUnit(15f, androidx.compose.ui.unit.TextUnitType.Sp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                                     if (dayEntries.any { it.author == DiaryAuthor.AI }) CalendarDot(MaterialTheme.colorScheme.primary)
                                     if (dayEntries.any { it.author == DiaryAuthor.HUMAN }) CalendarDot(MaterialTheme.colorScheme.tertiary)

@@ -41,18 +41,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
-import me.rerere.rikkahub.hoshio.HoshioChat
 import me.rerere.rikkahub.hoshio.together.BY_HER
 import me.rerere.rikkahub.hoshio.together.BY_HIM
 import me.rerere.rikkahub.hoshio.together.BoardGameStore
 import me.rerere.rikkahub.hoshio.together.DailyQuestion
 import me.rerere.rikkahub.hoshio.together.DailyQuestionStore
 import java.time.LocalDate
-
-/** 已经请他下过的那一步（避免离开再回来时重复叫他） */
-private var askedForMoveAt: Pair<Long, Int>? = null
 
 @Composable
 fun BoardGamePage() {
@@ -61,37 +55,12 @@ fun BoardGamePage() {
     remember { BoardGameStore.load(context) }
     var type by remember { mutableStateOf("ttt") }
     var herFirst by remember { mutableStateOf(true) }
-    var thinking by remember { mutableStateOf(false) }
     val record = remember(game?.winner) { BoardGameStore.record(context) }
 
-    // 轮到他：叫他下；3 分钟没下就帮他随手下一步
-    LaunchedEffect(game?.startedAt, game?.moves, game?.turn) {
-        val g = game ?: return@LaunchedEffect
-        if (g.turn != BY_HIM || g.winner != null) return@LaunchedEffect
-        thinking = true
-        val key = g.startedAt to g.moves
-        if (askedForMoveAt != key) {
-            askedForMoveAt = key
-            val herMove = g.lastMove?.let { "She just played ${g.coord(it)}. " } ?: "You move first. "
-            val posted = HoshioChat.post(
-                "下棋",
-                "Your move in ${g.name} (she is X, you are O). $herMove Board:\n${g.ascii()}\n" +
-                    "Call board_game move with your square and a short comment. Keep any chat reply very short.",
-            )
-            if (posted == null) {
-                BoardGameStore.move(context, BY_HIM, BoardGameStore.fallbackMove(g), "（還沒有對話，他隨手下了一步）")
-                thinking = false
-                return@LaunchedEffect
-            }
-        }
-        val moved = withTimeoutOrNull(180_000) { BoardGameStore.game.first { it == null || it.moves != g.moves || it.startedAt != g.startedAt } }
-        if (moved == null) {
-            BoardGameStore.load(context)?.takeIf { it.moves == g.moves && it.turn == BY_HIM }?.let {
-                BoardGameStore.move(context, BY_HIM, BoardGameStore.fallbackMove(it), "（他想太久，隨手下了一步）")
-            }
-        }
-        thinking = false
-    }
+    val thinking by BoardGameStore.thinking.collectAsState()
+
+    // 轮到他就请他下（离开页面也会继续）
+    LaunchedEffect(game?.startedAt, game?.moves, game?.turn) { BoardGameStore.requestHisMove(context) }
 
     PlayScaffold("下棋") { innerPadding ->
         Column(
@@ -196,7 +165,8 @@ fun DailyQuestionPage() {
                             Text("今天還沒有問題", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                             Button(onClick = {
                                 callHim("每日一問", "She wants today's question. Think of something you genuinely want to know about her, set it with daily_question ask, " +
-                                    "answer it yourself with daily_question answer, then ask her in chat (do not reveal your answer until she answers).")
+                                    "answer it yourself with daily_question answer, then ask her in chat (do not reveal your answer until she answers). " +
+                                    "When she answers in chat, save it with daily_question record_her_answer.")
                             }, modifier = Modifier.fillMaxWidth()) { Text("請他問我一題") }
                             FilledTonalButton(onClick = { asking = true }, modifier = Modifier.fillMaxWidth()) { Text("我來問他") }
                         } else {
@@ -244,7 +214,8 @@ fun DailyQuestionPage() {
                     DailyQuestionStore.update(context) { listOf(DailyQuestion(asker = BY_HER, question = question.trim().take(200))) + it }
                     asking = false
                     callHim("每日一問", "She asked you today's question: \"${question.trim()}\". Answer it honestly in character, " +
-                        "and also save your answer with daily_question answer. Then ask what her own answer would be.")
+                        "and also save your answer with daily_question answer. Then ask what her own answer would be, and when she tells you, " +
+                        "save it with daily_question record_her_answer.")
                 }) { Text("問他") }
             },
             dismissButton = { TextButton(onClick = { asking = false }) { Text("取消") } },

@@ -36,11 +36,7 @@ import androidx.compose.ui.unit.dp
 import me.rerere.ai.core.MessageRole
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Clock01
-import me.rerere.hugeicons.stroke.Sun01
-import me.rerere.hugeicons.stroke.Time02
-import me.rerere.hugeicons.stroke.Pin
 import me.rerere.hugeicons.stroke.Moon02
-import me.rerere.hugeicons.stroke.Play
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Book01
 import me.rerere.hugeicons.stroke.Book02
@@ -48,9 +44,6 @@ import me.rerere.hugeicons.stroke.Calendar03
 import me.rerere.hugeicons.stroke.CheckmarkCircle02
 import me.rerere.hugeicons.stroke.Key01
 import me.rerere.hugeicons.stroke.CloudUpload
-import me.rerere.hugeicons.stroke.Eye
-import me.rerere.hugeicons.stroke.MessageQuestion
-import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.Favourite
 import me.rerere.hugeicons.stroke.FavouriteCircle
 import me.rerere.hugeicons.stroke.InLove
@@ -152,21 +145,12 @@ fun HomePage() {
         HomeLink("life", "他的狀態", "心情、精神與醒來紀錄", HugeIcons.FavouriteCircle, SECTION_HIM) { Screen.HoshioLife },
         HomeLink("private", "他的隱私室", "他的心事，要申請才看得到", HugeIcons.Key01, SECTION_HIM) { Screen.PrivateRoom },
         HomeLink("memory", "記憶", "他記得的關於你的事", HugeIcons.AiBrain01, SECTION_HIM) { Screen.AssistantMemory(assistantKey) },
-        HomeLink("diary", "日記", "他每天寫的日記，也能自己寫", HugeIcons.Book01, SECTION_US) { Screen.Diary },
-        HomeLink("anniversary", "紀念日", "重要的日子和認識幾天", HugeIcons.Calendar03, SECTION_US) { Screen.Anniversary },
+        HomeLink("diary", "日記與心情", "每天的日記和心情打卡", HugeIcons.Book01, SECTION_US) { Screen.Diary },
+        HomeLink("playhub", "一起玩", "看螢幕、下棋、海龜湯、每日一問、寵物", HugeIcons.Puzzle, SECTION_US) { Screen.PlayHub },
+        HomeLink("memories", "我們的回憶", "相簿、約定、紀念日、時光膠囊", HugeIcons.Calendar03, SECTION_US) { Screen.MemoriesHub },
         HomeLink("library", "書房", "一起讀書、寫批註", HugeIcons.Book02, SECTION_US) { Screen.Library },
-        HomeLink("watch", "一起看螢幕", "他陪你看，邊看邊說話", HugeIcons.Eye, SECTION_US) { Screen.WatchTogether },
-        HomeLink("soup", "海龜湯", "你出題或他出題，用是／不是猜真相", HugeIcons.MessageQuestion, SECTION_US) { Screen.TurtleSoup },
-        HomeLink("pet", "一起養寵物", "你和他一起照顧的小傢伙", HugeIcons.Sparkles, SECTION_US) { Screen.Pet },
         HomeLink("sleep", "晚安", "要睡了就來這裡，他會安靜陪你", HugeIcons.Moon02, SECTION_HIM) { Screen.Sleep },
         HomeLink("routine", "生活照顧", "喝水、吃飯、吃藥提醒", HugeIcons.Clock01, SECTION_US) { Screen.Routine },
-        HomeLink("mood", "心情月曆", "每天打卡心情，他會回應", HugeIcons.Sun01, SECTION_US) { Screen.MoodCalendar },
-        HomeLink("question", "每日一問", "每天一個問題，兩個人都回答", HugeIcons.Message01, SECTION_US) { Screen.DailyQuestion },
-        HomeLink("promises", "我們的約定", "說好的事，做到就打勾", HugeIcons.Pin, SECTION_US) { Screen.Promises },
-        HomeLink("album", "回憶相簿", "照片和他寫的一句話", HugeIcons.ImageAdd01, SECTION_US) { Screen.Album },
-        HomeLink("capsule", "時光膠囊", "寫給未來，到那天才能打開", HugeIcons.Time02, SECTION_US) { Screen.Capsule },
-        HomeLink("board", "下棋", "圈圈叉叉、五子棋", HugeIcons.Play, SECTION_US) { Screen.BoardGame },
-        HomeLink("playroom", "遊戲室", "他做的小遊戲和小網頁", HugeIcons.Puzzle, SECTION_US) { Screen.Playroom },
         HomeLink("history", "對話紀錄", "所有聊過的對話", HugeIcons.TransactionHistory, SECTION_US) { Screen.History },
         HomeLink("favorite", "收藏", "收藏的訊息", HugeIcons.Favourite, SECTION_US) { Screen.Favorite },
         HomeLink("assistant", "$assistantName 的設定", "個性、模型、頭像", HugeIcons.UserCircle, SECTION_TOOLS) { Screen.AssistantDetail(assistantKey) },

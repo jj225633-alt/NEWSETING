@@ -14,7 +14,7 @@ data class TogetherEvent(val key: String, val title: String, val text: String)
  */
 object TogetherEvents {
     fun hasReminders(context: Context): Boolean =
-        RoutineStore.load(context).any { it.enabled } ||
+        RoutineStore.load(context).any { it.active } ||
             PromiseStore.load(context).any { !it.done && it.due != null && !it.reminded } ||
             CapsuleStore.load(context).any { !it.announced }
 
@@ -24,7 +24,7 @@ object TogetherEvents {
         val today = now.toLocalDate()
 
         // 生活照顾：到点后 90 分钟内、还没做过就提醒一次
-        RoutineStore.load(context).filter { it.enabled }.forEach { routine ->
+        RoutineStore.load(context).filter { it.active }.forEach { routine ->
             routine.times.mapNotNull { runCatching { LocalTime.parse(it) }.getOrNull() }.forEach { time ->
                 val due = LocalDateTime.of(today, time)
                 val key = "${routine.id}_${today}_$time"

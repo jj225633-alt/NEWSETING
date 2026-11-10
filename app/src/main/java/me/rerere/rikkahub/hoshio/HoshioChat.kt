@@ -31,6 +31,9 @@ object HoshioChat : KoinComponent {
         return conversation to name
     }
 
+    /** 最新版本的对话（正在生成时也包含记忆体里最新的讯息） */
+    suspend fun fresh(conversation: Conversation): Conversation = chatService.getConversation(conversation.id) ?: conversation
+
     /** 他正在回别的话时回传 true */
     suspend fun isBusy(conversation: Conversation): Boolean =
         chatService.getGenerationJobStateFlow(conversation.id).first() != null
