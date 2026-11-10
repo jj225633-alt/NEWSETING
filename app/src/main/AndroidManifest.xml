@@ -144,6 +144,19 @@
       android:name=".service.MemoryDreamForegroundService"
       android:exported="false"
       android:foregroundServiceType="dataSync" />
+    <!-- 星汐: 螢幕观察（只在需要时截图） -->
+    <service
+      android:name=".hoshio.screen.HoshioAccessibilityService"
+      android:exported="false"
+      android:label="@string/app_name"
+      android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+      <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+      </intent-filter>
+      <meta-data
+        android:name="android.accessibilityservice"
+        android:resource="@xml/hoshio_accessibility" />
+    </service>
     <!-- 星汐: 常驻模式，让主动关心每几分钟检查一次 -->
     <service
       android:name=".hoshio.care.CareForegroundService"

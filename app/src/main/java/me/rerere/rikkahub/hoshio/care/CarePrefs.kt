@@ -58,12 +58,24 @@ class CarePrefs(context: Context) {
             .orEmpty()
         set(value) = prefs.edit { putString(KEY_PLACES, careJson.encodeToString(value)) }
 
+    var screenObservationEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SCREEN_OBS, false)
+        set(value) = prefs.edit { putBoolean(KEY_SCREEN_OBS, value) }
+
+    var screenObservationIntervalMinutes: Int
+        get() = prefs.getInt(KEY_SCREEN_OBS_INTERVAL, 60)
+        set(value) = prefs.edit { putInt(KEY_SCREEN_OBS_INTERVAL, value) }
+
+    var lastScreenObservationAt: Long
+        get() = prefs.getLong(KEY_SCREEN_OBS_LAST, 0L)
+        set(value) = prefs.edit { putLong(KEY_SCREEN_OBS_LAST, value) }
+
     /** 常驻模式：用前台服务每几分钟检查一次，比 15 分钟的一般检查即时 */
     var alwaysOnEnabled: Boolean
         get() = prefs.getBoolean(KEY_ALWAYS_ON, false)
         set(value) = prefs.edit { putBoolean(KEY_ALWAYS_ON, value) }
 
-    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled
+    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled || screenObservationEnabled
 
     // ---- 运行状态 ----
 
@@ -109,6 +121,9 @@ class CarePrefs(context: Context) {
         private const val KEY_WAKE_GREETED_FOR = "wake_greeted_for"
         private const val KEY_PLACES_ENABLED = "places_enabled"
         private const val KEY_ALWAYS_ON = "always_on_enabled"
+        private const val KEY_SCREEN_OBS = "screen_observation_enabled"
+        private const val KEY_SCREEN_OBS_INTERVAL = "screen_observation_interval"
+        private const val KEY_SCREEN_OBS_LAST = "screen_observation_last"
         private const val KEY_PLACES = "places"
         private const val KEY_PLACE_STATES = "place_states"
 

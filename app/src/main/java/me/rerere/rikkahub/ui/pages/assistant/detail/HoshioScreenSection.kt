@@ -1,0 +1,137 @@
+package me.rerere.rikkahub.ui.pages.assistant.detail
+
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Eye
+import me.rerere.hugeicons.stroke.Settings03
+import me.rerere.hugeicons.stroke.Time02
+import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
+import me.rerere.rikkahub.data.model.Assistant
+import me.rerere.rikkahub.hoshio.care.CarePrefs
+import me.rerere.rikkahub.hoshio.care.CareWorker
+import me.rerere.rikkahub.hoshio.screen.HoshioAccessibilityService
+import me.rerere.rikkahub.ui.components.ui.CardGroup
+import me.rerere.rikkahub.ui.components.ui.CardGroupIcon
+import me.rerere.rikkahub.ui.components.ui.switchItem
+import me.rerere.rikkahub.ui.context.LocalToaster
+import me.rerere.ui.toast.ToastType
+
+/**
+ * 星汐「螢幕观察」：开启无障碍服务后，AI 可以看一眼目前的螢幕；也可以设定定时看一眼。
+ */
+@Composable
+internal fun HoshioScreenSection(assistant: Assistant, onUpdate: (Assistant) -> Unit) {
+    val context = LocalContext.current
+    val toaster = LocalToaster.current
+    val prefs = remember { CarePrefs(context) }
+    var serviceEnabled by remember { mutableStateOf(HoshioAccessibilityService.isEnabledInSettings(context)) }
+    var scheduled by remember { mutableStateOf(prefs.screenObservationEnabled) }
+    var interval by remember { mutableStateOf(prefs.screenObservationIntervalMinutes) }
+    val toolEnabled = LocalToolOption.ScreenView in assistant.localTools
+
+    // 从系统设定回来时更新无障碍服务状态
+    LifecycleResumeEffect(Unit) {
+        serviceEnabled = HoshioAccessibilityService.isEnabledInSettings(context)
+        onPauseOrDispose { }
+    }
+
+    fun openAccessibilitySettings() {
+        runCatching {
+            context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    fun setTool(enabled: Boolean) {
+        val tools = if (enabled) {
+            (assistant.localTools + LocalToolOption.ScreenView).distinct()
+        } else {
+            assistant.localTools - LocalToolOption.ScreenView
+        }
+        onUpdate(assistant.copy(localTools = tools))
+    }
+
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+        CardGroup(title = { Text("螢幕觀察") }) {
+            item(headlineContent = { Text("需要 Android 11 以上才能使用") })
+        }
+        return
+    }
+
+    CardGroup(title = { Text("螢幕觀察") }) {
+        item(
+            onClick = { openAccessibilitySettings() },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Settings03) },
+            headlineContent = { Text(if (serviceEnabled) "無障礙服務：已開啟" else "無障礙服務：未開啟（點這裡設定）") },
+            supportingContent = {
+                Text(
+                    "到「無障礙 → 已下載的應用程式 → 星汐」打開。只用來截圖和知道目前是哪個 App，不讀取畫面文字、不操作手機。" +
+                        "如果開關是灰色的，先到「應用程式 → 星汐 → ⋮ → 允許受限制的設定」"
+                )
+            },
+        )
+        switchItem(
+            checked = toolEnabled,
+            onCheckedChange = {
+                if (it && !serviceEnabled) {
+                    toaster.show(message = "請先開啟星汐的無障礙服務", type = ToastType.Warning)
+                    openAccessibilitySettings()
+                }
+                setTool(it)
+            },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Eye) },
+            supportingContent = { Text("你說「看一下我的螢幕」時，他可以截圖來看。需要模型支援圖片") },
+            headlineContent = { Text("讓他看我的螢幕") },
+        )
+        switchItem(
+            checked = scheduled,
+            onCheckedChange = {
+                if (it) {
+                    if (!serviceEnabled) {
+                        toaster.show(message = "請先開啟星汐的無障礙服務", type = ToastType.Warning)
+                        openAccessibilitySettings()
+                    }
+                    if (!toolEnabled) setTool(true)
+                    prefs.assistantId = assistant.id
+                }
+                prefs.screenObservationEnabled = it
+                scheduled = it
+                CareWorker.sync(context)
+            },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Time02) },
+            supportingContent = {
+                Text("螢幕亮著、而且你不在星汐裡的時候，每隔一段時間偷看一眼，再主動傳訊息給你。每次都會呼叫一次 AI")
+            },
+            headlineContent = { Text("定時偷看螢幕") },
+        )
+        if (scheduled) {
+            formItem(headlineContent = { Text("多久看一次") }) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(30, 60, 120, 180).forEach { minutes ->
+                        FilterChip(
+                            selected = interval == minutes,
+                            onClick = {
+                                interval = minutes
+                                prefs.screenObservationIntervalMinutes = minutes
+                            },
+                            label = { Text(if (minutes < 60) "$minutes 分鐘" else "${minutes / 60} 小時") },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

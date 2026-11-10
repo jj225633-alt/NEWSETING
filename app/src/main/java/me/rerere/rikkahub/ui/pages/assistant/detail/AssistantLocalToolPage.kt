@@ -273,6 +273,8 @@ private fun AssistantLocalToolContent(
         HoshioCareSection(assistant = assistant)
 
         HoshioPlacesSection(assistant = assistant)
+
+        HoshioScreenSection(assistant = assistant, onUpdate = onUpdate)
     }
 }
 

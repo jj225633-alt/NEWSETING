@@ -1814,4 +1814,5 @@
   <string name="chat_page_select_all">全選</string>
   <string name="chat_page_deselect_all">取消全選</string>
   <string name="chat_page_clear_selection">清除選取</string>
+  <string name="hoshio_accessibility_description">讓星汐只在你請 AI 看螢幕、或開啟定時螢幕觀察時截圖。只會知道目前在前景的是哪個 App，不讀取畫面文字，也不會操作手機。</string>
 </resources>

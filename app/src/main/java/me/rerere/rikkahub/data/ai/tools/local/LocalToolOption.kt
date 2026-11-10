@@ -46,4 +46,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("location")
     data object Location : LocalToolOption()
+
+    // 星汐: 看一眼目前的螢幕（需要无障碍服务）
+    @Serializable
+    @SerialName("screen_view")
+    data object ScreenView : LocalToolOption()
 }

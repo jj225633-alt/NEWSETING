@@ -30,6 +30,7 @@ import me.rerere.rikkahub.conversationIntent
 import me.rerere.rikkahub.data.ai.tools.local.currentLocationOrNull
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.repository.ConversationRepository
+import me.rerere.rikkahub.hoshio.screen.HoshioAccessibilityService
 import me.rerere.rikkahub.service.ChatService
 import me.rerere.rikkahub.utils.hasUsageStatsPermission
 import me.rerere.rikkahub.utils.sendNotification
@@ -139,7 +140,32 @@ class CareWorker(
         }
         if (prefs.wakeUpEnabled) detectWakeUp(prefs)?.let { events += it }
         if (prefs.placesEnabled) events += detectPlaces(prefs)
+        if (prefs.screenObservationEnabled) detectScreenObservation(prefs)?.let { events += it }
         return events
+    }
+
+    /** 定时看一眼螢幕：螢幕亮着、不在星汐里面、距离上次够久，就请 AI 用 look_at_screen 看一下 */
+    private fun detectScreenObservation(prefs: CarePrefs): CareEvent? {
+        if (!HoshioAccessibilityService.isRunning) {
+            prefs.lastResult = "螢幕觀察：無障礙服務沒有開啟"
+            return null
+        }
+        val power = applicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        if (power?.isInteractive != true) return null
+        if (HoshioAccessibilityService.foregroundPackage == applicationContext.packageName) return null
+        val nowMs = System.currentTimeMillis()
+        if (nowMs - prefs.lastScreenObservationAt < TimeUnit.MINUTES.toMillis(prefs.screenObservationIntervalMinutes.toLong())) {
+            return null
+        }
+        prefs.lastScreenObservationAt = nowMs
+        return CareEvent(
+            key = "screen_observation",
+            title = "看一眼螢幕",
+            text = "Automatic phone event (not typed by the user): it is time for your scheduled glance at the user's screen. " +
+                "Call the look_at_screen tool once, then say one or two sentences in character about what she is doing. " +
+                "If the screenshot is black or unclear, just say something light without guessing. " +
+                "Never repeat passwords, bank details or other people's private messages.",
+        )
     }
 
     /**
