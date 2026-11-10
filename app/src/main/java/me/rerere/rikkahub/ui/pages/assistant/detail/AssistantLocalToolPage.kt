@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.ui.toast.ToastType
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Book01
 import me.rerere.hugeicons.stroke.Calendar03
 import me.rerere.hugeicons.stroke.ChartLineData01
 import me.rerere.hugeicons.stroke.ClipboardPaste
@@ -261,6 +262,12 @@ private fun AssistantLocalToolContent(
                 icon = HugeIcons.DashboardSpeed02,
                 title = R.string.assistant_page_local_tools_device_status_title,
                 description = R.string.assistant_page_local_tools_device_status_desc,
+            )
+            toolItem(
+                option = LocalToolOption.Diary,
+                icon = HugeIcons.Book01,
+                title = R.string.assistant_page_local_tools_diary_title,
+                description = R.string.assistant_page_local_tools_diary_desc,
             )
             toolItem(
                 option = LocalToolOption.Location,

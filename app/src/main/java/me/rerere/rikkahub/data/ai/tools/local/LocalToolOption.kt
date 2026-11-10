@@ -51,4 +51,9 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("screen_view")
     data object ScreenView : LocalToolOption()
+
+    // 星汐: 日记（翻阅与在她要求时写）
+    @Serializable
+    @SerialName("diary")
+    data object Diary : LocalToolOption()
 }

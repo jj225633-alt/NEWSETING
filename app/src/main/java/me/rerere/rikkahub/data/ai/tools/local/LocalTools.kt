@@ -36,6 +36,8 @@ class LocalTools(
 
     val screenViewTool by lazy { buildScreenViewTool(context) }
 
+    val diaryTools by lazy { buildDiaryTools(context) }
+
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -71,6 +73,9 @@ class LocalTools(
         }
         if (options.contains(LocalToolOption.ScreenView)) {
             tools.add(screenViewTool)
+        }
+        if (options.contains(LocalToolOption.Diary)) {
+            tools.addAll(diaryTools)
         }
         return tools
     }

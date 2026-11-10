@@ -32,6 +32,9 @@ import me.rerere.rikkahub.conversationIntent
 import me.rerere.rikkahub.data.ai.tools.local.currentLocationOrNull
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.repository.ConversationRepository
+import me.rerere.rikkahub.hoshio.diary.DiaryStore
+import me.rerere.rikkahub.hoshio.diary.DiaryAuthor
+import me.rerere.rikkahub.hoshio.diary.DiaryWriter
 import me.rerere.rikkahub.hoshio.screen.HoshioAccessibilityService
 import me.rerere.rikkahub.service.ChatService
 import me.rerere.rikkahub.utils.hasUsageStatsPermission
@@ -49,6 +52,8 @@ private const val PERIODIC_WORK = "hoshio_care_periodic"
 private const val TEST_WORK = "hoshio_care_test"
 private const val TICK_WORK = "hoshio_care_tick"
 private const val KEY_TEST = "test"
+private const val KEY_DIARY_NOW = "diary_now"
+private const val DIARY_WORK = "hoshio_diary_now"
 private const val CARE_NOTIFICATION_ID = 7301
 
 /** 一次要让 AI 知道的手机事件 */
@@ -68,6 +73,11 @@ class CareWorker(
 
     override suspend fun doWork(): Result {
         val prefs = CarePrefs(applicationContext)
+        if (inputData.getBoolean(KEY_DIARY_NOW, false)) {
+            writeDiary(prefs, java.time.LocalDate.now(), force = true)
+            return Result.success()
+        }
+        if (prefs.diaryEnabled) maybeWriteDiary(prefs)
         val isTest = inputData.getBoolean(KEY_TEST, false)
         val events = if (isTest) {
             listOf(
@@ -91,6 +101,47 @@ class CareWorker(
                 }
         }
         return Result.success()
+    }
+
+    /** 晚上 11 点后写当天的日记；早上发现昨天漏写了就补写 */
+    private suspend fun maybeWriteDiary(prefs: CarePrefs) {
+        val now = LocalDateTime.now()
+        val today = now.toLocalDate()
+        val target = when {
+            now.hour >= CarePrefs.DIARY_WRITE_HOUR -> today
+            else -> today.minusDays(1)
+        }
+        if (target.toString() in prefs.diaryAttemptedDates) return
+        val alreadyWritten = DiaryStore.load(applicationContext)
+            .any { it.date == target.toString() && it.author == DiaryAuthor.AI }
+        if (alreadyWritten) {
+            prefs.diaryAttemptedDates = prefs.diaryAttemptedDates + target.toString()
+            return
+        }
+        writeDiary(prefs, target, force = false)
+    }
+
+    private suspend fun writeDiary(prefs: CarePrefs, date: java.time.LocalDate, force: Boolean) {
+        when (val result = DiaryWriter.write(applicationContext, date)) {
+            is DiaryWriter.Result.Written -> {
+                prefs.diaryAttemptedDates = prefs.diaryAttemptedDates + date.toString()
+                prefs.lastResult = "日記：已寫好 $date 的日記"
+                notify(
+                    settingsStore.awaitLoaded().let { s -> s.assistants.firstOrNull { it.id == (prefs.assistantId ?: s.assistantId) }?.name?.ifBlank { null } } ?: "星汐",
+                    "寫好今天的日記了：" + result.entry.content.take(80) + "…",
+                    null,
+                )
+            }
+            DiaryWriter.Result.NothingToWrite -> {
+                prefs.diaryAttemptedDates = prefs.diaryAttemptedDates + date.toString()
+                prefs.lastResult = "日記：$date 沒有聊天，不寫日記"
+            }
+            is DiaryWriter.Result.Failed -> {
+                // 失败不记录，下次检查再试；手动触发时把原因留给设定页显示
+                prefs.lastResult = "日記：$date 寫失敗（${result.reason}）"
+                if (force) Log.w(TAG, "diary failed: ${result.reason}")
+            }
+        }
     }
 
     private suspend fun detectEvents(prefs: CarePrefs): List<CareEvent> {
@@ -435,6 +486,17 @@ class CareWorker(
                 workManager.cancelUniqueWork(PERIODIC_WORK)
             }
             CareForegroundService.sync(context)
+        }
+
+        /** 马上让他写今天的日记 */
+        fun writeDiaryNow(context: Context) {
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                DIARY_WORK,
+                ExistingWorkPolicy.REPLACE,
+                OneTimeWorkRequestBuilder<CareWorker>()
+                    .setInputData(workDataOf(KEY_DIARY_NOW to true))
+                    .build(),
+            )
         }
 
         /** 常驻模式用：马上检查一次（上一次还没跑完就不重复排） */

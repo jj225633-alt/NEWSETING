@@ -95,12 +95,22 @@ class CarePrefs(context: Context) {
         get() = prefs.getInt(KEY_FREE_TIME_COUNT, 0)
         set(value) = prefs.edit { putInt(KEY_FREE_TIME_COUNT, value) }
 
+    /** 每天自动写日记 */
+    var diaryEnabled: Boolean
+        get() = prefs.getBoolean(KEY_DIARY, false)
+        set(value) = prefs.edit { putBoolean(KEY_DIARY, value) }
+
+    /** 已经尝试写过日记的日期（写成功或那天没聊天），避免重复呼叫模型 */
+    var diaryAttemptedDates: Set<String>
+        get() = prefs.getStringSet(KEY_DIARY_ATTEMPTED, emptySet()).orEmpty()
+        set(value) = prefs.edit { putStringSet(KEY_DIARY_ATTEMPTED, value.sortedDescending().take(30).toSet()) }
+
     /** 常驻模式：用前台服务每几分钟检查一次，比 15 分钟的一般检查即时 */
     var alwaysOnEnabled: Boolean
         get() = prefs.getBoolean(KEY_ALWAYS_ON, false)
         set(value) = prefs.edit { putBoolean(KEY_ALWAYS_ON, value) }
 
-    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled || screenObservationEnabled || freeTimeEnabled
+    val anyEnabled: Boolean get() = lowBatteryEnabled || nightUsageEnabled || wakeUpEnabled || placesEnabled || screenObservationEnabled || freeTimeEnabled || diaryEnabled
 
     // ---- 运行状态 ----
 
@@ -152,6 +162,11 @@ class CarePrefs(context: Context) {
         private const val KEY_SCREEN_OBS_MODE = "screen_observation_mode"
 
         private const val KEY_FREE_TIME = "free_time_enabled"
+        private const val KEY_DIARY = "diary_enabled"
+        private const val KEY_DIARY_ATTEMPTED = "diary_attempted_dates"
+
+        /** 每天这个时间之后写当天的日记 */
+        const val DIARY_WRITE_HOUR = 23
         private const val KEY_FREE_TIME_IDLE = "free_time_idle_minutes"
         private const val KEY_FREE_TIME_LAST = "free_time_last"
         private const val KEY_FREE_TIME_COUNT_DATE = "free_time_count_date"

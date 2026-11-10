@@ -290,16 +290,8 @@ class RouteActivity : ComponentActivity() {
         }
         val migrationState by DatabaseMigrationTracker.state.collectAsStateWithLifecycle()
 
-        val startScreen = Screen.Chat(
-            id = if (readBooleanPreference("create_new_conversation_on_start", true)) {
-                Uuid.random().toString()
-            } else {
-                readStringPreference(
-                    "lastConversationId",
-                    Uuid.random().toString()
-                ) ?: Uuid.random().toString()
-            }
-        )
+        // 星汐: 打开 App 先进首页，从首页再去聊天或其他页面
+        val startScreen: Screen = Screen.Home
 
         val backStack = rememberNavBackStack(startScreen)
         SideEffect {
@@ -427,6 +419,14 @@ class RouteActivity : ComponentActivity() {
 
                             entry<Screen.Backup> {
                                 BackupPage()
+                            }
+
+                            entry<Screen.Home> {
+                                me.rerere.rikkahub.ui.pages.hoshio.HomePage()
+                            }
+
+                            entry<Screen.Diary> {
+                                me.rerere.rikkahub.ui.pages.hoshio.DiaryPage()
                             }
 
 
@@ -703,6 +703,13 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Backup : Screen
+
+    // 星汐: 首页与日记
+    @Serializable
+    data object Home : Screen
+
+    @Serializable
+    data object Diary : Screen
 
 
     @Serializable

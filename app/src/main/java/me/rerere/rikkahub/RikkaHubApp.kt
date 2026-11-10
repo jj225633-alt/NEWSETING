@@ -138,6 +138,28 @@ class RikkaHubApp : Application() {
             }
         }
 
+        // 星汐: 升级时帮内建的星汐打开日记工具与查旧对话（只做一次）
+        if (me.rerere.rikkahub.hoshio.HoshioFlags.consumeOnce("hoshio_diary_tools_v1")) {
+            get<AppScope>().launch(Dispatchers.IO) {
+                runCatching {
+                    val store = get<me.rerere.rikkahub.data.datastore.SettingsStore>()
+                    store.awaitLoaded()
+                    store.update { settings ->
+                        settings.copy(assistants = settings.assistants.map {
+                            if (it.id == me.rerere.rikkahub.data.datastore.HOSHIO_ASSISTANT_ID) {
+                                it.copy(
+                                    enableRecentChatsReference = true,
+                                    localTools = (it.localTools + me.rerere.rikkahub.data.ai.tools.local.LocalToolOption.Diary).distinct(),
+                                )
+                            } else {
+                                it
+                            }
+                        })
+                    }
+                }.onFailure { Log.e(TAG, "enable diary tools failed", it) }
+            }
+        }
+
         // 星汐: 依设定恢复「主动关心」的背景检查
         runCatching { me.rerere.rikkahub.hoshio.care.CareWorker.sync(this) }
             .onFailure { Log.e(TAG, "CareWorker.sync failed", it) }

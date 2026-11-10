@@ -92,7 +92,8 @@ internal val DEFAULT_ASSISTANTS = listOf(
         enableMemory = true,
         enableTimeReminder = true,
         timeReminderIntervalMinutes = 10,
-        localTools = listOf(LocalToolOption.TimeInfo, LocalToolOption.DeviceStatus),
+        enableRecentChatsReference = true,
+        localTools = listOf(LocalToolOption.TimeInfo, LocalToolOption.DeviceStatus, LocalToolOption.Diary),
     ),
     Assistant(
         id = DEFAULT_ASSISTANT_ID,

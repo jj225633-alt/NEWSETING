@@ -66,6 +66,11 @@ class ChatToolFactory(
             addAll(localTools.getTools(assistant.localTools))
             if (assistant.enableRecentChatsReference) {
                 addAll(createConversationTools(conversationRepository, assistant.id))
+                // 星汐: 聊天时也能读整段对话原文，确认细节而不是靠印象
+                addAll(
+                    createMemoryConversationTools(conversationRepository, setOf(assistant.id))
+                        .filter { it.name == "conversation_read" }
+                )
             }
             addAll(workspaceTools)
             if (assistant.enabledSkills.isNotEmpty()) {

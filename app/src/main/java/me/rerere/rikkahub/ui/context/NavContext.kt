@@ -27,6 +27,8 @@ class Navigator(private val backStack: MutableList<NavKey>) {
 
     fun clearAndNavigate(screen: Screen) {
         backStack.clear()
+        // 星汐: 首页永远在最底下，从聊天按返回会回到首页
+        if (screen != Screen.Home) backStack.add(Screen.Home)
         backStack.add(screen)
     }
 
