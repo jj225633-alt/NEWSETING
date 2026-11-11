@@ -237,6 +237,8 @@ class RouteActivity : ComponentActivity() {
         }
         val destination = when (intent.action) {
             ACTION_TRANSLATE -> Screen.Translator
+            me.rerere.rikkahub.hoshio.voice.IncomingCall.ACTION_VOICE_CALL ->
+                Screen.VoiceCall(intent.getStringExtra(me.rerere.rikkahub.hoshio.voice.IncomingCall.EXTRA_REASON))
             ACTION_MEDIA_CREATION -> {
                 openNewMediaCreation(backStack)
                 null
@@ -465,6 +467,12 @@ class RouteActivity : ComponentActivity() {
                             }
                             entry<Screen.Pet> {
                                 me.rerere.rikkahub.ui.pages.hoshio.PetPage()
+                            }
+                            entry<Screen.VoiceCall> { key ->
+                                me.rerere.rikkahub.ui.pages.hoshio.VoiceCallPage(key.reason)
+                            }
+                            entry<Screen.VoiceSettings> {
+                                me.rerere.rikkahub.ui.pages.hoshio.VoiceSettingsPage()
                             }
                             entry<Screen.WakeRules> {
                                 me.rerere.rikkahub.ui.pages.hoshio.WakeRulesPage()
@@ -862,6 +870,12 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object WakeRules : Screen
+
+    @Serializable
+    data class VoiceCall(val reason: String? = null) : Screen
+
+    @Serializable
+    data object VoiceSettings : Screen
 
     @Serializable
     data object Treasure : Screen

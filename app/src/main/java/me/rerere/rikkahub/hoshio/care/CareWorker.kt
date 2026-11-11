@@ -663,6 +663,7 @@ class CareWorker(
                 )
                 prefs.lastResult = "${event.title}：已送出（$time）"
                 notify(assistantName, if (voiceSent) "🎙️ 傳了一則語音訊息" + if (reply.isNotEmpty()) "\n$reply" else "" else reply, conversation.id.toString())
+                if (reply.isNotEmpty() && !voiceSent) readAloud(reply)
             }
 
             usedTools.isNotEmpty() -> {
@@ -681,6 +682,26 @@ class CareWorker(
                 prefs.lastResult = if (finished) "${event.title}：AI 沒有回覆內容" else "${event.title}：等待 AI 回覆逾時"
             }
         }
+    }
+
+    /** 星汐: 设定开着的话，用他的声音把主动传来的讯息念一次（最多一分钟） */
+    private suspend fun readAloud(text: String) {
+        val voice = me.rerere.rikkahub.hoshio.voice.VoicePrefs(applicationContext)
+        if (!voice.readAloud) return
+        val power = applicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        if (power?.isInteractive != true && !voice.readWhenLocked) return
+        runCatching {
+            withTimeoutOrNull(60_000) {
+                val file = me.rerere.rikkahub.hoshio.voice.VoiceAudio.synthesize(
+                    applicationContext, me.rerere.rikkahub.hoshio.voice.VoiceAudio.speakable(text).take(400), "notify_${System.currentTimeMillis()}",
+                )
+                try {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { me.rerere.rikkahub.hoshio.voice.VoicePlayer.play(file) }
+                } finally {
+                    file.delete()
+                }
+            }
+        }.onFailure { Log.w(TAG, "read aloud failed", it) }
     }
 
     /** 她从通知直接回复后：等他回好，再用通知告诉她 */

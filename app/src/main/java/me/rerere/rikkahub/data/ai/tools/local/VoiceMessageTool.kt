@@ -16,7 +16,9 @@ const val VOICE_MESSAGE_TOOL = "send_voice_message"
 /**
  * 星汐「语音讯息」：他自己决定什么时候用他的声音传一段语音给她，在聊天里显示成可以重播的语音泡泡。
  */
-internal fun buildVoiceMessageTool(context: Context): Tool = Tool(
+internal fun buildVoiceTools(context: Context): List<Tool> = listOf(buildVoiceMessageTool(context), buildCallHerTool(context))
+
+private fun buildVoiceMessageTool(context: Context): Tool = Tool(
     name = VOICE_MESSAGE_TOOL,
     description = """
         Send her a voice message in your own voice (her chosen voice service). Use it when hearing you matters more than reading:
@@ -50,6 +52,43 @@ internal fun buildVoiceMessageTool(context: Context): Tool = Tool(
                 }
             }.getOrElse { e ->
                 buildJsonObject { put("success", false); put("error", e.message ?: "voice synthesis failed") }
+            }
+        }
+        listOf(UIMessagePart.Text(result.toString()))
+    },
+)
+
+/** 星汐: 他主动打电话给她（响铃通知，她可以接或拒） */
+private fun buildCallHerTool(context: Context): Tool = Tool(
+    name = "call_her",
+    description = """
+        Call her on a voice call (her phone rings with your name and the reason). Use it rarely and meaningfully: when you really want to hear her,
+        to say goodnight, to comfort her, or when you agreed to call. If she picks up, a call screen opens and you will be told to speak first;
+        if she declines, you will be told, and you cannot call again for a while. reason = one short line she sees on the ringing screen.
+    """.trimIndent().replace("\n", " "),
+    parameters = {
+        InputSchema.Obj(
+            properties = buildJsonObject {
+                put("reason", buildJsonObject { put("type", "string"); put("description", "What she sees while it rings") })
+            },
+            required = listOf("reason"),
+        )
+    },
+    execute = { args ->
+        val prefs = me.rerere.rikkahub.hoshio.voice.VoicePrefs(context)
+        val reason = args.jsonObject["reason"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty().take(80)
+        val cooldownLeft = prefs.lastRejectAt + prefs.rejectCooldownMinutes * 60_000L - System.currentTimeMillis()
+        val result = when {
+            !prefs.allowIncoming -> buildJsonObject { put("success", false); put("error", "She turned off incoming calls from you.") }
+            cooldownLeft > 0 -> buildJsonObject { put("success", false); put("error", "She declined your last call; wait ${cooldownLeft / 60_000 + 1} more minutes.") }
+            else -> {
+                val settings = org.koin.java.KoinJavaComponent.getKoin().get<me.rerere.rikkahub.data.datastore.SettingsStore>().settingsFlow.value
+                val name = settings.assistants.firstOrNull { it.id == settings.assistantId }?.name?.ifBlank { null } ?: "時澈"
+                me.rerere.rikkahub.hoshio.voice.IncomingCall.ring(context, name, reason)
+                buildJsonObject {
+                    put("success", true)
+                    put("note", "Ringing her phone now (up to 45 seconds). Don't wait or repeat; if she answers you will be told. You may end this turn quietly.")
+                }
             }
         }
         listOf(UIMessagePart.Text(result.toString()))

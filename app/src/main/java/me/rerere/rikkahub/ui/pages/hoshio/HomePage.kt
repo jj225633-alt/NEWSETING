@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import me.rerere.ai.core.MessageRole
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.MusicNote03
 import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.Clock01
 import me.rerere.hugeicons.stroke.Moon02
@@ -165,6 +166,7 @@ fun HomePage() {
         HomeLink("memories", "我們的回憶", "相簿、約定、紀念日、時光膠囊", HugeIcons.Calendar03, SECTION_US) { Screen.MemoriesHub },
         HomeLink("health", "手錶與健康", "睡眠、心率、步數", HugeIcons.Favourite, SECTION_US) { Screen.Health },
         HomeLink("library", "書房", "一起讀書、寫批註", HugeIcons.Book02, SECTION_US) { Screen.Library },
+        HomeLink("voice", "語音通話", "打給他、他的聲音、念訊息", HugeIcons.MusicNote03, SECTION_HIM) { Screen.VoiceSettings },
         HomeLink("wakerules", "他的喚醒規則", "他自己訂什麼時候醒來找你", HugeIcons.Clock01, SECTION_HIM) { Screen.WakeRules },
         HomeLink("sleep", "晚安", "要睡了就來這裡，他會安靜陪你", HugeIcons.Moon02, SECTION_HIM) { Screen.Sleep },
         HomeLink("routine", "生活照顧", "喝水、吃飯、吃藥提醒", HugeIcons.Clock01, SECTION_US) { Screen.Routine },

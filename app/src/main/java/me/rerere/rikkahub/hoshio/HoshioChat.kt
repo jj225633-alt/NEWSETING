@@ -58,6 +58,25 @@ object HoshioChat : KoinComponent {
         return askIn(conversation.id, conversation.currentMessages.size, name, title, text, timeoutMinutes)
     }
 
+    /** 像她打字一样送出一句话，等他回完（最多 [timeoutMinutes] 分钟），回传他最后说的话 */
+    suspend fun sendAndWait(conversationId: kotlin.uuid.Uuid, text: String, timeoutMinutes: Long = 3): String {
+        val before = chatService.getConversation(conversationId)?.currentMessages?.size ?: 0
+        chatService.sendMessage(conversationId, listOf(UIMessagePart.Text(text)))
+        val jobs = chatService.getGenerationJobStateFlow(conversationId)
+        withTimeoutOrNull(TimeUnit.MINUTES.toMillis(timeoutMinutes)) {
+            withTimeoutOrNull(30_000) { jobs.filterNotNull().first() }
+            jobs.first { it == null }
+        }
+        return chatService.getConversation(conversationId)?.currentMessages?.drop(before)
+            ?.lastOrNull { it.role == MessageRole.ASSISTANT }?.toText()?.trim().orEmpty()
+    }
+
+    /** 在指定对话放一则提示并等他回完 */
+    suspend fun askConversation(conversationId: kotlin.uuid.Uuid, title: String, text: String, timeoutMinutes: Long = 3): String {
+        val before = chatService.getConversation(conversationId)?.currentMessages?.size ?: 0
+        return askIn(conversationId, before, "", title, text, timeoutMinutes).text
+    }
+
     /** 开一个新对话，放一则提示进去（新对话会成为最近的那个），等他回完 */
     suspend fun askInNewConversation(title: String, text: String, timeoutMinutes: Long = 5): Reply {
         val settings = settingsStore.awaitLoaded()

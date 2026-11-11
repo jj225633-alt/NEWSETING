@@ -86,6 +86,7 @@ class ChatRequestFactory(
         TimeReminderTransformer,
         HoshioStateTransformer,
         HumanThoughtTransformer,
+        me.rerere.rikkahub.data.ai.transformers.VoiceCallTransformer,
         PromptInjectionTransformer,
         PlaceholderTransformer,
         DocumentAsPromptTransformer,
