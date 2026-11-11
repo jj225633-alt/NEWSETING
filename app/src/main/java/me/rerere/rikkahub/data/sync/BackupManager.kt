@@ -73,6 +73,8 @@ class BackupManager(
                             addFile(zip, file, "$folder/$relative")
                         }
                     }
+                    // 星汐: 日記以外的星汐資料（信箱、寵物、身體、約定、相簿資訊、歌單、通話紀錄…）存在 SharedPreferences，一起備份
+                    HoshioPrefsBackup.snapshot(context).forEach { (name, file) -> addFile(zip, file, "hoshio/_prefs/$name") }
                 }
             }
             archive
@@ -168,10 +170,14 @@ class BackupManager(
 
     companion object {
         private val ATTACHMENT_FOLDERS =
-            listOf(FileFolders.UPLOAD, FileFolders.SKILLS, FileFolders.FONTS, FileFolders.MEDIA_CREATION, FileFolders.HOSHIO)
+            listOf(
+                FileFolders.UPLOAD, FileFolders.SKILLS, FileFolders.FONTS, FileFolders.MEDIA_CREATION, FileFolders.HOSHIO,
+                // 星汐: 相簿照片、共同空間圖片、他的語音訊息、通話語音
+                "hoshio_album", "hoshio_spaces", "hoshio_voice", "hoshio_calls",
+            )
 
         /** Backed up with their subdirectories; the other folders only contain top-level files. */
-        private val NESTED_ATTACHMENT_FOLDERS = setOf(FileFolders.SKILLS, FileFolders.MEDIA_CREATION, FileFolders.HOSHIO)
+        private val NESTED_ATTACHMENT_FOLDERS = setOf(FileFolders.SKILLS, FileFolders.MEDIA_CREATION, FileFolders.HOSHIO, "hoshio_calls")
 
         // 启动次数不在 Settings 里，备份文件里仍放在 settings.json 的这个字段，和旧备份保持一致
         private const val LAUNCH_COUNT_KEY = "launchCount"

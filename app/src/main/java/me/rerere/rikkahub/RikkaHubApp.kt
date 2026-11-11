@@ -67,6 +67,8 @@ class RikkaHubApp : Application() {
             val restored = runBlocking(Dispatchers.IO) {
                 BackupManager.applyPendingRestore(this@RikkaHubApp, JsonInstant)
             }
+            // 星汐: 還原進來的星汐資料（SharedPreferences）在任何人讀取前搬回去
+            me.rerere.rikkahub.data.sync.HoshioPrefsBackup.installRestored(this)
             if (restored) {
                 Toast.makeText(this, R.string.backup_page_restore_success, Toast.LENGTH_LONG).show()
             }
