@@ -78,6 +78,7 @@ object OrbisMigration : KoinComponent {
         val petOwners: Set<String>,
         val bodyOwners: Set<String>,
         val desireOwners: Set<String>,
+        val spaceOwners: Set<String>,
         val hasDatabase: Boolean,
     )
 
@@ -89,6 +90,7 @@ object OrbisMigration : KoinComponent {
         val pet: Boolean = true,
         val body: Boolean = true,
         val desires: Boolean = true,
+        val spaces: Boolean = true,
         val replaceExisting: Boolean = false,
     )
 
@@ -144,6 +146,7 @@ object OrbisMigration : KoinComponent {
                 petOwners = owners("pet"),
                 bodyOwners = owners("body"),
                 desireOwners = owners("desires"),
+                spaceOwners = names.mapNotNull { Regex("orbis-companion-spaces/([0-9a-fA-F-]+)/index\\.json").matchEntire(it)?.groupValues?.get(1) }.toSet(),
                 hasDatabase = dbEntry != null,
             )
         }
@@ -192,6 +195,15 @@ object OrbisMigration : KoinComponent {
                 progress("正在搬身體狀態…")
                 val raw = owners.firstNotNullOfOrNull { entryText("orbis-activities/$it/body.json") }
                 lines += if (raw == null) "身體狀態：備份裡沒有" else importBody(context, raw, options.replaceExisting)
+            }
+            if (options.spaces) {
+                progress("正在搬共同空間、秘密基地和照片牆…")
+                lines += owners.flatMap { owner ->
+                    val raw = entryText("orbis-companion-spaces/$owner/index.json") ?: return@flatMap emptyList()
+                    importSpaces(context, raw) { mediaId ->
+                        zip.getEntry("orbis-companion-spaces/$owner/$mediaId.image")?.let { e -> zip.getInputStream(e).use { it.readBytes() } }
+                    }
+                }.ifEmpty { listOf("共同空間：備份裡沒有") }
             }
             if (options.desires) {
                 progress("正在搬他的渴望…")
@@ -550,6 +562,88 @@ object OrbisMigration : KoinComponent {
             false -> "渴望：之前已經搬過了"
             null -> "渴望：寫入失敗"
         }
+    }
+
+    // ---------------- 共同空間 / 秘密基地 / 照片牆 ----------------
+
+    @Serializable private data class OStory(val id: String, val title: String = "", val prompt: String = "", val body: String = "",
+        val paper: String = "letter", val createdAt: Long = 0, val updatedAt: Long = 0, val pinned: Boolean = false)
+    @Serializable private data class OComment(val id: String, val actor: String = "human", val text: String = "", val createdAt: Long = 0)
+    @Serializable private data class OPost(val id: String, val actor: String = "human", val text: String = "", val imageIds: List<String> = emptyList(),
+        val likes: Set<String> = emptySet(), val comments: List<OComment> = emptyList(), val createdAt: Long = 0)
+    @Serializable private data class OMedia(val id: String, val mime: String = "")
+    @Serializable private data class OPhoto(val id: String, val mediaId: String, val note: String = "", val createdAt: Long = 0)
+    @Serializable private data class OSpaces(val stories: List<OStory> = emptyList(), val posts: List<OPost> = emptyList(),
+        val photos: List<OPhoto> = emptyList(), val media: List<OMedia> = emptyList())
+
+    private fun actor(a: String) = if (a == "ai") me.rerere.rikkahub.hoshio.together.BY_HIM else me.rerere.rikkahub.hoshio.together.BY_HER
+
+    private fun importSpaces(context: Context, raw: String, media: (String) -> ByteArray?): List<String> {
+        val o = runCatching { loose.decodeFromString<OSpaces>(raw) }.getOrNull() ?: return listOf("共同空間：格式讀不懂，沒搬")
+        val mimes = o.media.associate { it.id to it.mime }
+        fun ext(id: String) = when {
+            mimes[id].orEmpty().contains("png") -> "png"
+            mimes[id].orEmpty().contains("webp") -> "webp"
+            mimes[id].orEmpty().contains("gif") -> "gif"
+            else -> "jpg"
+        }
+        fun copyTo(dir: File, mediaId: String): String? {
+            val name = "orbis_$mediaId.${ext(mediaId)}"
+            val out = File(dir, name)
+            if (out.exists()) return name
+            val bytes = media(mediaId) ?: return null
+            out.writeBytes(bytes)
+            return name
+        }
+        val lines = mutableListOf<String>()
+        val spacesDir = me.rerere.rikkahub.hoshio.spaces.SharedSpaceStore.dir(context)
+
+        var posts = 0
+        me.rerere.rikkahub.hoshio.spaces.SharedSpaceStore.update(context) { list ->
+            val have = list.map { it.id }.toSet()
+            val incoming = o.posts.filter { "o-${it.id}" !in have }.map { p ->
+                posts++
+                me.rerere.rikkahub.hoshio.spaces.SpacePost(
+                    id = "o-${p.id}", by = actor(p.actor), text = p.text,
+                    images = p.imageIds.mapNotNull { copyTo(spacesDir, it) },
+                    likes = p.likes.map { actor(it) }.toSet(),
+                    comments = p.comments.map { c ->
+                        me.rerere.rikkahub.hoshio.spaces.SpaceComment(id = "o-${c.id}", by = actor(c.actor), text = c.text, at = c.createdAt)
+                    },
+                    at = p.createdAt,
+                )
+            }
+            (list + incoming).sortedByDescending { it.at }
+        }
+        if (o.posts.isNotEmpty()) lines += "共同空間：新增 $posts 則動態" + if (posts < o.posts.size) "（${o.posts.size - posts} 則已搬過）" else ""
+
+        var stories = 0
+        me.rerere.rikkahub.hoshio.spaces.SecretBaseStore.update(context) { list ->
+            val have = list.map { it.id }.toSet()
+            list + o.stories.filter { "o-${it.id}" !in have }.map { s ->
+                stories++
+                me.rerere.rikkahub.hoshio.spaces.SpaceStory(
+                    id = "o-${s.id}", title = s.title, prompt = s.prompt, body = s.body,
+                    paper = s.paper.takeIf { it in me.rerere.rikkahub.hoshio.spaces.SPACE_PAPERS } ?: "letter",
+                    pinned = s.pinned, createdAt = s.createdAt, updatedAt = s.updatedAt.takeIf { it > 0 } ?: s.createdAt,
+                )
+            }
+        }
+        if (o.stories.isNotEmpty()) lines += "秘密基地：新增 $stories 篇" + if (stories < o.stories.size) "（${o.stories.size - stories} 篇已搬過）" else ""
+
+        var photos = 0
+        val albumDir = me.rerere.rikkahub.hoshio.together.AlbumStore.dir(context)
+        me.rerere.rikkahub.hoshio.together.AlbumStore.update(context) { list ->
+            val have = list.map { it.id }.toSet()
+            val incoming = o.photos.filter { "o-${it.id}" !in have }.mapNotNull { ph ->
+                val name = copyTo(albumDir, ph.mediaId) ?: return@mapNotNull null
+                photos++
+                me.rerere.rikkahub.hoshio.together.AlbumPhoto(id = "o-${ph.id}", fileName = name, herCaption = ph.note, at = ph.createdAt)
+            }
+            (list + incoming).sortedByDescending { it.at }
+        }
+        if (o.photos.isNotEmpty()) lines += "照片牆 → 回憶相簿：新增 $photos 張"
+        return lines
     }
 
     // ---------------- 花園 ----------------

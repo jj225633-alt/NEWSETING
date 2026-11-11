@@ -53,6 +53,7 @@ fun OrbisMigratePage() {
     var pet by remember { mutableStateOf(true) }
     var body by remember { mutableStateOf(true) }
     var desires by remember { mutableStateOf(true) }
+    var spaces by remember { mutableStateOf(true) }
     var replace by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
@@ -127,6 +128,7 @@ fun OrbisMigratePage() {
                         Toggle("寵物" + if (p.petOwners.any { it in owners }) "" else "（沒找到）", pet, !busy) { pet = it }
                         Toggle("身體狀態" + if (p.bodyOwners.any { it in owners }) "" else "（沒找到）", body, !busy) { body = it }
                         Toggle("他的渴望" + if (p.desireOwners.any { it in owners }) "" else "（沒找到）", desires, !busy) { desires = it }
+                        Toggle("共同空間・秘密基地・照片牆" + if (p.spaceOwners.any { it in owners }) "" else "（沒找到）", spaces, !busy) { spaces = it }
                         Toggle("星汐已經有寵物／身體狀態時，用 Orbis 的覆蓋", replace, !busy) { replace = it }
                         Button(
                             onClick = {
@@ -135,7 +137,7 @@ fun OrbisMigratePage() {
                                     runCatching {
                                         OrbisMigration.run(
                                             context,
-                                            OrbisMigration.Options(selected, conversations, memories, files, pet, body, desires, replace),
+                                            OrbisMigration.Options(selected, conversations, memories, files, pet, body, desires, spaces, replace),
                                         ) { status = it }
                                     }.onSuccess { report = it.lines; status = "搬好了！" }
                                         .onFailure { status = "搬到一半出錯：${it.message}" }
