@@ -492,6 +492,9 @@ class RouteActivity : ComponentActivity() {
                             entry<Screen.Treasure> {
                                 me.rerere.rikkahub.ui.pages.hoshio.TreasurePage()
                             }
+                            entry<Screen.OrbisMigrate> {
+                                me.rerere.rikkahub.ui.pages.hoshio.OrbisMigratePage()
+                            }
                             entry<Screen.Handoff> {
                                 me.rerere.rikkahub.ui.pages.hoshio.HandoffPage()
                             }
@@ -855,6 +858,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Handoff : Screen
+
+    @Serializable
+    data object OrbisMigrate : Screen
 
     @Serializable
     data object Ruota : Screen

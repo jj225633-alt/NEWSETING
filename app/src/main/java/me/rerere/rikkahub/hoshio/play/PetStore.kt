@@ -150,6 +150,9 @@ object PetStore {
 
     fun release(context: Context) = save(context, null)
 
+    /** 從別處搬來的寵物（例如 Orbis 搬家），直接放進來 */
+    fun restore(context: Context, pet: Pet) = save(context, pet.copy(updatedAt = System.currentTimeMillis()))
+
     data class CareResult(val pet: Pet, val rewardEarned: Boolean)
 
     /** action: feed | water | pet | play | tidy | sleep | board | return | decorate */

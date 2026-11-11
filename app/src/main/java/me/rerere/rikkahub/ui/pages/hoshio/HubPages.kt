@@ -32,6 +32,7 @@ import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.Route01
 import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.Time02
+import me.rerere.hugeicons.stroke.Database02
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.context.LocalNavController
 
@@ -101,5 +102,6 @@ fun MemoriesHubPage() = HubGrid(
         HubLink("我們的約定", "說好的事，做到就打勾", HugeIcons.Pin, Screen.Promises),
         HubLink("紀念日", "重要的日子和認識幾天", HugeIcons.Calendar03, Screen.Anniversary),
         HubLink("時光膠囊", "寫給未來，到那天才能打開", HugeIcons.Time02, Screen.Capsule),
+        HubLink("從 Orbis 搬家", "把舊家的對話、記憶和花園搬過來", HugeIcons.Database02, Screen.OrbisMigrate),
     ),
 )
