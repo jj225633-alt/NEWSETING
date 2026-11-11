@@ -119,11 +119,19 @@ internal fun buildPlayTools(context: Context): List<Tool> = listOf(
             board sends it to boarding (food and water are kept up, mood still drops slowly) and return brings it home - only when she agrees or is away for days.
             adopt (name + appearance id) only if there is no pet yet and she agrees; rename with a new name.
             Good care (all four stats ≥ 80) counts one day; every 10 days you two earn a reward badge. Check on it now and then and mention it naturally.
+            Its life: notebook_write (text) writes a line in its little notebook and it answers; notebook_read shows the notebook;
+            event_choose (choice = key) answers a special event it is having (meteor, dream, flower, little question...) - usually let her choose, but you may if she asks or is away;
+            travel (place optional, e.g. 九份 / 京都) sends it on a real-time trip of a few hours; postcards shows the postcards it sent and keepsakes.
+            It misses her when she is away and has one real reunion when she comes back. All its reactions are computed on the phone.
         """.trimIndent().replace("\n", " "),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
-                    put("action", enumOf("What to do", "status", "feed", "water", "pet", "play", "tidy", "sleep", "board", "return", "adopt", "rename"))
+                    put("action", enumOf("What to do", "status", "feed", "water", "pet", "play", "tidy", "sleep", "board", "return", "adopt", "rename",
+                        "notebook_write", "notebook_read", "event_choose", "travel", "postcards"))
+                    put("text", str("notebook_write: the line you write"))
+                    put("choice", str("event_choose: the choice key"))
+                    put("place", str("travel: destination (optional)"))
                     put("note", str("A short note about what you did, in your words"))
                     put("name", str("adopt / rename: the pet's name"))
                     put("appearance", str("adopt: one of " + PetStore.APPEARANCE_HINT))
@@ -135,6 +143,31 @@ internal fun buildPlayTools(context: Context): List<Tool> = listOf(
             val obj = args.jsonObject
             fun arg(k: String) = obj[k]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
             val action = arg("action")
+            runCatching { me.rerere.rikkahub.hoshio.play.PetLife.tick(context, byHer = false) }
+            val life = me.rerere.rikkahub.hoshio.play.PetLife
+            when (action) {
+                "notebook_write" -> return@Tool life.writeNote(context, PetStore.BY_HIM, arg("text"))?.let { text("you_wrote" to it.text, "it_replied" to it.reply) }
+                    ?: text("error" to "No pet, or empty text")
+                "notebook_read" -> return@Tool text("notebook" to life.load(context).notes.take(15).joinToString("\n") {
+                    "${if (it.by == PetStore.BY_HIM) "you" else "her"}: ${it.text} → ${it.reply}"
+                }.ifBlank { "(empty)" })
+                "event_choose" -> {
+                    val ev = life.pendingEvent(life.load(context)) ?: return@Tool text("error" to "No special event is waiting right now.")
+                    val r = life.choose(context, ev.id, arg("choice"), PetStore.BY_HIM)
+                        ?: return@Tool text("error" to "Unknown choice. Choices: " + ev.choices.joinToString { "${it.key}=${it.label}" })
+                    return@Tool text("event" to ev.title, "result" to r)
+                }
+                "travel" -> return@Tool life.startTrip(context, PetStore.BY_HIM, arg("place").ifBlank { null })?.let {
+                    text("ok" to "It set off for ${it.place}; back in about ${(it.returnAt - it.departAt) / 3_600_000} hours with a postcard.")
+                } ?: text("error" to "It cannot travel now (no pet, already traveling, or boarding). Places: " + life.placeNames().joinToString("、"))
+                "postcards" -> {
+                    val s = life.load(context)
+                    return@Tool text(
+                        "postcards" to s.trips.filter { it.postcard != null }.take(5).joinToString("\n\n") { "[${it.place}] ${it.postcard}" + (it.souvenir?.let { sv -> "（帶回：$sv）" } ?: "") }.ifBlank { "(none yet)" },
+                        "keepsakes" to s.keepsakes.take(10).joinToString("; ") { it.text },
+                    )
+                }
+            }
             var reward = false
             val result = when (action) {
                 "adopt" -> if (PetStore.load(context) != null) null else PetStore.adopt(context, arg("name"), arg("appearance"), PetStore.BY_HIM)
@@ -148,6 +181,10 @@ internal fun buildPlayTools(context: Context): List<Tool> = listOf(
                 result == null -> text("status" to "No pet yet. She can adopt one on the home page (一起養寵物), or you can adopt one with her agreement.")
                 else -> text(
                     "pet" to PetStore.describe(context),
+                    "life" to me.rerere.rikkahub.hoshio.play.PetLife.describe(context).ifBlank { null },
+                    "special_event" to me.rerere.rikkahub.hoshio.play.PetLife.pendingEvent(me.rerere.rikkahub.hoshio.play.PetLife.load(context))?.let { e ->
+                        "${e.title} ${e.text} choices: " + e.choices.joinToString { "${it.key}=${it.label}" }
+                    },
                     "reward" to if (reward) "You just reached ${result.careDays.size} good-care days - a reward badge was added to her achievement wall! Tell her." else null,
                     "recent_care" to result.log.take(5).joinToString("; ") { "${if (it.by == PetStore.BY_HIM) "you" else "her"}: ${it.text}" },
                 )

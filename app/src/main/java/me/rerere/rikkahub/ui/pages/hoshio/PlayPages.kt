@@ -278,7 +278,14 @@ fun PetPage() {
     var choosingLook by remember { mutableStateOf(false) }
     var frameOverride by remember { mutableStateOf<String?>(null) }
 
+    val life by me.rerere.rikkahub.hoshio.play.PetLife.state.collectAsState()
+    var eventResult by remember { mutableStateOf<String?>(null) }
+    var noteText by remember { mutableStateOf("") }
+    var choosingTrip by remember { mutableStateOf(false) }
+    var showAllNotes by remember { mutableStateOf(false) }
     LifecycleResumeEffect(Unit) {
+        PetStore.load(context)
+        runCatching { me.rerere.rikkahub.hoshio.play.PetLife.tick(context, byHer = true) }
         PetStore.load(context)
         onPauseOrDispose { }
     }
@@ -361,7 +368,7 @@ fun PetPage() {
                 item {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         PetStore.ACTIONS.forEach { (action, label) ->
-                            FilledTonalButton(enabled = !p.boarding || action == "pet", onClick = {
+                            FilledTonalButton(enabled = (!p.boarding && !p.traveling) || (action == "pet" && !p.traveling), onClick = {
                                 val result = PetStore.care(context, action, PetStore.BY_HER)
                                 frameOverride = when (action) { "feed", "water" -> "eat"; "play" -> "play"; "pet" -> "greet"; "sleep" -> "sleep"; else -> null }
                                 if (result?.rewardEarned == true) frameOverride = "content"
@@ -379,6 +386,93 @@ fun PetPage() {
                         }
                     }
                 }
+                // ---- 星汐: 寵物的生活（重逢、特別事件、旅行、小本子、明信片） ----
+                item {
+                    val r = life.reunion
+                    if (r != null && !r.seen) {
+                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer), shape = MaterialTheme.shapes.extraLarge) {
+                            Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("🏠 你回來了（離開了 ${r.awayHours} 小時）", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                Text(r.text, style = MaterialTheme.typography.bodyMedium)
+                                r.gift?.let { Text("🎁 $it", style = MaterialTheme.typography.bodyMedium) }
+                                TextButton(onClick = { me.rerere.rikkahub.hoshio.play.PetLife.dismissReunion(context); frameOverride = "greet" }) { Text("抱抱牠") }
+                            }
+                        }
+                    } else {
+                        me.rerere.rikkahub.hoshio.play.PetLife.missingLevel(context)?.let { Text("💭 ${p.name} $it", style = MaterialTheme.typography.bodySmall) }
+                    }
+                }
+                item {
+                    val ev = me.rerere.rikkahub.hoshio.play.PetLife.pendingEvent(life)
+                    if (ev != null) {
+                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer), shape = MaterialTheme.shapes.extraLarge) {
+                            Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(ev.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                if (ev.text.isNotBlank()) Text(ev.text, style = MaterialTheme.typography.bodyMedium)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    ev.choices.forEach { c ->
+                                        OutlinedButton(onClick = {
+                                            eventResult = me.rerere.rikkahub.hoshio.play.PetLife.choose(context, ev.id, c.key, PetStore.BY_HER)
+                                            frameOverride = "content"
+                                        }) { Text(c.label) }
+                                    }
+                                }
+                            }
+                        }
+                    } else eventResult?.let {
+                        Text("✨ $it", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                item {
+                    val trip = me.rerere.rikkahub.hoshio.play.PetLife.currentTrip(life)
+                    if (trip != null) {
+                        val back = java.time.Instant.ofEpochMilli(trip.returnAt).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                        Text("✈️ ${p.name} 去了${trip.place}旅行，預計 ${back.monthValue}/${back.dayOfMonth} ${"%02d:%02d".format(back.hour, back.minute)} 回來（${if (trip.by == PetStore.BY_HIM) "他" else "你"}送牠出門的）", style = MaterialTheme.typography.bodyMedium)
+                    } else if (!p.boarding) {
+                        OutlinedButton(onClick = { choosingTrip = true }) { Text("✈️ 送牠去旅行") }
+                    }
+                }
+                life.trips.firstOrNull { it.postcard != null }?.let { card ->
+                    item {
+                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), shape = MaterialTheme.shapes.extraLarge) {
+                            Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("💌 從${card.place}寄來的明信片", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                Text(card.postcard.orEmpty(), style = MaterialTheme.typography.bodyMedium)
+                                card.souvenir?.let { Text("🎒 帶回來：$it", style = MaterialTheme.typography.bodySmall) }
+                                val older = life.trips.filter { it.postcard != null }.drop(1)
+                                if (older.isNotEmpty()) Text("之前還有 ${older.size} 張：" + older.take(6).joinToString("、") { it.place }, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+                item {
+                    Card(shape = MaterialTheme.shapes.extraLarge) {
+                        Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("📓 ${p.name}的小本子", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    value = noteText, onValueChange = { noteText = it.take(200) },
+                                    placeholder = { Text("寫一句話給牠…") }, modifier = Modifier.weight(1f), singleLine = true,
+                                )
+                                TextButton(enabled = noteText.isNotBlank(), onClick = {
+                                    me.rerere.rikkahub.hoshio.play.PetLife.writeNote(context, PetStore.BY_HER, noteText)
+                                    noteText = ""
+                                    frameOverride = "greet"
+                                }) { Text("寫") }
+                            }
+                            (if (showAllNotes) life.notes.take(40) else life.notes.take(3)).forEach { n ->
+                                Column {
+                                    Text((if (n.by == PetStore.BY_HIM) "他：" else "你：") + n.text, style = MaterialTheme.typography.bodySmall)
+                                    Text("　${p.name} ${n.reply}", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                            if (life.notes.size > 3) TextButton(onClick = { showAllNotes = !showAllNotes }) { Text(if (showAllNotes) "收起" else "看全部（${life.notes.size}）") }
+                        }
+                    }
+                }
+                if (life.keepsakes.isNotEmpty()) item {
+                    Text("🧺 珍藏：" + life.keepsakes.take(8).joinToString("、") { it.text }, style = MaterialTheme.typography.bodySmall)
+                }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Button(onClick = {
@@ -393,7 +487,7 @@ fun PetPage() {
                 items(p.log) { log ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            (if (log.by == PetStore.BY_HIM) "他 " else "你 ") + log.text,
+                            (when (log.by) { PetStore.BY_HIM -> "他 "; "pet" -> "牠 "; else -> "你 " }) + log.text,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
                         )
@@ -404,6 +498,23 @@ fun PetPage() {
         }
     }
 
+    if (choosingTrip) {
+        AlertDialog(
+            onDismissRequest = { choosingTrip = false },
+            title = { Text("要送牠去哪裡？") },
+            text = {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    (listOf("讓牠自己決定") + me.rerere.rikkahub.hoshio.play.PetLife.placeNames()).forEach { place ->
+                        OutlinedButton(onClick = {
+                            me.rerere.rikkahub.hoshio.play.PetLife.startTrip(context, PetStore.BY_HER, if (place == "讓牠自己決定") null else place)
+                            choosingTrip = false
+                        }) { Text(place) }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { choosingTrip = false }) { Text("先不要") } },
+        )
+    }
     if (renaming) {
         var name by remember { mutableStateOf(pet?.name.orEmpty()) }
         AlertDialog(

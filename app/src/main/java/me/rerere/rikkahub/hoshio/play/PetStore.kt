@@ -38,6 +38,8 @@ data class Pet(
     val cleanliness: Int = 100,
     val messy: Boolean = false,
     val boarding: Boolean = false,
+    /** 出門旅行中（數值暫停，像寄養一樣） */
+    val traveling: Boolean = false,
     val sleepingUntil: Long = 0,
     /** 四项都 ≥ 80 时照顾过的日子 */
     val careDays: Set<String> = emptySet(),
@@ -54,6 +56,7 @@ data class Pet(
 
     val status: String
         get() = when {
+            traveling -> "出門旅行中"
             boarding -> "寄養中"
             sleeping -> "在睡覺"
             health < 40 -> "身體不太舒服"
@@ -97,13 +100,19 @@ object PetStore {
     private fun advance(p: Pet, now: Long = System.currentTimeMillis()): Pet {
         val hours = ((now - p.updatedAt) / 3_600_000.0).coerceAtLeast(0.0)
         if (hours <= 0.0) return p
+        // 旅行中：數值暫停
+        if (p.traveling) return p.copy(updatedAt = now)
         val food = if (p.boarding) maxOf(80.0, p.fullness.toDouble()) else (p.fullness - 4 * hours).coerceAtLeast(0.0)
         val water = if (p.boarding) maxOf(80.0, p.water.toDouble()) else (p.water - 5 * hours).coerceAtLeast(0.0)
         val moodRate = if (p.boarding) .5 else 2.0
         val mood = (p.happiness - moodRate * hours).coerceAtLeast(0.0)
         val healthyHours = minOf(hours, p.happiness / moodRate, if (p.boarding) Double.POSITIVE_INFINITY else minOf(p.fullness / 4.0, p.water / 5.0))
         val health = ((p.health + healthyHours * 2).coerceAtMost(100.0) - (hours - healthyHours) * 3).coerceIn(0.0, 100.0)
-        return p.copy(fullness = food.toInt(), water = water.toInt(), happiness = mood.toInt(), health = health.toInt(), updatedAt = now)
+        // 溫柔的底線：會餓、會想你，但不會真的受苦
+        return p.copy(
+            fullness = food.toInt().coerceAtLeast(10), water = water.toInt().coerceAtLeast(10),
+            happiness = mood.toInt().coerceAtLeast(15), health = health.toInt().coerceAtLeast(35), updatedAt = now,
+        )
     }
 
     /** 读取并套用经过的时间（不写回，避免反复四舍五入） */
@@ -113,6 +122,8 @@ object PetStore {
         _pet.value = pet
         return pet
     }
+
+    internal fun saveInternal(context: Context, pet: Pet?) = save(context, pet)
 
     private fun save(context: Context, pet: Pet?) {
         prefs(context).edit { if (pet == null) remove("pet") else putString("pet", petJson.encodeToString(pet)) }
