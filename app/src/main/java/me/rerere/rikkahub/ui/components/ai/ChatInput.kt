@@ -251,8 +251,8 @@ fun ChatInput(
                     ),
                 shape = containerShape,
                 tonalElevation = 0.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else containerColor,
+                border = if (me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                color = if (settings.displaySetting.enableBlurEffect || me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) Color.Transparent else containerColor,
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

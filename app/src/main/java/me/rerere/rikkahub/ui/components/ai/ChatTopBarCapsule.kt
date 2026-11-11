@@ -30,8 +30,9 @@ fun ChatTopBarCapsule(
     content: @Composable RowScope.() -> Unit,
 ) {
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val glass = me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current
     val backgroundAlpha by animateFloatAsState(
-        targetValue = if (showBackground) 1f else 0f,
+        targetValue = if (showBackground || glass) 1f else 0f,
         label = "ChatTopBarCapsuleBackground",
     )
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -48,8 +49,8 @@ fun ChatTopBarCapsule(
                         shape = CircleShape,
                     ),
                 shape = CircleShape,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                color = if (displaySetting.enableBlurEffect) Color.Transparent else containerColor,
+                border = if (glass) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                color = if (displaySetting.enableBlurEffect || glass) Color.Transparent else containerColor,
                 content = {},
             )
         }

@@ -20,6 +20,7 @@ import dev.chrisbanes.haze.glass.material3.material3
 import me.rerere.rikkahub.data.datastore.BackgroundEffectType
 import me.rerere.rikkahub.data.datastore.DisplaySetting
 import me.rerere.rikkahub.ui.theme.LocalDarkMode
+import me.rerere.rikkahub.ui.pages.hoshio.splash.hoshioGlassImpl
 
 /**
  * 输入框容器的背景效果（模糊或玻璃），未开启时原样返回。
@@ -33,6 +34,9 @@ internal fun Modifier.chatInputHaze(
     containerColor: Color,
     shape: RoundedCornerShape,
 ): Modifier {
+    if (me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
+        return hoshioGlassImpl(hazeState, shape, strong = true)
+    }
     if (!displaySetting.enableBlurEffect) return this
     return when (displaySetting.backgroundEffectType) {
         BackgroundEffectType.BLUR -> hazeBlur(

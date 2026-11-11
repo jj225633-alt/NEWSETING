@@ -443,7 +443,7 @@ private fun MessagePartsBlock(
                                     )
                                 }
                             } else {
-                                if (settings.displaySetting.showAssistantBubble) {
+                                if (settings.displaySetting.showAssistantBubble || me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
                                     ChatMessageBubble(
                                         role = role,
                                         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
@@ -580,6 +580,16 @@ private fun ChatMessageBubble(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    if (me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
+        me.rerere.rikkahub.ui.pages.hoshio.HoshioGlassBubble(
+            user = role == MessageRole.USER,
+            opacity = (color.alpha / 1f).coerceIn(0f, 1f),
+            modifier = modifier,
+            onClick = onClick,
+            content = content,
+        )
+        return
+    }
     val interactionSource = remember { MutableInteractionSource() }
     val pressProgress by animatePressProgress(interactionSource)
     val corner = lerp(BubbleCorner, BubblePressedCorner, pressProgress)

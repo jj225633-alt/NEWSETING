@@ -62,6 +62,7 @@ import me.rerere.ui.toast.ToastType
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import me.rerere.rikkahub.ui.pages.hoshio.splash.hoshioGlassImpl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -346,11 +347,29 @@ private fun ChatPageContent(
         previewMode = false
     }
 
+    // 星汐主題：沒有自訂背景時，聊天頁改成白天淺海／晚上星空，訊息與頂部列、輸入框都是玻璃
+    val hoshioGlass = setting.themeId == "hoshio" && !setting.dynamicColor &&
+        !assistant.useGradientBackground && assistant.background == null
+    // 泡泡只模糊背景那一層（不能用 hazeState，它也收錄了聊天清單本身）
+    val bubbleHaze = rememberHazeState()
+    val darkMode = me.rerere.rikkahub.ui.theme.LocalDarkMode.current
     Surface(
-        color = MaterialTheme.colorScheme.background,
+        color = if (hoshioGlass) Color.Transparent else MaterialTheme.colorScheme.background,
         modifier = Modifier.fillMaxSize()
     ) {
-        AssistantBackground(setting = setting, modifier = Modifier.hazeSource(hazeState))
+      androidx.compose.runtime.CompositionLocalProvider(
+        me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass provides hoshioGlass,
+        me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioHaze provides (if (hoshioGlass) bubbleHaze else null),
+      ) {
+        if (hoshioGlass) {
+            me.rerere.rikkahub.ui.pages.hoshio.splash.HoshioChatBackdrop(
+                dark = darkMode,
+                animate = true,
+                modifier = Modifier.fillMaxSize().hazeSource(hazeState).hazeSource(bubbleHaze),
+            )
+        } else {
+            AssistantBackground(setting = setting, modifier = Modifier.hazeSource(hazeState))
+        }
         Scaffold(
             topBar = {
                 TopBar(
@@ -563,6 +582,7 @@ private fun ChatPageContent(
                 onDismiss = { showFilesSheet = false },
             )
         }
+      }
     }
 }
 
@@ -691,6 +711,11 @@ private fun TopBar(
                     }
                 },
                 color = Color.Transparent,
+                modifier = if (me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
+                    Modifier
+                        .hoshioGlassImpl(hazeState, androidx.compose.foundation.shape.RoundedCornerShape(20.dp), strong = true)
+                        .padding(horizontal = 14.dp, vertical = 5.dp)
+                } else Modifier,
             ) {
                 Column {
                     val provider = chatModel?.findProvider(providers = settings.providers, checkOverwrite = false)

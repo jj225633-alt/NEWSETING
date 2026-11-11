@@ -27,6 +27,9 @@ import me.rerere.rikkahub.ui.theme.LocalDarkMode
 /** 星汐頁面背景的模糊來源；沒有提供時玻璃改用半透明（不模糊）。 */
 val LocalHoshioHaze = compositionLocalOf<HazeState?> { null }
 
+/** 聊天頁是否使用星汐玻璃風（淺海／星空背景、玻璃泡泡、玻璃頂部列與輸入框）。 */
+val LocalHoshioChatGlass = compositionLocalOf { false }
+
 /** 液態玻璃的色彩參數（依使用者提供的玻璃參數調整，夜晚降低彩度）。 */
 internal object HoshioGlassTokens {
     val DayFill = listOf(Color.White.copy(alpha = .62f), Color.White.copy(alpha = .28f))
@@ -47,8 +50,18 @@ fun HoshioGlass(
     strong: Boolean = false,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    Box(modifier.hoshioGlassImpl(LocalHoshioHaze.current, shape, blur, strong), content = content)
+}
+
+/** 同 [HoshioGlass]，但可以指定模糊來源（例如聊天頁的輸入框要連訊息一起模糊）。 */
+@Composable
+fun Modifier.hoshioGlassImpl(
+    haze: HazeState?,
+    shape: Shape = RoundedCornerShape(24.dp),
+    blur: Dp = 16.dp,
+    strong: Boolean = false,
+): Modifier {
     val dark = LocalDarkMode.current
-    val haze = LocalHoshioHaze.current
     val fill = if (dark) HoshioGlassTokens.NightFill else HoshioGlassTokens.DayFill
     val edge = if (dark) HoshioGlassTokens.NightEdge else HoshioGlassTokens.DayEdge
     val canBlur = haze != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -56,8 +69,7 @@ fun HoshioGlass(
     val boost = if (canBlur) 1f else 1.35f
     val tint = (if (strong) fill.map { it.copy(alpha = (it.alpha * 1.3f).coerceAtMost(.92f)) } else fill)
         .map { it.copy(alpha = (it.alpha * boost).coerceAtMost(.92f)) }
-    Box(
-        modifier
+    return this
             .clip(shape)
             .then(if (canBlur) Modifier.hazeBlur(
                 input = HazeInput.Sources(haze!!),
@@ -86,7 +98,5 @@ fun HoshioGlass(
                     Color.White.copy(alpha = if (dark) .22f else .85f), Color.Transparent)),
                     Offset(size.width * .08f, y), Offset(size.width * .92f, y), 1.dp.toPx())
             }
-            .border(1.dp, Brush.verticalGradient(edge), shape),
-        content = content,
-    )
+            .border(1.dp, Brush.verticalGradient(edge), shape)
 }
