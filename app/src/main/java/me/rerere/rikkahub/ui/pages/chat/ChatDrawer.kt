@@ -313,16 +313,20 @@ fun ChatDrawerContent(
     val drawerGlass = settings.themeId == "hoshio" && !settings.dynamicColor
     val drawerHaze = dev.chrisbanes.haze.rememberHazeState()
     val drawerDark = me.rerere.rikkahub.ui.theme.LocalDarkMode.current
+    val drawerShape = androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)
     ModalDrawerSheet(
         modifier = Modifier.width(300.dp),
+        drawerShape = drawerShape,
         drawerContainerColor = if (drawerGlass) androidx.compose.ui.graphics.Color.Transparent else androidx.compose.material3.DrawerDefaults.modalContainerColor,
+        // 玻璃底是透明的，字色要明確指定，不然夜晚會變成深色字
+        drawerContentColor = MaterialTheme.colorScheme.onSurface,
     ) {
       Box(Modifier.fillMaxWidth().weight(1f)) {
         if (drawerGlass && backgroundHaze != null) {
             // 直接模糊後面的聊天頁，看得到泡泡和背景被糊開
             Box(
                 Modifier.matchParentSize().hoshioGlassImpl(
-                    backgroundHaze, androidx.compose.ui.graphics.RectangleShape, blur = 22.dp, strong = false,
+                    backgroundHaze, drawerShape, blur = 22.dp, strong = false,
                 )
             )
         } else if (drawerGlass) {
@@ -333,7 +337,7 @@ fun ChatDrawerContent(
             )
             Box(
                 Modifier.matchParentSize().hoshioGlassImpl(
-                    drawerHaze, androidx.compose.ui.graphics.RectangleShape, blur = 28.dp, strong = true,
+                    drawerHaze, drawerShape, blur = 28.dp, strong = true,
                 )
             )
         }

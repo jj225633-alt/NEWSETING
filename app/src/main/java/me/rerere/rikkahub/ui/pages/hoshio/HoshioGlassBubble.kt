@@ -49,9 +49,10 @@ fun HoshioGlassBubble(
     val text: Color
     when {
         user && dark -> {
-            fill = listOf(Color(0xFF3A394E).copy(alpha = .86f), Color(0xFF2C2B3C).copy(alpha = .86f))
-            edge = Color.White.copy(alpha = .10f); highlight = Color.White.copy(alpha = .08f)
-            text = Color(0xFFECE8DE)
+            // 夜晚：深海藍帶一點星光金邊，和他的灰紫玻璃分得開
+            fill = listOf(Color(0xFF2E5470).copy(alpha = .90f), Color(0xFF1F3B55).copy(alpha = .90f))
+            edge = Color(0xFFD8C49A).copy(alpha = .35f); highlight = Color.White.copy(alpha = .10f)
+            text = Color(0xFFF2EEE4)
         }
         user -> {
             fill = listOf(Color(0xFF3B5F69).copy(alpha = .84f), Color(0xFF2D4C55).copy(alpha = .84f))

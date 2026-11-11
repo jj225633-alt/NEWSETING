@@ -443,7 +443,32 @@ private fun MessagePartsBlock(
                                     )
                                 }
                             } else {
-                                if (settings.displaySetting.showAssistantBubble || me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
+                                if (me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
+                                    // 星汐: 像 orbis-tw 一樣，一段一個泡泡
+                                    val visualText = part.text.replaceRegexes(
+                                        assistant = assistant,
+                                        scope = AssistantAffectScope.ASSISTANT,
+                                        visual = true,
+                                    )
+                                    val segments = remember(visualText) { splitReplyParagraphs(visualText) }
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        segments.forEachIndexed { i, segment ->
+                                            key(i) {
+                                                ChatMessageBubble(
+                                                    role = role,
+                                                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                                    modifier = Modifier.animateContentSize(),
+                                                ) {
+                                                    MarkdownBlock(
+                                                        content = segment,
+                                                        streaming = streamingText && i == segments.lastIndex,
+                                                        onClickCitation = handleClickCitation,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if (settings.displaySetting.showAssistantBubble) {
                                     ChatMessageBubble(
                                         role = role,
                                         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
@@ -688,4 +713,36 @@ private fun ChatMessageCitations(annotations: List<UIMessageAnnotation>) {
             }
         }
     }
+}
+
+
+/**
+ * 星汐: 把回覆依空行切成一段一段（程式碼區塊、表格、清單不切開），每段一個泡泡。
+ */
+internal fun splitReplyParagraphs(text: String): List<String> {
+    val lines = text.trim().lines()
+    val out = mutableListOf<String>()
+    val current = StringBuilder()
+    var inFence = false
+    fun flush() {
+        val t = current.toString().trim('\n')
+        if (t.isNotBlank()) out += t
+        current.clear()
+    }
+    lines.forEachIndexed { index, line ->
+        val trimmed = line.trimStart()
+        if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) inFence = !inFence
+        if (!inFence && line.isBlank()) {
+            // 清單或表格中間的空行不切
+            val prev = lines.subList(0, index).lastOrNull { it.isNotBlank() }?.trimStart().orEmpty()
+            val next = lines.drop(index + 1).firstOrNull { it.isNotBlank() }?.trimStart().orEmpty()
+            val listLike = Regex("^([-*+]|\\d+[.)])\\s").containsMatchIn(prev) && Regex("^([-*+]|\\d+[.)])\\s").containsMatchIn(next)
+            val tableLike = prev.startsWith("|") && next.startsWith("|")
+            if (listLike || tableLike) current.append('\n') else flush()
+        } else {
+            current.append(line).append('\n')
+        }
+    }
+    flush()
+    return out.ifEmpty { listOf(text) }
 }
