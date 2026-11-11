@@ -61,7 +61,12 @@ fun LocalDate.toLocalString(includeYear: Boolean): String {
     val formatter = if (includeYear) {
         DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)
     } else {
-        if (isMonthFirstLocale(locale)) {
+        // 星汐: 中文／日文顯示成「11月10日」，韓文「11월 10일」
+        if (locale.language in setOf("zh", "ja")) {
+            DateTimeFormatter.ofPattern("M月d日", locale)
+        } else if (locale.language == "ko") {
+            DateTimeFormatter.ofPattern("M월 d일", locale)
+        } else if (isMonthFirstLocale(locale)) {
             // Month-day format (e.g., "Sep 20" for US English)
             DateTimeFormatterBuilder()
                 .appendText(ChronoField.MONTH_OF_YEAR, TextStyle.SHORT)
@@ -87,6 +92,7 @@ private fun isMonthFirstLocale(locale: Locale): Boolean {
         "PH", // 菲律宾
         "CA", // 加拿大(虽然魁北克可能使用日-月格式)
         "CN", // 中国
+        "TW", "HK", "MO", "JP", "KR",
     )
     return monthFirstCountries.contains(locale.country)
 }
