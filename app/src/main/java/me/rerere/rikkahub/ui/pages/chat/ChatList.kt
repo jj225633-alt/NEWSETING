@@ -409,23 +409,9 @@ private fun ChatListNormal(
 
             if (loading) {
                 item(LoadingIndicatorKey) {
-                    Row(
-                        modifier = Modifier.padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        ContainedLoadingIndicator(
-                            modifier = Modifier.size(28.dp)
-                        )
-                        AnimatedVisibility(
-                            visible = processingStatus != null,
-                        ) {
-                            Text(
-                                text = processingStatus ?: "",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                    // 星汐: 心跳動畫（白天藍、晚上星星金），下面顯示等了多久
+                    Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
+                        me.rerere.rikkahub.ui.pages.hoshio.HoshioHeartbeat(status = processingStatus)
                     }
                 }
             }

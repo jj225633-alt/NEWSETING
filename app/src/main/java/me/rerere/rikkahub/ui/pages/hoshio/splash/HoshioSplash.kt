@@ -210,7 +210,7 @@ private class HoshioArt(private val dark: Boolean) {
             start = Offset(area.right, area.top), end = Offset(area.left + 30f, area.top + 170f)),
             area.topLeft, area.size, alpha = alpha)
         caustics?.let { field ->
-            field.update(t)
+            field.update(t * 1.4f)
             drawImage(field.image, srcOffset = IntOffset.Zero, srcSize = IntSize(field.w, field.h),
                 dstOffset = IntOffset(AX.toInt(), AY.toInt()), dstSize = IntSize(AW.toInt(), AH.toInt()),
                 alpha = alpha * .9f, filterQuality = FilterQuality.Low)
@@ -239,15 +239,33 @@ private class HoshioArt(private val dark: Boolean) {
                 center = Offset(135f, 250f), radius = 160f),
                 topLeft = Offset(135f - band.width / 2f, 250f - band.height / 2f), size = band, alpha = alpha)
         }
-        stars.forEachIndexed { i, st ->
-            val tw = if (st.twinkle) .55f + .45f * sin(t * (1.6f + (i % 5) * .3f) + i) else 1f
-            drawCircle(HoshioPalette.StarWarm.copy(alpha = st.a * tw * alpha), st.r, Offset(st.x, st.y))
+        // 星空在拱窗裡緩緩旋轉，星星明顯地閃
+        rotate(t * 7f, pivot = Offset(AX + AW / 2f, AY + AH / 2f)) {
+            stars.forEachIndexed { i, st ->
+                val tw = if (st.twinkle) (.5f + .5f * sin(t * (3.2f + (i % 5) * .8f) + i * 1.3f)).let { .15f + .85f * it * it } else 1f
+                if (st.twinkle && tw > .8f) drawCircle(HoshioPalette.StarGlow.copy(alpha = .22f * tw * alpha), st.r * 3f, Offset(st.x, st.y))
+                drawCircle(HoshioPalette.StarWarm.copy(alpha = (st.a * 1.2f).coerceAtMost(1f) * tw * alpha), st.r, Offset(st.x, st.y))
+            }
+        }
+        // 流星
+        val ph = ((t - .9f) % 1.6f) / .7f
+        if (t > .9f && ph in 0f..1f) {
+            val n = ((t - .9f) / 1.6f).toInt()
+            val sx = AX + AW * (.55f + (n % 3) * .15f)
+            val sy = AY + AH * (.12f + (n % 2) * .12f)
+            val len = 70f
+            val head = Offset(sx - .8f * len * ph, sy + .6f * len * ph)
+            val tail = Offset(head.x + .8f * len * .4f, head.y - .6f * len * .4f)
+            val fade = sin(ph * Math.PI.toFloat()) * alpha
+            drawLine(Brush.linearGradient(listOf(Color.Transparent, HoshioPalette.StarWarm.copy(alpha = .95f * fade)), start = tail, end = head),
+                tail, head, strokeWidth = .8f)
+            drawCircle(HoshioPalette.StarWarm.copy(alpha = fade), 1f, head)
         }
         // 暖色四芒星
         listOf(Offset(98f, 162f) to 6f, Offset(168f, 214f) to 4.5f, Offset(120f, 300f) to 3.5f,
             Offset(182f, 150f) to 3f, Offset(88f, 360f) to 3.5f).forEachIndexed { i, (pos, r) ->
-            val tw = .6f + .4f * sin(t * 2.4f + i * 1.9f)
-            drawCircle(HoshioPalette.StarGlow.copy(alpha = .16f * alpha * tw), r * 1.4f, pos)
+            val tw = .35f + .65f * sin(t * 3.4f + i * 1.9f).let { it * it }
+            drawCircle(HoshioPalette.StarGlow.copy(alpha = .22f * alpha * tw), r * 1.6f, pos)
             drawSparkle(pos, r, HoshioPalette.StarWarm.copy(alpha = alpha * tw))
         }
     }
@@ -360,9 +378,13 @@ private class Star(val x: Float, val y: Float, val r: Float, val a: Float, val t
 private fun starField(): List<Star> {
     val rnd = Random(7)
     val list = ArrayList<Star>(260)
-    repeat(90) {
-        list += Star(AX + rnd.nextFloat() * AW, AY + rnd.nextFloat() * AH,
-            .25f + rnd.nextFloat() * .45f, .35f + rnd.nextFloat() * .5f, rnd.nextInt(6) == 0)
+    // 範圍比拱窗大，旋轉時四角也有星星
+    val cx = AX + AW / 2f
+    val cy = AY + AH / 2f
+    val half = AH * .62f
+    repeat(150) {
+        list += Star(cx - half + rnd.nextFloat() * half * 2f, cy - half + rnd.nextFloat() * half * 2f,
+            .25f + rnd.nextFloat() * .5f, .35f + rnd.nextFloat() * .5f, rnd.nextInt(2) == 0)
     }
     repeat(170) {
         val u = rnd.nextFloat()
@@ -370,7 +392,7 @@ private fun starField(): List<Star> {
         // 銀河帶從左下延伸到右上
         val bx = AX + u * AW + spread * .62f
         val by = AY + AH - u * AH * .92f + spread * .78f
-        list += Star(bx, by, .2f + rnd.nextFloat() * .35f, .25f + rnd.nextFloat() * .45f, rnd.nextInt(9) == 0)
+        list += Star(bx, by, .2f + rnd.nextFloat() * .35f, .25f + rnd.nextFloat() * .45f, rnd.nextInt(3) == 0)
     }
     return list
 }
