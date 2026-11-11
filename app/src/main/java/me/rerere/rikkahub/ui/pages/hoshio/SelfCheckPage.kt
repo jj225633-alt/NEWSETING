@@ -63,6 +63,22 @@ fun SelfCheckPage() {
                 lastResult?.let { Text("主動關心最近一次：$it", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp)) }
                 Text("也可以直接問他「幫我檢查一下為什麼 XX 沒反應」。", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
             }
+            item {
+                // 完整檢查：模型、工具、MCP、工作區、主動關心、最近的故障
+                val full by androidx.compose.runtime.produceState<String?>(null, refresh) {
+                    value = runCatching { me.rerere.rikkahub.hoshio.FullSelfCheck.report(context, "overview") }.getOrElse { "檢查失敗：${it.message}" }
+                }
+                var open by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), shape = MaterialTheme.shapes.extraLarge) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("完整檢查（他看到的也是這份）", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                            androidx.compose.material3.TextButton(onClick = { open = !open }) { Text(if (open) "收起" else "展開") }
+                        }
+                        if (open) Text(full ?: "檢查中…", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
             items(items, key = { it.title }) { item ->
                 Card(
                     colors = CardDefaults.cardColors(

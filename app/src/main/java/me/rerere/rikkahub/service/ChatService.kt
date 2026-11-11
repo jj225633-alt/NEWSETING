@@ -167,6 +167,7 @@ class ChatService(
         solution: ChatErrorSolution? = null,
     ) {
         if (error is CancellationException) return
+        me.rerere.rikkahub.hoshio.Diagnostics.record(context, title ?: "聊天", error.message ?: error.javaClass.simpleName)
         _errors.update {
             it + ChatError(title = title, error = error, conversationId = conversationId, solution = solution)
         }

@@ -699,6 +699,7 @@ class CareWorker(
                     WakeRecord(trigger = event.title, action = "failed", note = if (finished) "沒有回覆" else "等待回覆逾時"),
                 )
                 prefs.lastResult = if (finished) "${event.title}：AI 沒有回覆內容" else "${event.title}：等待 AI 回覆逾時"
+                me.rerere.rikkahub.hoshio.Diagnostics.record(applicationContext, "主動關心", prefs.lastResult.orEmpty())
             }
         }
     }

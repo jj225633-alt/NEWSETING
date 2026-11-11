@@ -127,11 +127,25 @@ internal fun buildLifeTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "hoshio_self_check",
         description = """
-            Check the app's permissions and settings (notifications, battery, location, usage access, accessibility,
-            notification access, backup), which proactive-care features are on, and your recent wake-ups.
-            Use it when she asks why something does not work (e.g. no arrival message, no good-morning), then explain simply how to fix it.
+            Check yourself and the app: permissions, your chat model (tool support, provider), which local tool groups are on and whether
+            they can actually work, MCP servers (connected or not, e.g. the old phone's tools), workspace, proactive care / wake-ups / memory,
+            and recent failures with how to fix them. focus = overview (everything) / permissions / model / tools / mcp / workspace / care / errors.
+            Use it when she asks whether everything works or why something failed, then explain simply what is wrong and how to fix it.
+            Reads only this phone (no chat content, no keys).
         """.trimIndent().replace("\n", " "),
-        parameters = { InputSchema.Obj(properties = buildJsonObject { }) },
-        execute = { listOf(UIMessagePart.Text(me.rerere.rikkahub.hoshio.SelfCheck.summary(context))) }
+        parameters = {
+            InputSchema.Obj(properties = buildJsonObject {
+                put("focus", buildJsonObject {
+                    put("type", "string")
+                    put("enum", kotlinx.serialization.json.JsonArray(me.rerere.rikkahub.hoshio.FullSelfCheck.FOCUS.map { kotlinx.serialization.json.JsonPrimitive(it) }))
+                })
+            })
+        },
+        execute = { args ->
+            val focus = (args as? kotlinx.serialization.json.JsonObject)?.get("focus")
+                ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                ?.takeIf { it in me.rerere.rikkahub.hoshio.FullSelfCheck.FOCUS } ?: "overview"
+            listOf(UIMessagePart.Text(me.rerere.rikkahub.hoshio.FullSelfCheck.report(context, focus)))
+        }
     ),
 )
