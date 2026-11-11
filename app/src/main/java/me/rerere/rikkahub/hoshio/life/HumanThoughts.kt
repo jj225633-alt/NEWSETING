@@ -29,6 +29,20 @@ object HumanThoughts {
         return spoken to thought
     }
 
+    /** 依原本順序切成一段段：(是不是心裡話, 內容)；相鄰同類的行合在一起 */
+    fun segments(text: String): List<Pair<Boolean, String>> {
+        val out = mutableListOf<Pair<Boolean, MutableList<String>>>()
+        text.trim().lines().forEach { line ->
+            val thought = line.trimStart().startsWith(MARK)
+            val content = if (thought) line.trimStart().removePrefix(MARK).trim() else line
+            if (out.isNotEmpty() && out.last().first == thought) out.last().second += content
+            else out += thought to mutableListOf(content)
+        }
+        return out.map { (t, lines) -> t to lines.joinToString("\n").trim() }
+            .filter { it.second.isNotBlank() }
+            .ifEmpty { listOf(false to text) }
+    }
+
     @Synchronized
     fun save(context: Context, id: String, thought: String) {
         val p = prefs(context)

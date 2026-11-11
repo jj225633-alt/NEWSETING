@@ -53,7 +53,8 @@ sealed interface MessagePartBlock {
  * 成功执行的 chart_display 原地替换为 ChartBlock (会切断所在的 ThinkingBlock);
  * 生成中或失败的调用仍作为普通 ToolStep 展示
  */
-fun List<UIMessagePart>.groupMessageParts(): List<MessagePartBlock> {
+/** [separateSteps]：星汐風格，每一段思考、每一次工具呼叫各自一張卡（像 orbis-tw），不合併成一串 */
+fun List<UIMessagePart>.groupMessageParts(separateSteps: Boolean = false): List<MessagePartBlock> {
     val result = mutableListOf<MessagePartBlock>()
     var currentThinkingSteps = mutableListOf<ThinkingStep>()
 
@@ -65,6 +66,7 @@ fun List<UIMessagePart>.groupMessageParts(): List<MessagePartBlock> {
     }
 
     this.fastForEachIndexed { index, part ->
+        if (separateSteps) flushThinkingSteps()
         when (part) {
             is UIMessagePart.Reasoning -> {
                 currentThinkingSteps.add(ThinkingStep.ReasoningStep(part))

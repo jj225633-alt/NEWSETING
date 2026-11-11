@@ -346,7 +346,8 @@ private fun MessagePartsBlock(
     }
 
     // Render parts in original order (group thinking/tool as chain-of-thought)
-    val groupedParts = remember(parts) { parts.groupMessageParts() }
+    val separateSteps = me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current
+    val groupedParts = remember(parts, separateSteps) { parts.groupMessageParts(separateSteps) }
     groupedParts.fastForEach { block ->
         when (block) {
             is MessagePartBlock.ThinkingBlock -> {
@@ -424,27 +425,37 @@ private fun MessagePartsBlock(
                         val streamingText = loading && block.index == parts.lastIndex
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
-                                ChatMessageBubble(
-                                    role = role,
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                    onClick = { onUserMessageClick?.invoke() },
-                                    // 用户气泡不占满整行，和助手的回复错开
-                                    modifier = Modifier
-                                        .padding(start = 24.dp)
-                                        .animateContentSize(),
+                                // 星汐: 💭 開頭的心裡話留在原本的位置，收成「思考鏈」，點開才看得到
+                                val segments = remember(part.text) { me.rerere.rikkahub.hoshio.life.HumanThoughts.segments(part.text) }
+                                Column(
+                                    horizontalAlignment = Alignment.End,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    // 星汐: 💭 開頭的心裡話收進「思考鏈」，要點開才看得到（像 orbis-tw）
-                                    val (spoken, thought) = remember(part.text) { me.rerere.rikkahub.hoshio.life.HumanThoughts.split(part.text) }
-                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        if (thought != null) HumanThoughtCard(content = thought, key = "${block.index}:${thought.hashCode()}")
-                                        if (spoken.isNotBlank()) MarkdownBlock(
-                                            content = spoken.replaceRegexes(
-                                                assistant = assistant,
-                                                scope = AssistantAffectScope.USER,
-                                                visual = true,
-                                            ),
-                                            onClickCitation = handleClickCitation
-                                        )
+                                    segments.forEachIndexed { i, (isThought, text) ->
+                                        key(i) {
+                                            if (isThought) {
+                                                HumanThoughtCard(content = text, key = "${block.index}:$i:${text.hashCode()}")
+                                            } else {
+                                                ChatMessageBubble(
+                                                    role = role,
+                                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                                    onClick = { onUserMessageClick?.invoke() },
+                                                    // 用户气泡不占满整行，和助手的回复错开
+                                                    modifier = Modifier
+                                                        .padding(start = 24.dp)
+                                                        .animateContentSize(),
+                                                ) {
+                                                    MarkdownBlock(
+                                                        content = text.replaceRegexes(
+                                                            assistant = assistant,
+                                                            scope = AssistantAffectScope.USER,
+                                                            visual = true,
+                                                        ),
+                                                        onClickCitation = handleClickCitation
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             } else {
