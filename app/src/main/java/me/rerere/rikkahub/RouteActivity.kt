@@ -471,6 +471,9 @@ class RouteActivity : ComponentActivity() {
                             entry<Screen.VoiceCall> { key ->
                                 me.rerere.rikkahub.ui.pages.hoshio.VoiceCallPage(key.reason)
                             }
+                            entry<Screen.ListenTogether> {
+                                me.rerere.rikkahub.ui.pages.hoshio.ListenTogetherPage()
+                            }
                             entry<Screen.CallLog> {
                                 me.rerere.rikkahub.ui.pages.hoshio.CallLogPage()
                             }
@@ -888,6 +891,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object CallLog : Screen
+
+    @Serializable
+    data object ListenTogether : Screen
 
     @Serializable
     data object Treasure : Screen

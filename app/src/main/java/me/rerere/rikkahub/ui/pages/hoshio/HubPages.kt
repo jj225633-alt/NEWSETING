@@ -33,6 +33,7 @@ import me.rerere.hugeicons.stroke.Route01
 import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.Time02
 import me.rerere.hugeicons.stroke.Database02
+import me.rerere.hugeicons.stroke.MusicNote03
 import me.rerere.hugeicons.stroke.SmartPhone01
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.context.LocalNavController
@@ -81,6 +82,7 @@ fun PlayHubPage() = HubGrid(
     title = "一起玩",
     intro = "一起看、一起猜、一起下棋、一起養。",
     links = listOf(
+        HubLink("一起聽", "你在 YT 聽的歌、我們的歌單、歌詞和批註本", HugeIcons.MusicNote03, Screen.ListenTogether),
         HubLink("一起看螢幕", "他陪你看，邊看邊說話", HugeIcons.Eye, Screen.WatchTogether),
         HubLink("下棋", "圈圈叉叉、五子棋", HugeIcons.Play, Screen.BoardGame),
         HubLink("海龜湯", "用是／不是猜出真相", HugeIcons.MessageQuestion, Screen.TurtleSoup),
