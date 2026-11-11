@@ -416,6 +416,7 @@ object OrbisMigration : KoinComponent {
                 when (writeNew(memoryId, base, "Orbis 記憶：$tag", "從 Orbis 搬來的記憶（$tag，${list.size} 則）", aliases, body)) {
                     true -> files++
                     false -> existed++
+                    null -> {}
                 }
             }
         }
