@@ -83,6 +83,7 @@ class ChatRequestFactory(
     workspaceRepository: WorkspaceRepository,
 ) {
     private val inputTransformers: List<InputMessageTransformer> = listOf(
+        me.rerere.rikkahub.data.ai.transformers.MediaDecayTransformer,
         TimeReminderTransformer,
         HoshioStateTransformer,
         HumanThoughtTransformer,

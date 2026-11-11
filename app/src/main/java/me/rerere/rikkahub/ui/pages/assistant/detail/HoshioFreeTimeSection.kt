@@ -92,7 +92,24 @@ internal fun HoshioFreeTimeSection(assistant: Assistant) {
 @Composable
 internal fun HoshioConversationSection() {
     var follow by remember { mutableStateOf(me.rerere.rikkahub.hoshio.HoshioFlags.followAssistant) }
+    val ctx = LocalContext.current
+    var decay by remember { mutableStateOf(me.rerere.rikkahub.data.ai.transformers.MediaDecayTransformer.enabled(ctx)) }
     CardGroup(title = { Text("對話設定") }) {
+        switchItem(
+            checked = decay,
+            onCheckedChange = {
+                me.rerere.rikkahub.data.ai.transformers.MediaDecayTransformer.setEnabled(ctx, it)
+                decay = it
+            },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Sparkles) },
+            supportingContent = {
+                Text(
+                    "只有最近兩則帶圖片／語音的訊息送原檔，更早的改成一行收據加一句說明（快速模型第一次看到時寫好），不再每輪重送，省很多 token。" +
+                        "說明要用到「設定 → 預設模型與提示 → 快速模型」，請選看得懂圖片和聲音的模型"
+                )
+            },
+            headlineContent = { Text("舊圖片、舊語音只留收據") },
+        )
         switchItem(
             checked = follow,
             onCheckedChange = {
