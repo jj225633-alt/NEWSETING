@@ -157,11 +157,11 @@ fun MarkdownBlock(
     val theme = remember(defaultTheme, fontSize, density, enableQuoteHighlight, quoteColor, accent) {
         val base = if (accent == androidx.compose.ui.graphics.Color.Unspecified) defaultTheme else defaultTheme.copy(
             link = defaultTheme.link.copy(color = accent),
-            inlineCode = base.inlineCode.copy(color = accent),
+            inlineCode = defaultTheme.inlineCode.copy(color = accent),
             markerColor = accent,
         )
         base.copy(
-            inlineCode = defaultTheme.inlineCode.copy(
+            inlineCode = base.inlineCode.copy(
                 fontFamily = JetbrainsMono,
                 fontFeatureSettings = "'calt' 0, 'liga' 0, 'clig' 0",
             ),
