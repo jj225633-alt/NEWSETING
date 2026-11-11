@@ -43,7 +43,8 @@ fun Route.eventsRoutes(
 
         // Full settings snapshot; StateFlow emits the current value immediately on connect.
         val settingsEvents = settingsStore.settingsFlow.map { settings ->
-            EventPayload(event = "settings", json = JsonInstant.encodeToString(settings))
+            // 星汐: 金鑰、密碼、權杖不送到網頁端
+            EventPayload(event = "settings", json = me.rerere.rikkahub.web.WebSecurity.redactedSettingsJson(JsonInstant.encodeToString(settings)))
         }
 
         // Conversation list invalidation, scoped to the currently selected assistant.

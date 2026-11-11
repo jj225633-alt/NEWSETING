@@ -63,7 +63,10 @@ fun Application.configureWebApi(
     settingsStore: SettingsStore,
     filesManager: FilesManager
 ) {
-    val jwtEnabled = settingsStore.settingsFlow.value.webServerJwtEnabled
+    // 星汐: 對區網開放時一律要密碼（沒設密碼＝受保護的路一律拒絕）；只有「僅限本機」才能不設
+    val appContextForLog: Context = context
+    val startSettings = settingsStore.settingsFlow.value
+    val jwtEnabled = startSettings.webServerJwtEnabled || !startSettings.webServerLocalhostOnly
 
     install(ContentNegotiation) {
         json(JsonInstant)
@@ -91,9 +94,12 @@ fun Application.configureWebApi(
                     // Dynamically read the current password on each request so that
                     // tokens signed after a password change are validated correctly.
                     val currentPassword = settingsStore.settingsFlow.value.webServerAccessPassword
+                    // 星汐: 網址上的憑證只給即時更新（SSE，瀏覽器沒辦法帶標頭）用，其他一律要放在標頭
+                    val path = context.call.request.local.uri
+                    val allowQuery = path.contains("/events") || path.contains("/stream")
                     val token = extractAccessToken(
                         authorizationHeader = context.call.request.headers[HttpHeaders.Authorization],
-                        queryToken = context.call.request.queryParameters[WEB_ACCESS_TOKEN_QUERY_KEY]
+                        queryToken = if (allowQuery) context.call.request.queryParameters[WEB_ACCESS_TOKEN_QUERY_KEY] else null
                     )
                     // Keep protected routes closed when jwt is enabled but password is missing.
                     if (token != null && currentPassword.isNotBlank() && verifyWebJwt(token, currentPassword)) {
@@ -106,6 +112,11 @@ fun Application.configureWebApi(
                         AuthenticationFailedCause.InvalidCredentials
                     }
                     context.challenge(WEB_AUTH_PROVIDER, cause) { challenge, call ->
+                        me.rerere.rikkahub.web.WebSecurity.logDenied(
+                            appContextForLog,
+                            call.request.local.remoteAddress, call.request.local.method.value, call.request.local.uri,
+                            if (currentPassword.isBlank()) 403 else 401,
+                        )
                         if (currentPassword.isBlank()) {
                             call.respond(
                                 HttpStatusCode.Forbidden,
@@ -128,7 +139,7 @@ fun Application.configureWebApi(
         route("/api") {
             post("/auth/token") {
                 val settings = settingsStore.settingsFlow.value
-                if (!settings.webServerJwtEnabled) {
+                if (!jwtEnabled) {
                     throw BadRequestException("JWT auth is disabled")
                 }
 
@@ -137,10 +148,19 @@ fun Application.configureWebApi(
                     throw BadRequestException("Access password is not configured")
                 }
 
+                val remote = call.request.local.remoteAddress
+                if (me.rerere.rikkahub.web.WebSecurity.isLocked(remote)) {
+                    me.rerere.rikkahub.web.WebSecurity.logDenied(appContextForLog, remote, "POST", "/api/auth/token（鎖定中）", 429)
+                    call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("Too many attempts, try again later", 429))
+                    return@post
+                }
                 val request = call.receive<WebAuthTokenRequest>()
                 if (!secureEquals(request.password, accessPassword)) {
+                    me.rerere.rikkahub.web.WebSecurity.recordFailure(remote)
+                    me.rerere.rikkahub.web.WebSecurity.logDenied(appContextForLog, remote, "POST", "/api/auth/token（密碼錯誤）", 401)
                     throw UnauthorizedException("Invalid password")
                 }
+                me.rerere.rikkahub.web.WebSecurity.recordSuccess(remote)
 
                 val (token, expiresAt) = createWebJwt(accessPassword)
                 call.respond(

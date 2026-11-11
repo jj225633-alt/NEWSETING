@@ -82,6 +82,10 @@ fun SettingWebPage() {
     var portText by remember(settings.webServerPort) {
         mutableStateOf(settings.webServerPort.toString())
     }
+    val ctxForLog = androidx.compose.ui.platform.LocalContext.current
+    var showDenied by remember { mutableStateOf(false) }
+    var deniedRefresh by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val deniedLog = remember(showDenied, deniedRefresh) { me.rerere.rikkahub.web.WebSecurity.deniedLog(ctxForLog) }
     var accessPasswordText by remember(settings.webServerAccessPassword) {
         mutableStateOf(settings.webServerAccessPassword)
     }
@@ -307,6 +311,40 @@ fun SettingWebPage() {
                                     disabledIndicatorColor = Color.Transparent
                                 )
                             )
+                        },
+                    )
+                    // 星汐: 對區網開放一定要密碼；被拒絕的連線（門鈴）
+                    if (!settings.webServerLocalhostOnly) {
+                        item(
+                            headlineContent = {
+                                Text(
+                                    if (settings.webServerAccessPassword.isBlank()) "⚠️ 對區網開放時一定要設密碼" else "🔒 對區網開放：已強制需要密碼",
+                                    color = if (settings.webServerAccessPassword.isBlank()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                )
+                            },
+                            supportingContent = {
+                                Text(
+                                    "同一個 Wi-Fi 的人都連得到這台手機，所以星汐一律要求密碼；沒設密碼時，網頁版和電腦版都會被拒絕。" +
+                                        "密碼設一組你在手機上能一次完整複製的長度就好。只在這支手機自己用的話，可以打開「僅限本機」。"
+                                )
+                            },
+                        )
+                    }
+                    item(
+                        onClick = { showDenied = !showDenied },
+                        headlineContent = { Text("門鈴：被拒絕的連線（${deniedLog.size}）") },
+                        supportingContent = {
+                            androidx.compose.foundation.layout.Column {
+                                if (!showDenied) Text("沒帶對密碼的連線都會記在這裡（時間、來源、路徑），點一下查看")
+                                else if (deniedLog.isEmpty()) Text("還沒有人被擋下來。")
+                                else {
+                                    deniedLog.take(50).forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+                                    androidx.compose.material3.TextButton(onClick = {
+                                        me.rerere.rikkahub.web.WebSecurity.clearDenied(ctxForLog)
+                                        deniedRefresh++
+                                    }) { Text("清除紀錄") }
+                                }
+                            }
                         },
                     )
                     if (serverState.isRunning) {
