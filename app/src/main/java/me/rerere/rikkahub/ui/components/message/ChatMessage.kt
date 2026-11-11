@@ -433,14 +433,19 @@ private fun MessagePartsBlock(
                                         .padding(start = 24.dp)
                                         .animateContentSize(),
                                 ) {
-                                    MarkdownBlock(
-                                        content = part.text.replaceRegexes(
-                                            assistant = assistant,
-                                            scope = AssistantAffectScope.USER,
-                                            visual = true,
-                                        ),
-                                        onClickCitation = handleClickCitation
-                                    )
+                                    // 星汐: 💭 開頭的心裡話收進「思考鏈」，要點開才看得到（像 orbis-tw）
+                                    val (spoken, thought) = remember(part.text) { me.rerere.rikkahub.hoshio.life.HumanThoughts.split(part.text) }
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        if (thought != null) HumanThoughtCard(content = thought, key = "${block.index}:${thought.hashCode()}")
+                                        if (spoken.isNotBlank()) MarkdownBlock(
+                                            content = spoken.replaceRegexes(
+                                                assistant = assistant,
+                                                scope = AssistantAffectScope.USER,
+                                                visual = true,
+                                            ),
+                                            onClickCitation = handleClickCitation
+                                        )
+                                    }
                                 }
                             } else {
                                 if (me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
