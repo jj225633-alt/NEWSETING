@@ -14,7 +14,11 @@ object BodyTagTransformer : OutputMessageTransformer {
     override suspend fun visualTransform(ctx: TransformerContext, messages: List<UIMessage>): List<UIMessage> =
         messages.map { m ->
             if (m.role != MessageRole.ASSISTANT) m else m.copy(parts = m.parts.map { p ->
-                if (p is UIMessagePart.Text && p.text.contains('<')) p.copy(text = me.rerere.rikkahub.hoshio.snap.PovSnap.hidePartial(BodyTags.hide(p.text))) else p
+                if (p is UIMessagePart.Text) {
+                    var t = me.rerere.rikkahub.hoshio.snap.ChatModes.hide(p.text)
+                    if (t.contains('<')) t = me.rerere.rikkahub.hoshio.snap.PovSnap.hidePartial(BodyTags.hide(t))
+                    if (t != p.text) p.copy(text = t) else p
+                } else p
             })
         }
 
@@ -23,8 +27,10 @@ object BodyTagTransformer : OutputMessageTransformer {
             if (m.role != MessageRole.ASSISTANT) return@map m
             var changed = false
             val parts = m.parts.mapIndexed { i, p ->
-                if (p is UIMessagePart.Text && p.text.contains('<')) {
-                    val (clean, tags) = BodyTags.parse(p.text)
+                if (p is UIMessagePart.Text) {
+                    // 星汐: 說話的樣子（第一行的 [switch-mode:xxx]）
+                    val moded = runCatching { me.rerere.rikkahub.hoshio.snap.ChatModes.extract(ctx.context, m.id.toString(), p.text) }.getOrDefault(p.text)
+                    val (clean, tags) = if (moded.contains('<')) BodyTags.parse(moded) else moded to emptyList()
                     if (tags.isNotEmpty()) runCatching { BodyStore.applyTags(ctx.context, "${m.id}:$i:${p.text.hashCode()}", tags) }
                     // 星汐: 他的截圖標記換成卡片記號
                     val snapped = runCatching { me.rerere.rikkahub.hoshio.snap.PovSnap.extract(ctx.context, clean) }.getOrDefault(clean)

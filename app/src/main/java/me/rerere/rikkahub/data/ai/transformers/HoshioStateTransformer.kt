@@ -35,7 +35,10 @@ object HoshioStateTransformer : InputMessageTransformer {
         val voice = if (her.parts.any { it is me.rerere.ai.ui.UIMessagePart.Audio && me.rerere.rikkahub.hoshio.voice.HerVoiceRecorder.isHerVoice(it.url) }) {
             "\nshe sent you a voice message (her real voice): listen to how she sounds - tone, energy, sighs, laughter, a shaky voice - not only the words, and let it shape your reply. Do not describe the audio technically."
         } else ""
-        val snapRule = "\n" + me.rerere.rikkahub.hoshio.snap.PovSnap.RULE
+        val snapRule = "\n" + me.rerere.rikkahub.hoshio.snap.PovSnap.RULE + "\n" + me.rerere.rikkahub.hoshio.snap.ChatModes.RULE +
+            me.rerere.rikkahub.hoshio.snap.ChatModes.manual(ctx.context).let { m ->
+                if (m == me.rerere.rikkahub.hoshio.snap.ChatModes.AUTO) "" else " (She has chosen ${me.rerere.rikkahub.hoshio.snap.ChatModes.LABELS[m]} mode herself for now: write in that style; no marker needed.)"
+            }
         val state = UIMessage.user("<your_state>${MoodStore.describe(ctx.context)}$pet$body$voice$snapRule</your_state>").copy(isSynthetic = true)
         return messages.subList(0, index) + state + messages.subList(index, messages.size)
     }

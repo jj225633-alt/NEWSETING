@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -184,9 +185,25 @@ fun ChatMessage(
                 )
             }
         }
+        // 星汐: 這則訊息的說話樣子（日常／長聊／場景）
+        val modeVersion by me.rerere.rikkahub.hoshio.snap.ChatModes.version.collectAsState()
+        val modeContext = LocalContext.current
+        val messageMode = remember(message.id, modeVersion, loading) {
+            if (message.role != MessageRole.ASSISTANT) null
+            else me.rerere.rikkahub.hoshio.snap.ChatModes.modeOf(modeContext, message.id.toString())
+                ?: if (loading) me.rerere.rikkahub.hoshio.snap.ChatModes.current(modeContext) else null
+        }
+        if (message.role == MessageRole.ASSISTANT && remember(message.id, modeVersion) { me.rerere.rikkahub.hoshio.snap.ChatModes.switchedAt(modeContext, message.id.toString()) }) {
+            Text(
+                "${assistant?.name?.ifBlank { null } ?: "他"} 切到了〔${me.rerere.rikkahub.hoshio.snap.ChatModes.LABELS[messageMode] ?: messageMode}〕",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         CompositionLocalProvider(
             LocalTextStyle provides textStyle,
             LocalWorkspaceId provides assistant?.workspaceId?.toString(),
+            me.rerere.rikkahub.hoshio.snap.LocalMessageMode provides messageMode,
         ) {
             MessagePartsBlock(
                 assistant = assistant,
@@ -471,8 +488,19 @@ private fun MessagePartsBlock(
                                         scope = AssistantAffectScope.ASSISTANT,
                                         visual = true,
                                     )
-                                    val segments = remember(visualText) { splitReplyParagraphs(visualText) }
-                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    val mode = me.rerere.rikkahub.hoshio.snap.LocalMessageMode.current
+                                    val segments = remember(visualText, mode) {
+                                        when (mode) {
+                                            me.rerere.rikkahub.hoshio.snap.ChatModes.CHAT -> me.rerere.rikkahub.hoshio.snap.splitSentences(visualText)
+                                            me.rerere.rikkahub.hoshio.snap.ChatModes.TALK, me.rerere.rikkahub.hoshio.snap.ChatModes.SCENE -> listOf(visualText)
+                                            else -> splitReplyParagraphs(visualText)
+                                        }
+                                    }
+                                    if (mode == me.rerere.rikkahub.hoshio.snap.ChatModes.SCENE) {
+                                        // 場景：像看小說，沒有泡泡
+                                        me.rerere.rikkahub.ui.pages.hoshio.SceneProse(visualText, streamingText)
+                                    } else
+                                    Column(verticalArrangement = Arrangement.spacedBy(if (mode == me.rerere.rikkahub.hoshio.snap.ChatModes.CHAT) 4.dp else 6.dp)) {
                                         segments.forEachIndexed { i, segment ->
                                             key(i) {
                                                 ChatMessageBubble(

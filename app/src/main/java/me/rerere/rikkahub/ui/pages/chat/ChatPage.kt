@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -848,7 +849,7 @@ private fun ChatPageMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 2)) {
+            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 3)) {
                 MenuItem(
                     text = stringResource(R.string.chat_page_conversation_map),
                     icon = HugeIcons.LeftToRightListBullet,
@@ -865,7 +866,27 @@ private fun ChatPageMenu(
                 )
             }
             Spacer(Modifier.height(MenuDefaults.GroupSpacing))
-            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 1, count = 2)) {
+            // 星汐: 說話的樣子
+            run {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                val manual by me.rerere.rikkahub.hoshio.snap.ChatModes.manual.collectAsState()
+                androidx.compose.runtime.LaunchedEffect(Unit) { me.rerere.rikkahub.hoshio.snap.ChatModes.manual(ctx) }
+                val options = listOf(me.rerere.rikkahub.hoshio.snap.ChatModes.AUTO to "交給他決定") + me.rerere.rikkahub.hoshio.snap.ChatModes.LABELS.toList()
+                DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 1, count = 3)) {
+                    options.forEachIndexed { i, (key, label) ->
+                        DropdownMenuItem(
+                            text = { Text((if (manual == key) "✓ " else "　") + "說話樣子：$label") },
+                            onClick = {
+                                me.rerere.rikkahub.hoshio.snap.ChatModes.setManual(ctx, key)
+                                expanded = false
+                            },
+                            shape = MenuDefaults.itemShape(index = i, count = options.size).shape,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(MenuDefaults.GroupSpacing))
+            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 2, count = 3)) {
                 MenuItem(
                     text = stringResource(R.string.delete),
                     icon = HugeIcons.Delete01,
