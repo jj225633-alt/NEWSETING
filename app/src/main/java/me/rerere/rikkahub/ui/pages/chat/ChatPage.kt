@@ -245,17 +245,23 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
         }
 
         else -> {
+            // 星汐: 側邊欄的毛玻璃要模糊後面的聊天頁
+            val pageHaze = rememberHazeState()
+            val glassDrawer = setting.themeId == "hoshio" && !setting.dynamicColor
             ModalNavigationDrawer(
                 drawerState = drawerState,
+                scrimColor = if (glassDrawer) Color.Black.copy(alpha = .18f) else androidx.compose.material3.DrawerDefaults.scrimColor,
                 drawerContent = {
                     ChatDrawerContent(
                         navController = navController,
                         current = conversation,
                         vm = vm,
-                        settings = setting
+                        settings = setting,
+                        backgroundHaze = if (glassDrawer) pageHaze else null,
                     )
                 }
             ) {
+              Box(Modifier.fillMaxSize().then(if (glassDrawer) Modifier.hazeSource(pageHaze) else Modifier)) {
                 ChatPageContent(
                     onStartVoiceMode = startVoiceMode,
                     inputState = inputState,
@@ -274,6 +280,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
                     onDismissError = { vm.dismissError(it) },
                     onClearAllErrors = { vm.clearAllErrors() },
                 )
+              }
             }
             BackHandler(drawerState.isOpen) {
                 scope.launch { drawerState.close() }

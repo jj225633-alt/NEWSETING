@@ -108,6 +108,7 @@ fun ChatDrawerContent(
     vm: ChatVM,
     settings: Settings,
     current: Conversation,
+    backgroundHaze: dev.chrisbanes.haze.HazeState? = null,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -317,7 +318,14 @@ fun ChatDrawerContent(
         drawerContainerColor = if (drawerGlass) androidx.compose.ui.graphics.Color.Transparent else androidx.compose.material3.DrawerDefaults.modalContainerColor,
     ) {
       Box(Modifier.fillMaxWidth().weight(1f)) {
-        if (drawerGlass) {
+        if (drawerGlass && backgroundHaze != null) {
+            // 直接模糊後面的聊天頁，看得到泡泡和背景被糊開
+            Box(
+                Modifier.matchParentSize().hoshioGlassImpl(
+                    backgroundHaze, androidx.compose.ui.graphics.RectangleShape, blur = 22.dp, strong = false,
+                )
+            )
+        } else if (drawerGlass) {
             me.rerere.rikkahub.ui.pages.hoshio.splash.HoshioChatBackdrop(
                 dark = drawerDark,
                 animate = false,
