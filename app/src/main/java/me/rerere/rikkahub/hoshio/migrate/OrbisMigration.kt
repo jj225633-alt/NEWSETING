@@ -21,6 +21,7 @@ import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.data.datastore.SettingsStore
+import me.rerere.rikkahub.data.ai.mcp.serverUrl
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.model.MemoryFile
 import me.rerere.rikkahub.data.model.MessageNode
@@ -79,6 +80,7 @@ object OrbisMigration : KoinComponent {
         val bodyOwners: Set<String>,
         val desireOwners: Set<String>,
         val spaceOwners: Set<String>,
+        val mcpNames: List<String>,
         val hasDatabase: Boolean,
     )
 
@@ -91,6 +93,7 @@ object OrbisMigration : KoinComponent {
         val body: Boolean = true,
         val desires: Boolean = true,
         val spaces: Boolean = true,
+        val mcp: Boolean = true,
         val replaceExisting: Boolean = false,
     )
 
@@ -118,6 +121,14 @@ object OrbisMigration : KoinComponent {
                     val id = o["id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
                     id to (o["name"]?.jsonPrimitive?.contentOrNull?.ifBlank { null } ?: "未命名助手")
                 }.orEmpty().toMap()
+            settings?.let { File(dir, "settings.json").writeText(it.toString()) }
+            val mcpNames = (settings?.get("mcpServers") as? JsonArray).orEmpty().mapNotNull { el ->
+                val o = el as? JsonObject ?: return@mapNotNull null
+                val common = o["commonOptions"] as? JsonObject
+                (common?.get("displayName") as? JsonPrimitive)?.contentOrNull?.ifBlank { null }
+                    ?: (common?.get("name") as? JsonPrimitive)?.contentOrNull?.ifBlank { null }
+                    ?: (o["url"] as? JsonPrimitive)?.contentOrNull ?: "MCP"
+            }
             val dbEntry = zip.getEntry(DB_ENTRY)
             val counts = mutableMapOf<String, Int>()
             val memCounts = mutableMapOf<String, Int>()
@@ -146,6 +157,7 @@ object OrbisMigration : KoinComponent {
                 petOwners = owners("pet"),
                 bodyOwners = owners("body"),
                 desireOwners = owners("desires"),
+                mcpNames = mcpNames,
                 spaceOwners = names.mapNotNull { Regex("orbis-companion-spaces/([0-9a-fA-F-]+)/index\\.json").matchEntire(it)?.groupValues?.get(1) }.toSet(),
                 hasDatabase = dbEntry != null,
             )
@@ -195,6 +207,10 @@ object OrbisMigration : KoinComponent {
                 progress("正在搬身體狀態…")
                 val raw = owners.firstNotNullOfOrNull { entryText("orbis-activities/$it/body.json") }
                 lines += if (raw == null) "身體狀態：備份裡沒有" else importBody(context, raw, options.replaceExisting)
+            }
+            if (options.mcp) {
+                progress("正在搬 MCP 工具…")
+                lines += importMcp(context, him.id)
             }
             if (options.spaces) {
                 progress("正在搬共同空間、秘密基地和照片牆…")
@@ -562,6 +578,36 @@ object OrbisMigration : KoinComponent {
             true -> "渴望：${active.size} 個，寫進他的記憶"
             false -> "渴望：之前已經搬過了"
             null -> "渴望：寫入失敗"
+        }
+    }
+
+    // ---------------- MCP ----------------
+
+    private suspend fun importMcp(context: Context, himId: Uuid): String {
+        val file = File(workDir(context), "settings.json")
+        if (!file.exists()) return "MCP：備份裡沒有設定"
+        val array = runCatching { loose.parseToJsonElement(file.readText()).jsonObject["mcpServers"] as? JsonArray }.getOrNull()
+        if (array.isNullOrEmpty()) return "MCP：Orbis 裡沒有 MCP 伺服器"
+        val servers = array.mapNotNull { runCatching { JsonInstant.decodeFromJsonElement<me.rerere.rikkahub.data.ai.mcp.McpServerConfig>(it) }.getOrNull() }
+        var added = 0
+        var noSecret = 0
+        settingsStore.update { settings ->
+            val have = settings.mcpServers.map { it.id }.toSet()
+            val haveUrls = settings.mcpServers.map { it.serverUrl }.toSet()
+            val incoming = servers.filter { it.id !in have && it.serverUrl !in haveUrls }
+            added = incoming.size
+            noSecret = incoming.count { it.commonOptions.headers.isEmpty() && it.commonOptions.oauth?.isAuthorized != true }
+            settings.copy(
+                mcpServers = settings.mcpServers + incoming,
+                assistants = settings.assistants.map { a ->
+                    if (a.id == himId) a.copy(mcpServers = a.mcpServers + incoming.map { it.id }) else a
+                },
+            )
+        }
+        return buildString {
+            append("MCP：新增 $added 個伺服器，已幫時澈打開")
+            if (added < servers.size) append("（${servers.size - added} 個已經有了）")
+            if (noSecret > 0) append("。其中 $noSecret 個沒有帶金鑰／登入，如果它需要，請到設定 → MCP 補上")
         }
     }
 
