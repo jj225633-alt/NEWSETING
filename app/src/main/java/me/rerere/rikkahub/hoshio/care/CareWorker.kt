@@ -69,7 +69,8 @@ internal fun hasAnniversaryReminders(context: Context): Boolean =
 private const val WAKE_CHOICE_HINT =
     "\n\n(You woke up because of this event. You decide what to do: message her; or, if you honestly don't feel like talking " +
         "or it would be intrusive, call stay_silent with a short note and write no reply; or quietly do something with your tools " +
-        "(diary, private room, reading...) without messaging her. Whatever you choose is recorded in your wake log.)"
+        "(diary, private room, reading...) without messaging her. Whatever you choose is recorded in your wake log. " +
+        "If you like, also refresh the one-line note at the top of her sidebar with side_note.)"
 
 /** 一次要让 AI 知道的手机事件 */
 private data class CareEvent(val key: String, val title: String, val text: String)

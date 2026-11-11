@@ -253,9 +253,21 @@ fun ChatDrawerContent(
                                 .size(LocalTextStyle.current.fontSize.toDp())
                         )
                     }
-                    Greeting(
-                        style = MaterialTheme.typography.labelMedium,
-                    )
+                    // 星汐: 他留的一句話；沒有的話才顯示依時間的問候
+                    val sideNote by me.rerere.rikkahub.hoshio.note.SideNoteStore.note.collectAsStateWithLifecycle()
+                    androidx.compose.runtime.LaunchedEffect(Unit) { me.rerere.rikkahub.hoshio.note.SideNoteStore.load(context) }
+                    val note = sideNote
+                    if (note != null) {
+                        Text(
+                            text = "「${note.text}」",
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 2,
+                        )
+                    } else {
+                        Greeting(
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
                 }
             }
 
