@@ -41,3 +41,18 @@ internal fun buildSideNoteTool(context: Context): Tool = Tool(
         }
     },
 )
+
+/** 星汐: 看自己截過的聊天截圖 */
+internal fun buildPovSnapTool(context: Context): Tool = Tool(
+    name = "my_snapshots",
+    description = "See the chat screenshots you took from your point of view (<pov-snap .../>), newest first, with the lines and your note.",
+    parameters = { InputSchema.Obj(properties = buildJsonObject { }) },
+    execute = {
+        val list = me.rerere.rikkahub.hoshio.snap.PovSnap.load(context).filter { it.lines != null }.take(10)
+        tJson("snapshots" to if (list.isEmpty()) "none yet" else list.joinToString("\n\n") { s ->
+            java.time.Instant.ofEpochMilli(s.at).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString() +
+                (if (s.note.isNotBlank()) " - ${s.note}" else "") + "\n" +
+                s.lines.orEmpty().joinToString("\n") { (if (it.him) "you: " else "her: ") + it.text.take(120) }
+        })
+    },
+)

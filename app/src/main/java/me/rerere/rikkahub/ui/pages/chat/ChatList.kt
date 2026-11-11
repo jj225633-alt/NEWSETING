@@ -325,6 +325,9 @@ private fun ChatListNormal(
         }
 
         ChatFontProvider(displaySetting = settings.displaySetting) {
+          androidx.compose.runtime.CompositionLocalProvider(
+            me.rerere.rikkahub.hoshio.snap.LocalSnapMessages provides { conversation.currentMessages },
+          ) {
             LazyColumn(
                 state = state,
                 // 顶部留白放进 contentPadding，让消息可以滚动到透明标题栏下面
@@ -425,6 +428,7 @@ private fun ChatListNormal(
                 )
             }
             }
+          }
         }
 
         Box(

@@ -459,9 +459,14 @@ private fun MessagePartsBlock(
                                     }
                                 }
                             } else {
+                                // 星汐: 他截的圖：記號從文字拿掉，卡片放在後面
+                                val snapIds = remember(part.text) { me.rerere.rikkahub.hoshio.snap.PovSnap.MARKER.findAll(part.text).map { it.groupValues[1] }.toList() }
+                                val snapText = remember(part.text) { if (snapIds.isEmpty()) part.text else part.text.replace(me.rerere.rikkahub.hoshio.snap.PovSnap.MARKER, "").trim() }
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (snapText.isNotBlank()) {
                                 if (me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
                                     // 星汐: 像 orbis-tw 一樣，一段一個泡泡
-                                    val visualText = part.text.replaceRegexes(
+                                    val visualText = snapText.replaceRegexes(
                                         assistant = assistant,
                                         scope = AssistantAffectScope.ASSISTANT,
                                         visual = true,
@@ -491,7 +496,7 @@ private fun MessagePartsBlock(
                                         modifier = Modifier.animateContentSize(),
                                     ) {
                                         MarkdownBlock(
-                                            content = part.text.replaceRegexes(
+                                            content = snapText.replaceRegexes(
                                                 assistant = assistant,
                                                 scope = AssistantAffectScope.ASSISTANT,
                                                 visual = true,
@@ -502,7 +507,7 @@ private fun MessagePartsBlock(
                                     }
                                 } else {
                                     MarkdownBlock(
-                                        content = part.text.replaceRegexes(
+                                        content = snapText.replaceRegexes(
                                             assistant = assistant,
                                             scope = AssistantAffectScope.ASSISTANT,
                                             visual = true,
@@ -512,6 +517,9 @@ private fun MessagePartsBlock(
                                         modifier = Modifier
                                             .animateContentSize()
                                     )
+                                }
+                                }
+                                snapIds.forEach { id -> key("snap$id") { me.rerere.rikkahub.ui.pages.hoshio.PovSnapCard(id) } }
                                 }
                             }
                         }

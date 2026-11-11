@@ -100,6 +100,7 @@ fun MemoriesHubPage() = HubGrid(
     title = "我們的回憶",
     intro = "你們的照片、說好的事、重要的日子，和寫給未來的信。",
     links = listOf(
+        HubLink("他截的圖", "他想留住的對話，從他的角度截下來", HugeIcons.ImageAdd01, Screen.PovSnaps),
         HubLink("我們的 100 件小事", "一起做過的小事，拍立得照片牆", HugeIcons.ImageAdd01, Screen.BucketList),
         HubLink("共同空間", "兩個人的動態，按讚和留言", HugeIcons.Message01, Screen.Spaces),
         HubLink("回憶相簿／照片牆", "照片和他寫的一句話", HugeIcons.ImageAdd01, Screen.Album),

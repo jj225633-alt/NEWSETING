@@ -14,7 +14,7 @@ object BodyTagTransformer : OutputMessageTransformer {
     override suspend fun visualTransform(ctx: TransformerContext, messages: List<UIMessage>): List<UIMessage> =
         messages.map { m ->
             if (m.role != MessageRole.ASSISTANT) m else m.copy(parts = m.parts.map { p ->
-                if (p is UIMessagePart.Text && p.text.contains('<')) p.copy(text = BodyTags.hide(p.text)) else p
+                if (p is UIMessagePart.Text && p.text.contains('<')) p.copy(text = me.rerere.rikkahub.hoshio.snap.PovSnap.hidePartial(BodyTags.hide(p.text))) else p
             })
         }
 
@@ -25,10 +25,12 @@ object BodyTagTransformer : OutputMessageTransformer {
             val parts = m.parts.mapIndexed { i, p ->
                 if (p is UIMessagePart.Text && p.text.contains('<')) {
                     val (clean, tags) = BodyTags.parse(p.text)
-                    if (tags.isNotEmpty()) {
-                        runCatching { BodyStore.applyTags(ctx.context, "${m.id}:$i:${p.text.hashCode()}", tags) }
+                    if (tags.isNotEmpty()) runCatching { BodyStore.applyTags(ctx.context, "${m.id}:$i:${p.text.hashCode()}", tags) }
+                    // 星汐: 他的截圖標記換成卡片記號
+                    val snapped = runCatching { me.rerere.rikkahub.hoshio.snap.PovSnap.extract(ctx.context, clean) }.getOrDefault(clean)
+                    if (snapped != p.text) {
                         changed = true
-                        p.copy(text = clean)
+                        p.copy(text = snapped)
                     } else p
                 } else p
             }

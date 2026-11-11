@@ -471,6 +471,9 @@ class RouteActivity : ComponentActivity() {
                             entry<Screen.VoiceCall> { key ->
                                 me.rerere.rikkahub.ui.pages.hoshio.VoiceCallPage(key.reason)
                             }
+                            entry<Screen.PovSnaps> {
+                                me.rerere.rikkahub.ui.pages.hoshio.PovSnapGalleryPage()
+                            }
                             entry<Screen.BucketList> {
                                 me.rerere.rikkahub.ui.pages.hoshio.BucketListPage()
                             }
@@ -900,6 +903,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object BucketList : Screen
+
+    @Serializable
+    data object PovSnaps : Screen
 
     @Serializable
     data object Treasure : Screen
