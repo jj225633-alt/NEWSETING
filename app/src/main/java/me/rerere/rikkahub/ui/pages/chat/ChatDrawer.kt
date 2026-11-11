@@ -99,6 +99,8 @@ import me.rerere.ui.components.Tooltip
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
+import dev.chrisbanes.haze.hazeSource
+import me.rerere.rikkahub.ui.pages.hoshio.splash.hoshioGlassImpl
 
 @Composable
 fun ChatDrawerContent(
@@ -294,9 +296,27 @@ fun ChatDrawerContent(
         }
     }
 
+    // 星汐主題：側邊欄也是毛玻璃（淺海／星空背景上蓋一層霧面玻璃）
+    val drawerGlass = settings.themeId == "hoshio" && !settings.dynamicColor
+    val drawerHaze = dev.chrisbanes.haze.rememberHazeState()
+    val drawerDark = me.rerere.rikkahub.ui.theme.LocalDarkMode.current
     ModalDrawerSheet(
-        modifier = Modifier.width(300.dp)
+        modifier = Modifier.width(300.dp),
+        drawerContainerColor = if (drawerGlass) androidx.compose.ui.graphics.Color.Transparent else androidx.compose.material3.DrawerDefaults.modalContainerColor,
     ) {
+      Box(Modifier.fillMaxWidth().weight(1f)) {
+        if (drawerGlass) {
+            me.rerere.rikkahub.ui.pages.hoshio.splash.HoshioChatBackdrop(
+                dark = drawerDark,
+                animate = false,
+                modifier = Modifier.matchParentSize().hazeSource(drawerHaze),
+            )
+            Box(
+                Modifier.matchParentSize().hoshioGlassImpl(
+                    drawerHaze, androidx.compose.ui.graphics.RectangleShape, blur = 28.dp, strong = true,
+                )
+            )
+        }
         Column(
             modifier = Modifier.padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -432,6 +452,7 @@ fun ChatDrawerContent(
                 )
             }
         }
+          }
     }
 
     // 昵称编辑对话框

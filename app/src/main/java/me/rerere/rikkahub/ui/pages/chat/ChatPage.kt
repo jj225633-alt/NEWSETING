@@ -62,7 +62,6 @@ import me.rerere.ui.toast.ToastType
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import me.rerere.rikkahub.ui.pages.hoshio.splash.hoshioGlassImpl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -711,11 +710,6 @@ private fun TopBar(
                     }
                 },
                 color = Color.Transparent,
-                modifier = if (me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
-                    Modifier
-                        .hoshioGlassImpl(hazeState, androidx.compose.foundation.shape.RoundedCornerShape(20.dp), strong = true)
-                        .padding(horizontal = 14.dp, vertical = 5.dp)
-                } else Modifier,
             ) {
                 Column {
                     val provider = chatModel?.findProvider(providers = settings.providers, checkOverwrite = false)
