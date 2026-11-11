@@ -59,7 +59,23 @@ internal class GoogleStreamDecoder(
     private fun finish(): List<StreamChunk> {
         if (finished) return emptyList()
         finished = true
-        return streamState.finish(finishReason, responseId, model)
+        // 星汐: 不要靜悄悄地停掉。沒收到結束原因＝串流被截斷；異常的結束原因直接報錯，讓她知道要重試
+        val reason = finishReason
+        if (reason == null) error("Gemini 的回覆串流中途被截斷（沒有收到結束訊號），請重試或繼續生成")
+        if (reason in ABNORMAL_FINISH) error("Gemini 中斷了回覆：$reason" + when (reason) {
+            "MALFORMED_FUNCTION_CALL", "UNEXPECTED_TOOL_CALL" -> "（工具呼叫格式出錯，常見於同時開 Google 搜尋和其他工具時，重試通常就好）"
+            "SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII" -> "（被安全過濾擋下）"
+            "TOO_MANY_TOOL_CALLS" -> "（一次呼叫太多工具）"
+            else -> ""
+        })
+        return streamState.finish(reason, responseId, model)
+    }
+
+    private companion object {
+        val ABNORMAL_FINISH = setOf(
+            "MALFORMED_FUNCTION_CALL", "UNEXPECTED_TOOL_CALL", "TOO_MANY_TOOL_CALLS", "SAFETY", "RECITATION",
+            "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "OTHER", "IMAGE_SAFETY", "LANGUAGE",
+        )
     }
 
     private fun parseMessage(content: JsonObject, groundingMetadata: JsonObject?): UIMessage = UIMessage(
