@@ -89,6 +89,13 @@ internal fun BoxScope.MessageJumper(
             targetOffsetX = { if (onLeft) -it * 2 else it * 2 },
         )
     ) {
+        // 星汐主題：按鈕用淺色底、深色箭頭，夜晚星空上也看得清楚
+        val glass = me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current
+        val jumperColor = if (glass) {
+            if (me.rerere.rikkahub.ui.theme.LocalDarkMode.current) androidx.compose.ui.graphics.Color(0xFFEDE7DA).copy(alpha = .88f)
+            else androidx.compose.ui.graphics.Color.White.copy(alpha = .82f)
+        } else MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp).copy(alpha = 0.65f)
+        val jumperIcon = if (glass) androidx.compose.ui.graphics.Color(0xFF22303C) else androidx.compose.material3.LocalContentColor.current
         Column(
             modifier = Modifier.padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -101,13 +108,12 @@ internal fun BoxScope.MessageJumper(
                 },
                 shape = CircleShape,
                 tonalElevation = 4.dp,
-                color = MaterialTheme.colorScheme.surfaceColorAtElevation(
-                    4.dp
-                ).copy(alpha = 0.65f)
+                color = jumperColor
             ) {
                 Icon(
                     imageVector = HugeIcons.ArrowUpDouble,
                     contentDescription = null,
+                    tint = jumperIcon,
                     modifier = Modifier
                         .padding(4.dp)
                 )
@@ -124,13 +130,12 @@ internal fun BoxScope.MessageJumper(
                 },
                 shape = CircleShape,
                 tonalElevation = 4.dp,
-                color = MaterialTheme.colorScheme.surfaceColorAtElevation(
-                    4.dp
-                ).copy(alpha = 0.65f)
+                color = jumperColor
             ) {
                 Icon(
                     imageVector = HugeIcons.ArrowUp01,
                     contentDescription = null,
+                    tint = jumperIcon,
                     modifier = Modifier
                         .padding(4.dp)
                 )
@@ -142,13 +147,12 @@ internal fun BoxScope.MessageJumper(
                     }
                 },
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceColorAtElevation(
-                    4.dp
-                ).copy(alpha = 0.65f)
+                color = jumperColor
             ) {
                 Icon(
                     imageVector = HugeIcons.ArrowDown01,
                     contentDescription = null,
+                    tint = jumperIcon,
                     modifier = Modifier
                         .padding(4.dp)
                 )
@@ -160,13 +164,12 @@ internal fun BoxScope.MessageJumper(
                     }
                 },
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceColorAtElevation(
-                    4.dp
-                ).copy(alpha = 0.65f),
+                color = jumperColor,
             ) {
                 Icon(
                     imageVector = HugeIcons.ArrowDownDouble,
                     contentDescription = stringResource(R.string.chat_page_scroll_to_bottom),
+                    tint = jumperIcon,
                     modifier = Modifier
                         .padding(4.dp)
                 )
