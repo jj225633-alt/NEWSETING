@@ -530,10 +530,14 @@ private fun MessagePartsBlock(
                     }
 
                     is UIMessagePart.Audio -> {
-                        ChatMessageMediaTile(
-                            icon = HugeIcons.MusicNote03,
-                            onClick = { context.openLocalFile(part.url) },
-                        )
+                        if (me.rerere.rikkahub.hoshio.voice.HerVoiceRecorder.isHerVoice(part.url)) {
+                            me.rerere.rikkahub.ui.pages.hoshio.HerVoiceBubble(part.url)
+                        } else {
+                            ChatMessageMediaTile(
+                                icon = HugeIcons.MusicNote03,
+                                onClick = { context.openLocalFile(part.url) },
+                            )
+                        }
                     }
 
                     is UIMessagePart.Image -> {

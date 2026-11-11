@@ -57,6 +57,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import me.rerere.rikkahub.data.datastore.findProvider
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -330,6 +331,22 @@ fun ChatInput(
                             Icon(
                                 imageVector = HugeIcons.Add01,
                                 contentDescription = stringResource(R.string.more_options)
+                            )
+                        }
+
+                        // 星汐: 按住說話，把聲音直接給他聽（只有聽得懂聲音的 Gemini 才顯示）
+                        val canVoiceNote = remember(chatModel, settings.providers) {
+                            chatModel?.findProvider(settings.providers) is me.rerere.ai.provider.ProviderSetting.Google
+                        }
+                        if (canVoiceNote && !voiceState.isActive && !asrState.isRecording) {
+                            me.rerere.rikkahub.ui.pages.hoshio.HerVoiceNoteButton(
+                                hasPermission = asrPermission.allRequiredPermissionsGranted,
+                                requestPermission = { asrPermission.requestPermissions() },
+                                onTooShort = { toaster.show("按住說話，放開就送出；往外滑可以取消") },
+                                onRecorded = { uri ->
+                                    state.addAudios(listOf(uri))
+                                    sendMessage()
+                                },
                             )
                         }
 

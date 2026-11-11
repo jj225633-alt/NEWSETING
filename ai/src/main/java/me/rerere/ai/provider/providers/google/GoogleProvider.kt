@@ -794,7 +794,16 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
             encodeBase64(false).getOrNull()?.let { base64Data ->
                 buildJsonObject {
                     put("inlineData", buildJsonObject {
-                        put("mimeType", "audio/mp3")
+                        // 星汐: 依副檔名給正確的格式（她錄的語音訊息是 AAC）
+                        put("mimeType", when (url.substringBefore('?').substringAfterLast('.', "").lowercase()) {
+                            "aac" -> "audio/aac"
+                            "wav" -> "audio/wav"
+                            "ogg", "opus" -> "audio/ogg"
+                            "flac" -> "audio/flac"
+                            "m4a", "mp4" -> "audio/mp4"
+                            "aiff", "aif" -> "audio/aiff"
+                            else -> "audio/mp3"
+                        })
                         put("data", base64Data)
                     })
                 }
