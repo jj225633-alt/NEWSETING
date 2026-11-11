@@ -9,6 +9,8 @@
     android:name="android.permission.WRITE_EXTERNAL_STORAGE"
     android:maxSdkVersion="28" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <!-- 星汐: 他設的「每天幾點」喚醒規則準時響 -->
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
   <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
   <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
@@ -176,6 +178,10 @@
     <!-- 星汐: 通知直接回复 -->
     <receiver
       android:name=".hoshio.notify.QuickReplyReceiver"
+      android:exported="false" />
+    <!-- 星汐: 喚醒規則的系統鬧鐘 -->
+    <receiver
+      android:name=".hoshio.rules.WakeAlarmReceiver"
       android:exported="false" />
     <!-- 星汐: 拒接他打来的电话 -->
     <receiver

@@ -104,8 +104,9 @@ internal fun buildAiPowerTools(context: Context): List<Tool> = listOf(
                     } else {
                         val created = WakeRule(name = arg("name") ?: type!!, type = type!!, prompt = "").apply()
                         WakeRules.update(context) { it + created }
+                    me.rerere.rikkahub.hoshio.rules.WakeAlarm.schedule(context)
                         me.rerere.rikkahub.hoshio.care.CareWorker.sync(context)
-                        tJson("ok" to "Added [${created.id}] ${created.name}: ${created.describe()}", "note" to "Checks run every 15 min (every 2 min in always-on mode).")
+                        tJson("ok" to "Added [${created.id}] ${created.name}: ${created.describe()}", "note" to "Daily rules ring on time (system alarm). Other rules are checked about every 15 min (2 min in always-on mode); interval rules drift a little each time so you do not wake like clockwork.")
                     }
                 }
 
@@ -116,12 +117,14 @@ internal fun buildAiPowerTools(context: Context): List<Tool> = listOf(
                         else -> rule.apply()
                     }
                     WakeRules.update(context) { list -> list.map { if (it.id == rule.id) updated else it } }
+                    me.rerere.rikkahub.hoshio.rules.WakeAlarm.schedule(context)
                     me.rerere.rikkahub.hoshio.care.CareWorker.sync(context)
                     tJson("ok" to "Saved: ${updated.name} (${updated.describe()}), enabled=${updated.enabled}")
                 }
 
                 "remove" -> if (rule == null) tJson("error" to "Unknown id") else {
                     WakeRules.update(context) { list -> list.filterNot { it.id == rule.id } }
+                    me.rerere.rikkahub.hoshio.rules.WakeAlarm.schedule(context)
                     tJson("ok" to "Removed ${rule.name}")
                 }
 

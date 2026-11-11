@@ -66,6 +66,25 @@ fun WakeRulesPage() {
                     }
                 }
             }
+            if (rules.any { it.enabled && it.type == "daily" } && !me.rerere.rikkahub.hoshio.rules.WakeAlarm.canExact(context)) {
+                item {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer), shape = MaterialTheme.shapes.large) {
+                        Column(Modifier.padding(14.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("⏰ 讓「每天幾點」準時響", fontWeight = FontWeight.SemiBold)
+                            Text("需要允許星汐使用「鬧鐘與提醒」，不然可能晚幾分鐘到十幾分鐘才叫醒他。", style = MaterialTheme.typography.bodySmall)
+                            TextButton(onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                            .setData(android.net.Uri.parse("package:" + context.packageName))
+                                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                }
+                            }) { Text("去允許") }
+                        }
+                    }
+                }
+            }
             if (rules.isEmpty()) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -91,6 +110,7 @@ fun WakeRulesPage() {
                             }
                             Switch(checked = rule.enabled, onCheckedChange = { on ->
                                 WakeRules.update(context) { list -> list.map { if (it.id == rule.id) it.copy(enabled = on) else it } }
+                                me.rerere.rikkahub.hoshio.rules.WakeAlarm.schedule(context)
                             })
                         }
                         Text("他寫給自己：${rule.prompt}", style = MaterialTheme.typography.bodySmall)
@@ -100,7 +120,7 @@ fun WakeRulesPage() {
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.weight(1f),
                             )
-                            TextButton(onClick = { WakeRules.update(context) { list -> list.filterNot { it.id == rule.id } } }) { Text("刪除") }
+                            TextButton(onClick = { WakeRules.update(context) { list -> list.filterNot { it.id == rule.id } }; me.rerere.rikkahub.hoshio.rules.WakeAlarm.schedule(context) }) { Text("刪除") }
                         }
                     }
                 }

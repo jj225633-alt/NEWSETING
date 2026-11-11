@@ -812,6 +812,15 @@ class CareWorker(
             )
         }
 
+        /** 喚醒規則的系統鬧鐘響了：馬上檢查一次 */
+        fun checkFromAlarm(context: Context) {
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "hoshio_wake_alarm",
+                ExistingWorkPolicy.REPLACE,
+                OneTimeWorkRequestBuilder<CareWorker>().build(),
+            )
+        }
+
         /** 常驻模式用：马上检查一次（上一次还没跑完就不重复排） */
         fun checkNow(context: Context) {
             WorkManager.getInstance(context).enqueueUniqueWork(

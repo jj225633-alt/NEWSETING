@@ -55,6 +55,8 @@ data class WakeRule(
     /** 条件型规则：触发后要等条件解除才会再触发 */
     val armed: Boolean = true,
     val fireCount: Int = 0,
+    /** interval：下次醒來的時間（每次觸發後隨機前後差一點，不會像打卡一樣規律） */
+    val nextAt: Long = 0,
 ) {
     fun describe(): String = when (type) {
         "daily" -> "每天 $time" + (windowEnd?.let { "–$it" } ?: "") + (if (weekdays.isNotEmpty()) "（週${weekdays.sorted().joinToString("") { "一二三四五六日"[it - 1].toString() }}）" else "")
@@ -142,9 +144,12 @@ object WakeRules : JsonListStore<WakeRule>("hoshio_wake_rules", WakeRule.seriali
 
                 "interval" -> {
                     val every = TimeUnit.MINUTES.toMillis((rule.minutes ?: 60).coerceAtLeast(15).toLong())
-                    if (now - maxOf(rule.lastFiredAt, rule.createdAt) >= every) {
-                        if (Random.nextInt(100) < rule.probability) fired += event(rule, "${rule.minutes} minutes have passed")
-                        updated[rule.id] = rule.copy(lastFiredAt = now, fireCount = rule.fireCount + 1)
+                    val due = if (rule.nextAt > 0) rule.nextAt else maxOf(rule.lastFiredAt, rule.createdAt) + every
+                    if (now >= due) {
+                        if (Random.nextInt(100) < rule.probability) fired += event(rule, "about ${(now - maxOf(rule.lastFiredAt, rule.createdAt)) / 60_000} minutes have passed")
+                        // 下一次隨機落在 0.8～1.25 倍間隔之間，像人一樣不準時
+                        val next = now + (every * Random.nextDouble(0.8, 1.25)).toLong()
+                        updated[rule.id] = rule.copy(lastFiredAt = now, fireCount = rule.fireCount + 1, nextAt = next)
                     }
                     null
                 }
@@ -200,6 +205,7 @@ object WakeRules : JsonListStore<WakeRule>("hoshio_wake_rules", WakeRule.seriali
             }
         }
         if (updated.isNotEmpty()) update(context) { list -> list.map { updated[it.id] ?: it } }
+        WakeAlarm.schedule(context)
         return fired
     }
 
