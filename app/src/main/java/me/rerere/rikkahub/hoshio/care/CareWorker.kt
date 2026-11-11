@@ -614,11 +614,29 @@ class CareWorker(
             return
         }
 
+        // 星汐: 醒來先私下想想（像 Orbis 哨兵）；決定不打擾就不寫進對話
+        var thought = ""
+        if (prefs.privateDecision && WakeDecision.shouldDecide(event.key)) {
+            val decision = WakeDecision.decide(applicationContext, conversation, event.title, event.text)
+            if (decision != null && !decision.talk) {
+                WakeLogStore.add(applicationContext, WakeRecord(trigger = event.title, action = "decided_silent", note = decision.thought))
+                val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd HH:mm"))
+                prefs.lastResult = "${event.title}：他想了想，決定先不打擾你（$time）"
+                return
+            }
+            thought = decision?.thought.orEmpty()
+        }
+
         val before = conversation.currentMessages.size
         chatService.postNotice(
             conversationId = conversation.id,
             key = "hoshio_care:${event.key}:${System.currentTimeMillis()}",
-            notice = UIMessagePart.Notice(title = event.title, text = event.text + WAKE_CHOICE_HINT),
+            notice = UIMessagePart.Notice(
+                title = event.title,
+                text = event.text + if (thought.isNotBlank()) {
+                    "\n\n(You already thought it over privately and decided to reach out. Your thought was: \"$thought\". Follow through.)"
+                } else WAKE_CHOICE_HINT,
+            ),
         )
 
         // 等这一轮开始再结束，最多 8 分钟（自由时间可能会用好几次工具）

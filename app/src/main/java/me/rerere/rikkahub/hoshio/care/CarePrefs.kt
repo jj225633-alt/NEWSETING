@@ -75,6 +75,11 @@ class CarePrefs(context: Context) {
         get() = prefs.getLong(KEY_SCREEN_OBS_LAST, 0L)
         set(value) = prefs.edit { putLong(KEY_SCREEN_OBS_LAST, value) }
 
+    /** 醒來先私下想想要不要開口；決定不打擾時，對話裡不留任何痕跡 */
+    var privateDecision: Boolean
+        get() = prefs.getBoolean("private_decision", true)
+        set(value) = prefs.edit { putBoolean("private_decision", value) }
+
     var freeTimeEnabled: Boolean
         get() = prefs.getBoolean(KEY_FREE_TIME, false)
         set(value) = prefs.edit { putBoolean(KEY_FREE_TIME, value) }

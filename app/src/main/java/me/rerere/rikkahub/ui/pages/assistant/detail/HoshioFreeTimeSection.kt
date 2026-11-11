@@ -29,8 +29,24 @@ internal fun HoshioFreeTimeSection(assistant: Assistant) {
     val prefs = remember { CarePrefs(context) }
     var enabled by remember { mutableStateOf(prefs.freeTimeEnabled) }
     var idle by remember { mutableStateOf(prefs.freeTimeIdleMinutes) }
+    var decide by remember { mutableStateOf(prefs.privateDecision) }
 
     CardGroup(title = { Text("自由時間") }) {
+        switchItem(
+            checked = decide,
+            onCheckedChange = {
+                prefs.privateDecision = it
+                decide = it
+            },
+            leadingContent = { CardGroupIcon(icon = HugeIcons.Sparkles) },
+            supportingContent = {
+                Text(
+                    "自己醒來時（自由時間、偷看螢幕、他訂的喚醒規則、睡前、深夜、到達地點），他會先在心裡想一下要不要找你。" +
+                        "決定不打擾的話，對話裡什麼都不會出現，只記在「他的作息」。你設定的提醒、紀念日、心跳警示不會被跳過"
+                )
+            },
+            headlineContent = { Text("醒來先私下想想") },
+        )
         switchItem(
             checked = enabled,
             onCheckedChange = {

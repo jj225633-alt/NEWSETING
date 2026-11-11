@@ -92,6 +92,7 @@ fun HoshioLifePage() {
                                 when (r.action) {
                                     "talked" -> "💬 跟你說話了"
                                     "silent" -> "😴 醒來看了一下，又睡回去"
+                                    "decided_silent" -> "💭 想了想，決定先不打擾你"
                                     "tools" -> "🛠️ 自己做了些事"
                                     else -> "⚠️ 沒有成功醒來"
                                 },
