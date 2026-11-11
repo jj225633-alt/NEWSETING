@@ -6,7 +6,7 @@ import java.io.File
 
 /**
  * 星汐: 很多星汐資料存在 SharedPreferences（hoshio_*.xml），原本的備份只帶 filesDir 裡的資料夾，會漏掉。
- * 備份時把它們複製成 hoshio/_prefs/*.xml；還原後下次啟動、在任何人讀取之前，搬回 shared_prefs。
+ * 備份時把它們複製成 hoshio/_prefs 底下的 xml；還原後下次啟動、在任何人讀取之前，搬回 shared_prefs。
  */
 object HoshioPrefsBackup {
     private const val TAG = "HoshioPrefsBackup"
