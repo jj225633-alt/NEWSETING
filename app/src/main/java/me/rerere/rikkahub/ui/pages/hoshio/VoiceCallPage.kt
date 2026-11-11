@@ -90,15 +90,23 @@ fun VoiceCallPage(reason: String? = null) {
     val startedAt = remember { System.currentTimeMillis() }
     // 星汐: 被打斷時她真正聽到的部分（只算整段播完的句子），下一輪告訴他
     var interruptedNote by remember { mutableStateOf<String?>(null) }
+    // 星汐: 通話紀錄（文字＋他的語音，可以回放）
+    val callId = remember { me.rerere.rikkahub.hoshio.voice.CallLog.start(context, reason) }
     var elapsed by remember { mutableStateOf(0L) }
 
     // 通话期间：萤幕不关、告诉他在讲电话；挂断时清掉
     DisposableEffect(Unit) {
         IncomingCall.cancel(context)
+        VoiceCallState.clearRinging(context)
         VoiceCallState.active.value = true
         (context as? Activity)?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
             VoiceCallState.active.value = false
+            val seconds = (System.currentTimeMillis() - startedAt) / 1000
+            if (seconds >= 5) {
+                VoiceCallState.endedNote.value = "The voice call with her just ended (it lasted %d:%02d). You are back to text chat now: reply in your normal texting style, not phone-call style.".format(seconds / 60, seconds % 60)
+            }
+            me.rerere.rikkahub.hoshio.voice.CallLog.end(context, callId)
             VoicePlayer.stop()
             (context as? Activity)?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
@@ -119,6 +127,7 @@ fun VoiceCallPage(reason: String? = null) {
         phase = CallPhase.SPEAKING
         val chunks = splitForSpeech(clean)
         var played = 0
+        val savedAudio = mutableListOf<String>()
         coroutineScope {
             val job = launch {
                 val files = Channel<File>(capacity = 2)
@@ -132,6 +141,14 @@ fun VoiceCallPage(reason: String? = null) {
                     try {
                         VoicePlayer.play(f)
                         played++
+                        // 念完的這段留下來，之後可以回放
+                        runCatching {
+                            val name = "${System.currentTimeMillis()}_$played.${f.extension.ifBlank { "mp3" }}"
+                            val target = me.rerere.rikkahub.hoshio.voice.CallLog.file(context, callId, name)
+                            me.rerere.rikkahub.hoshio.voice.CallLog.dir(context, callId)
+                            if (!f.renameTo(target)) { f.copyTo(target, overwrite = true) }
+                            savedAudio += name
+                        }
                     } finally {
                         f.delete()
                     }
@@ -140,6 +157,13 @@ fun VoiceCallPage(reason: String? = null) {
             speakJob = job
             job.join()
             speakJob = null
+        }
+        val spokenPart = chunks.take(played).joinToString("")
+        if (spokenPart.isNotBlank()) {
+            me.rerere.rikkahub.hoshio.voice.CallLog.addLine(
+                context, callId,
+                me.rerere.rikkahub.hoshio.voice.CallLine(System.currentTimeMillis(), him = true, text = spokenPart, audio = savedAudio.toList()),
+            )
         }
         // 沒念完就被打斷：記下她實際聽到哪裡
         if (played < chunks.size) {
@@ -228,6 +252,9 @@ fun VoiceCallPage(reason: String? = null) {
                 continue
             }
             partial = said
+            me.rerere.rikkahub.hoshio.voice.CallLog.addLine(
+                context, callId, me.rerere.rikkahub.hoshio.voice.CallLine(System.currentTimeMillis(), him = false, text = said),
+            )
             phase = CallPhase.THINKING
             interruptedNote?.let { me.rerere.rikkahub.hoshio.voice.VoiceCallState.interruptedNote.value = it }
             interruptedNote = null

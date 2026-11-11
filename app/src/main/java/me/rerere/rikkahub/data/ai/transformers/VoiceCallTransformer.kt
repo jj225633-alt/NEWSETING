@@ -15,7 +15,16 @@ private fun kotlinx.coroutines.flow.MutableStateFlow<String?>.getAndUpdateNull()
 
 object VoiceCallTransformer : InputMessageTransformer {
     override suspend fun transform(ctx: TransformerContext, messages: List<UIMessage>): List<UIMessage> {
-        if (!VoiceCallState.active.value) return messages
+        if (!VoiceCallState.active.value) {
+            // 電話剛結束／他打的電話沒人接：下一則訊息告訴他一次
+            val ended = VoiceCallState.endedNote.getAndUpdateNull()
+            val missed = VoiceCallState.takeMissedNote(ctx.context)
+            if (ended == null && missed == null) return messages
+            val i = messages.indexOfLast { it.role == MessageRole.USER && !it.isSynthetic }
+            if (i < 0) return messages
+            val note = UIMessage.user("<call_note>" + listOfNotNull(ended, missed).joinToString(" ") + "</call_note>").copy(isSynthetic = true)
+            return messages.subList(0, i) + note + messages.subList(i, messages.size)
+        }
         val index = messages.indexOfLast { it.role == MessageRole.USER && !it.isSynthetic }
         if (index < 0) return messages
         val note = UIMessage.user(

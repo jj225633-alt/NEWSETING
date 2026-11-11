@@ -60,6 +60,30 @@ object VoiceCallState {
     val active = MutableStateFlow(false)
     /** 她打斷他時實際聽到哪裡；下一次送給他時附上，用過就清掉 */
     val interruptedNote = MutableStateFlow<String?>(null)
+    /** 電話剛掛斷：下一則訊息告訴他回到文字聊天 */
+    val endedNote = MutableStateFlow<String?>(null)
+
+    private const val PREFS = "hoshio_call_state"
+    private fun prefs(context: Context) = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    /** 他打出去、還沒有結果的電話 */
+    fun markRinging(context: Context, reason: String) =
+        prefs(context).edit().putLong("ring_at", System.currentTimeMillis()).putString("ring_reason", reason).apply()
+
+    /** 接了或拒接：不算未接 */
+    fun clearRinging(context: Context) = prefs(context).edit().remove("ring_at").remove("ring_reason").apply()
+
+    /** 響超過一分鐘都沒有結果＝未接；回傳給他的提醒（只回傳一次） */
+    fun takeMissedNote(context: Context): String? {
+        val p = prefs(context)
+        val at = p.getLong("ring_at", 0L)
+        if (at == 0L || System.currentTimeMillis() - at < 60_000) return null
+        val reason = p.getString("ring_reason", null).orEmpty()
+        clearRinging(context)
+        val time = java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()).toLocalTime().withSecond(0).withNano(0)
+        return "She did not pick up the voice call you made at $time" + (if (reason.isNotBlank()) " (you called because: $reason)" else "") +
+            ". It just rang out - she may have been busy or away from the phone."
+    }
 }
 
 /**
@@ -168,6 +192,7 @@ object IncomingCall {
             .addAction(0, "拒接", declineIntent)
             .build()
         runCatching { NotificationManagerCompat.from(app).notify(NOTIFICATION_ID, notification) }
+        VoiceCallState.markRinging(app, reason)
     }
 
     fun cancel(context: Context) = NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
@@ -176,6 +201,7 @@ object IncomingCall {
 class DeclineCallReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         IncomingCall.cancel(context)
+        VoiceCallState.clearRinging(context)
         VoicePrefs(context).lastRejectAt = System.currentTimeMillis()
         // 告诉他被拒接了（他可以选择要不要回一句）
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
