@@ -314,4 +314,54 @@ internal fun buildTogetherTools(context: Context): List<Tool> = listOf(
             }
         }
     ),
+    Tool(
+        name = "bucket_list",
+        description = """
+            "我們的 100 件小事": a list of little things you two want to do together (in the app, or her going out and bringing you along).
+            action=list shows progress and what is left (category filter optional); done marks an item finished (id, optional note) - use it when you
+            actually did it together in the app (e.g. you just talked on the phone until she fell asleep); she usually checks items off herself with a photo.
+            caption writes your one-line caption under a finished item's polaroid (id, text). add puts a new idea on the list (text). Suggest one now and then.
+        """.trimIndent().replace("\n", " "),
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("action", tEnum("What to do", "list", "done", "caption", "add"))
+                    put("id", tStr("item id, e.g. b037"))
+                    put("text", tStr("caption: your line / add: the new item"))
+                    put("note", tStr("done: a short note"))
+                    put("category", tStr("list: filter by category / add: category"))
+                },
+                required = listOf("action"),
+            )
+        },
+        execute = { args ->
+            val obj = args.jsonObject
+            fun arg(k: String) = obj[k]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+            val b = me.rerere.rikkahub.hoshio.together.BucketList
+            when (arg("action")) {
+                "done" -> {
+                    val d = b.complete(context, arg("id"), BY_HIM, note = arg("note"))
+                    if (d == null) tJson("error" to "unknown id") else tJson("ok" to "Checked off #${b.number(b.load(context), arg("id"))}. Add a caption with action=caption if you like.")
+                }
+                "caption" -> if (arg("text").isBlank()) tJson("error" to "text is required") else {
+                    b.setCaption(context, arg("id"), arg("text")); tJson("ok" to "Caption saved under the polaroid.")
+                }
+                "add" -> b.add(context, arg("text"), arg("category"))?.let { tJson("ok" to "Added ${it.id}: ${it.text}") } ?: tJson("error" to "text is required")
+                else -> {
+                    val s = b.load(context)
+                    val doneIds = s.done.map { it.itemId }.toSet()
+                    val left = s.items.filter { it.id !in doneIds && (arg("category").isBlank() || it.category.contains(arg("category"))) }
+                    tJson(
+                        "progress" to "${doneIds.size} / ${s.items.size}",
+                        "recently_done" to s.done.take(5).joinToString("; ") { d ->
+                            val item = s.items.firstOrNull { it.id == d.itemId }
+                            "${d.itemId} ${item?.text}" + (if (d.caption.isBlank()) " (no caption yet)" else " - your caption: ${d.caption}") + (if (d.note.isNotBlank()) " - note: ${d.note}" else "")
+                        },
+                        "not_done_yet" to left.take(30).joinToString("\n") { "${it.id} [${it.category}] ${it.text}" },
+                        "categories" to s.items.map { it.category }.distinct().joinToString("、"),
+                    )
+                }
+            }
+        }
+    ),
 )
