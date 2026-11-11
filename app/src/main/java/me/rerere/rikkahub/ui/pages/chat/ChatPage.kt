@@ -361,6 +361,8 @@ private fun ChatPageContent(
     val darkMode = me.rerere.rikkahub.ui.theme.LocalDarkMode.current
     Surface(
         color = if (hoshioGlass) Color.Transparent else MaterialTheme.colorScheme.background,
+        // 透明底時內容色不會自動變淺，夜晚要明確指定，不然名字、+ 號會是深色
+        contentColor = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.fillMaxSize()
     ) {
       androidx.compose.runtime.CompositionLocalProvider(
