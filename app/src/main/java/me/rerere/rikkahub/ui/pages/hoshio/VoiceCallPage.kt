@@ -90,6 +90,7 @@ fun VoiceCallPage(reason: String? = null) {
     val startedAt = remember { System.currentTimeMillis() }
     // 星汐: 被打斷時她真正聽到的部分（只算整段播完的句子），下一輪告訴他
     var interruptedNote by remember { mutableStateOf<String?>(null) }
+    var voiceVolume by remember { mutableStateOf(1f) }
     // 星汐: 通話紀錄（文字＋他的語音，可以回放）
     val callId = remember { me.rerere.rikkahub.hoshio.voice.CallLog.start(context, reason) }
     var elapsed by remember { mutableStateOf(0L) }
@@ -102,11 +103,27 @@ fun VoiceCallPage(reason: String? = null) {
         (context as? Activity)?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
             VoiceCallState.active.value = false
+            VoiceCallState.whisper.value = false
             val seconds = (System.currentTimeMillis() - startedAt) / 1000
-            if (seconds >= 5) {
+            val talked = me.rerere.rikkahub.hoshio.voice.CallLog.load(context).firstOrNull { it.id == callId }?.lines?.isNotEmpty() == true
+            me.rerere.rikkahub.hoshio.voice.CallLog.end(context, callId)
+            if (talked && seconds >= 10) {
+                // 星汐: 聊天室留一行「📞 語音通話 · 2:17」，他寫一句小結（同時也讓他知道電話結束了）
+                val duration = "%d:%02d".format(seconds / 60, seconds % 60)
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default).launch {
+                    runCatching {
+                        val conv = HoshioChat.latestConversation()?.first ?: return@runCatching
+                        val summary = HoshioChat.askConversation(
+                            conv.id, "📞 語音通話 · $duration",
+                            "The voice call with her just ended (it lasted $duration). You are back to text chat now. " +
+                                "Write ONE short diary-corner line (in her language, under 30 characters) summing up how the call felt - nothing else, no tools.",
+                        )
+                        if (summary.isNotBlank()) me.rerere.rikkahub.hoshio.voice.CallLog.update(context, callId) { it.copy(summary = summary.trim().take(80)) }
+                    }
+                }
+            } else if (seconds >= 5) {
                 VoiceCallState.endedNote.value = "The voice call with her just ended (it lasted %d:%02d). You are back to text chat now: reply in your normal texting style, not phone-call style.".format(seconds / 60, seconds % 60)
             }
-            me.rerere.rikkahub.hoshio.voice.CallLog.end(context, callId)
             VoicePlayer.stop()
             (context as? Activity)?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
@@ -139,7 +156,7 @@ fun VoiceCallPage(reason: String? = null) {
                 }
                 for (f in files) {
                     try {
-                        VoicePlayer.play(f)
+                        VoicePlayer.play(f, voiceVolume)
                         played++
                         // 念完的這段留下來，之後可以回放
                         runCatching {
@@ -215,7 +232,14 @@ fun VoiceCallPage(reason: String? = null) {
             partial = ""
             var heard: String? = null
             coroutineScope {
-                val job = launch { heard = listenOnce(context) { partial = it } }
+                val job = launch {
+                    heard = listenOnce(context, onPartial = { partial = it }, onLoudness = { level ->
+                        // 星汐: 輕聲模式——她講得很小聲時，他也小小聲回
+                        val soft = level < 3.5f
+                        VoiceCallState.whisper.value = soft
+                        voiceVolume = if (soft) 0.45f else 1f
+                    })
+                }
                 listenJob = job
                 job.join()
                 listenJob = null

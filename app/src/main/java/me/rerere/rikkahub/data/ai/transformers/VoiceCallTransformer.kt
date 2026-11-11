@@ -31,6 +31,7 @@ object VoiceCallTransformer : InputMessageTransformer {
             "<voice_call>You are on a live voice call with her right now; she hears your reply in your voice and speaks back. " +
                 "Reply in 1-3 short spoken sentences, natural and warm, like talking on the phone. " +
                 "No markdown, lists, emoji or links; use \"……\" for pauses. Avoid tools unless really needed." +
+                (if (VoiceCallState.whisper.value) " She is speaking very softly right now (maybe lying in bed or somewhere quiet): answer softly too - shorter, gentler, hushed, like whispering back." else "") +
                 (VoiceCallState.interruptedNote.getAndUpdateNull()?.let { " $it" } ?: "") + "</voice_call>"
         ).copy(isSynthetic = true)
         return messages.subList(0, index) + note + messages.subList(index, messages.size)

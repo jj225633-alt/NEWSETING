@@ -25,6 +25,8 @@ data class CallRecord(
     val starred: Boolean = false,
     /** 語音已經被自動清掉（文字還在） */
     val audioCleared: Boolean = false,
+    /** 掛斷後他寫的一句小結 */
+    val summary: String = "",
 ) {
     val durationSec: Long get() = ((if (endedAt > 0) endedAt else System.currentTimeMillis()) - startedAt) / 1000
 }

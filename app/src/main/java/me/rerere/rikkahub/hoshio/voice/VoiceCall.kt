@@ -62,6 +62,8 @@ object VoiceCallState {
     val interruptedNote = MutableStateFlow<String?>(null)
     /** 電話剛掛斷：下一則訊息告訴他回到文字聊天 */
     val endedNote = MutableStateFlow<String?>(null)
+    /** 她在小小聲說話（例如窩在被子裡）：他也小小聲回 */
+    val whisper = MutableStateFlow(false)
 
     private const val PREFS = "hoshio_call_state"
     private fun prefs(context: Context) = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -90,7 +92,9 @@ object VoiceCallState {
  * 用 Android 内建的语音辨识（Google）听一句话。
  * 回传辨识出的文字；没听到或出错回传 null。[onPartial] 会收到辨识中的文字。
  */
-suspend fun listenOnce(context: Context, onPartial: (String) -> Unit = {}): String? = withContext(Dispatchers.Main) {
+suspend fun listenOnce(context: Context, onPartial: (String) -> Unit = {}, onLoudness: (Float) -> Unit = {}): String? = withContext(Dispatchers.Main) {
+    var sum = 0f
+    var count = 0
     if (!SpeechRecognizer.isRecognitionAvailable(context)) return@withContext null
     suspendCancellableCoroutine { cont ->
         val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
@@ -101,7 +105,10 @@ suspend fun listenOnce(context: Context, onPartial: (String) -> Unit = {}): Stri
         recognizer.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) = Unit
             override fun onBeginningOfSpeech() = Unit
-            override fun onRmsChanged(rmsdB: Float) = Unit
+            override fun onRmsChanged(rmsdB: Float) {
+                // 只算有在說話的音框（太低是環境底噪）
+                if (rmsdB > 0.5f) { sum += rmsdB; count++ }
+            }
             override fun onBufferReceived(buffer: ByteArray?) = Unit
             override fun onEndOfSpeech() = Unit
             override fun onEvent(eventType: Int, params: Bundle?) = Unit
@@ -110,6 +117,7 @@ suspend fun listenOnce(context: Context, onPartial: (String) -> Unit = {}): Stri
                 partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let(onPartial)
             }
             override fun onResults(results: Bundle?) {
+                if (count >= 5) onLoudness(sum / count)
                 finish(results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim()?.ifEmpty { null })
             }
         })
@@ -152,6 +160,7 @@ object IncomingCall {
     const val ACTION_VOICE_CALL = "app.hoshio.action.VOICE_CALL"
     const val EXTRA_REASON = "callReason"
     private const val ACTION_DECLINE = "app.hoshio.action.DECLINE_CALL"
+    const val KEY_DECLINE_REASON = "decline_reason"
 
     fun ring(context: Context, callerName: String, reason: String) {
         val app = context.applicationContext
@@ -179,6 +188,20 @@ object IncomingCall {
             Intent(app, DeclineCallReceiver::class.java).setAction(ACTION_DECLINE),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        // 拒接時可以順便說原因（在忙／在外面／想打字聊，或自己打）
+        val reasonInput = androidx.core.app.RemoteInput.Builder(KEY_DECLINE_REASON)
+            .setLabel("為什麼不能接？")
+            .setChoices(arrayOf("在忙", "在外面", "想打字聊"))
+            .build()
+        val declineWithReasonIntent = PendingIntent.getBroadcast(
+            app, NOTIFICATION_ID + 2,
+            Intent(app, DeclineCallReceiver::class.java).setAction(ACTION_DECLINE),
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val reasonAction = NotificationCompat.Action.Builder(0, "回一句再拒接", declineWithReasonIntent)
+            .addRemoteInput(reasonInput)
+            .setAllowGeneratedReplies(false)
+            .build()
         val notification = NotificationCompat.Builder(app, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_rikkahub)
             .setContentTitle("📞 $callerName 打電話給你")
@@ -190,8 +213,17 @@ object IncomingCall {
             .setTimeoutAfter(45_000)
             .apply { answerIntent?.let { setContentIntent(it); addAction(0, "接聽", it) } }
             .addAction(0, "拒接", declineIntent)
+            .addAction(reasonAction)
             .build()
+        // 像真的電話一樣一直響（震動模式就一直震），直到接、拒接或逾時
+        notification.flags = notification.flags or android.app.Notification.FLAG_INSISTENT
         runCatching { NotificationManagerCompat.from(app).notify(NOTIFICATION_ID, notification) }
+        // 響完沒接：讓他自己決定要不要留言
+        androidx.work.WorkManager.getInstance(app).enqueueUniqueWork(
+            "hoshio_missed_call",
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            androidx.work.OneTimeWorkRequestBuilder<MissedCallWorker>().setInitialDelay(60, java.util.concurrent.TimeUnit.SECONDS).build(),
+        )
         VoiceCallState.markRinging(app, reason)
     }
 
@@ -202,16 +234,38 @@ class DeclineCallReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         IncomingCall.cancel(context)
         VoiceCallState.clearRinging(context)
+        androidx.work.WorkManager.getInstance(context).cancelUniqueWork("hoshio_missed_call")
         VoicePrefs(context).lastRejectAt = System.currentTimeMillis()
+        val why = androidx.core.app.RemoteInput.getResultsFromIntent(intent)
+            ?.getCharSequence(IncomingCall.KEY_DECLINE_REASON)?.toString()?.trim()?.take(200).orEmpty()
         // 告诉他被拒接了（他可以选择要不要回一句）
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             runCatching {
                 me.rerere.rikkahub.hoshio.HoshioChat.post(
                     "她拒接了",
-                    "Automatic event: she declined your voice call just now (maybe busy or not able to talk). " +
+                    "Automatic event: she declined your voice call just now" +
+                        (if (why.isNotBlank()) ", and told you why: \"$why\". " else " (maybe busy or not able to talk). ") +
                         "Respect it. You may send one short, understanding message, or stay silent with stay_silent.",
                 )
             }
         }
+    }
+}
+
+
+/** 他打的電話響完沒人接：讓他自己決定要不要留一則語音（或一句話，或什麼都不留） */
+class MissedCallWorker(context: Context, params: androidx.work.WorkerParameters) : androidx.work.CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        val note = VoiceCallState.takeMissedNote(applicationContext) ?: return Result.success()
+        IncomingCall.cancel(applicationContext)
+        runCatching {
+            me.rerere.rikkahub.hoshio.HoshioChat.post(
+                "📞 未接來電",
+                "Automatic event (not typed by her): $note " +
+                    "You decide: leave her a short voicemail in your own voice with send_voice_message, send a short text, or leave nothing (stay_silent). " +
+                    "Do not call again right away.",
+            )
+        }
+        return Result.success()
     }
 }

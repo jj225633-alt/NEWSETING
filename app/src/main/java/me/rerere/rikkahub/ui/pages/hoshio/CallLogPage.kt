@@ -95,7 +95,8 @@ fun CallLogPage() {
                                     "・${r.lines.size} 句" + if (r.audioCleared) "・語音已清除" else "",
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            r.lines.firstOrNull { it.him }?.let { Text("「${it.text.take(30)}」", style = MaterialTheme.typography.bodySmall, maxLines = 1) }
+                            if (r.summary.isNotBlank()) Text("✎ ${r.summary}", style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                            else r.lines.firstOrNull { it.him }?.let { Text("「${it.text.take(30)}」", style = MaterialTheme.typography.bodySmall, maxLines = 1) }
                         }
                         TextButton(onClick = { CallLog.setStarred(context, r.id, !r.starred) }) { Text(if (r.starred) "⭐" else "☆") }
                     }

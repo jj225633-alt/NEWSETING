@@ -97,7 +97,7 @@ object VoicePlayer {
     }
 
     /** 播放到结束（或被取消、被 [stop]）才回传 */
-    suspend fun play(file: File): Unit = suspendCancellableCoroutine { cont ->
+    suspend fun play(file: File, volume: Float = 1f): Unit = suspendCancellableCoroutine { cont ->
         stop()
         val p = MediaPlayer()
         player = p
@@ -111,6 +111,7 @@ object VoicePlayer {
             p.setOnCompletionListener { finish() }
             p.setOnErrorListener { _, _, _ -> finish(); true }
             p.prepare()
+            v@ run { val v = volume.coerceIn(0.05f, 1f); p.setVolume(v, v) }
             p.start()
         }.onFailure { finish() }
         cont.invokeOnCancellation { if (player === p) stop() }
