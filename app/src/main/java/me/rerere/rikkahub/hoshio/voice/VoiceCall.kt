@@ -58,6 +58,8 @@ class VoicePrefs(context: Context) {
 /** 通话中：送给他的讯息会附上「现在在讲电话」的提示 */
 object VoiceCallState {
     val active = MutableStateFlow(false)
+    /** 她打斷他時實際聽到哪裡；下一次送給他時附上，用過就清掉 */
+    val interruptedNote = MutableStateFlow<String?>(null)
 }
 
 /**

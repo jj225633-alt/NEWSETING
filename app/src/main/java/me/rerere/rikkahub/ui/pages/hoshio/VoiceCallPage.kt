@@ -88,6 +88,8 @@ fun VoiceCallPage(reason: String? = null) {
     var speakJob by remember { mutableStateOf<Job?>(null) }
     var listenJob by remember { mutableStateOf<Job?>(null) }
     val startedAt = remember { System.currentTimeMillis() }
+    // 星汐: 被打斷時她真正聽到的部分（只算整段播完的句子），下一輪告訴他
+    var interruptedNote by remember { mutableStateOf<String?>(null) }
     var elapsed by remember { mutableStateOf(0L) }
 
     // 通话期间：萤幕不关、告诉他在讲电话；挂断时清掉
@@ -115,23 +117,37 @@ fun VoiceCallPage(reason: String? = null) {
         if (clean.isBlank()) return
         lastSaid = clean
         phase = CallPhase.SPEAKING
+        val chunks = splitForSpeech(clean)
+        var played = 0
         coroutineScope {
             val job = launch {
                 val files = Channel<File>(capacity = 2)
                 launch {
-                    splitForSpeech(clean).forEachIndexed { i, chunk ->
-                        files.send(VoiceAudio.synthesize(context, chunk, "call_${startedAt}_$i"))
+                    chunks.forEachIndexed { i, chunk ->
+                        files.send(VoiceAudio.synthesize(context, chunk, "call_${startedAt}_${System.nanoTime()}_$i"))
                     }
                     files.close()
                 }
                 for (f in files) {
-                    VoicePlayer.play(f)
-                    f.delete()
+                    try {
+                        VoicePlayer.play(f)
+                        played++
+                    } finally {
+                        f.delete()
+                    }
                 }
             }
             speakJob = job
             job.join()
             speakJob = null
+        }
+        // 沒念完就被打斷：記下她實際聽到哪裡
+        if (played < chunks.size) {
+            val heard = chunks.take(played).joinToString("")
+            val missed = chunks.drop(played).joinToString("")
+            interruptedNote = "(She interrupted you mid-sentence. She only heard: \"${heard.ifBlank { "(nothing)" }}\". " +
+                "She did NOT hear: \"${missed.take(300)}\". Treat the unheard part as never said.)"
+            lastSaid = heard.ifBlank { "（被打斷了）" }
         }
     }
 
@@ -160,9 +176,14 @@ fun VoiceCallPage(reason: String? = null) {
             errorText = it.message ?: "語音合成失敗，請確認已設定語音服務"
             return@LaunchedEffect
         }
+        // 星汐: 沉默事件——她一直沒說話時，讓他自己決定要開口還是繼續等
+        var silentSince = System.currentTimeMillis()
+        var nextCheckSec = 15L
+        var spokeOnce = true
         while (isActive) {
             if (muted) {
                 phase = CallPhase.MUTED
+                silentSince = System.currentTimeMillis()
                 delay(300)
                 continue
             }
@@ -175,11 +196,45 @@ fun VoiceCallPage(reason: String? = null) {
                 job.join()
                 listenJob = null
             }
-            val said = heard ?: continue
+            val said = heard
+            if (said == null) {
+                val silentSec = (System.currentTimeMillis() - silentSince) / 1000
+                if (silentSec >= nextCheckSec && !muted) {
+                    phase = CallPhase.THINKING
+                    val event = (if (spokeOnce) "On the voice call, after your last words finished playing, " else "On the voice call, since it connected, ") +
+                        "she has not said anything for $silentSec seconds. Her microphone is on and the call is connected."
+                    val fresh = HoshioChat.fresh(conversation)
+                    val decision = me.rerere.rikkahub.hoshio.care.WakeDecision.decide(
+                        context, fresh, "通話中她沒說話",
+                        "$event Based on the conversation, decide whether to keep waiting quietly (like staying on the line together) or to speak up naturally.",
+                    )
+                    if (decision != null && !decision.talk) {
+                        // 他選擇繼續等：下次隔久一點再問
+                        nextCheckSec = (silentSec + (nextCheckSec * 2).coerceAtMost(300)).coerceAtMost(silentSec + 300)
+                        continue
+                    }
+                    val reply = runCatching {
+                        HoshioChat.askConversation(
+                            conversation.id, "通話中她沒說話",
+                            "$event You decided to speak. Say 1-2 short, natural spoken sentences (no actions, no emoji)." +
+                                (decision?.thought?.takeIf { it.isNotBlank() }?.let { " Your thought was: \"$it\"." } ?: ""),
+                        )
+                    }.getOrDefault("")
+                    runCatching { speak(reply) }.onFailure { errorText = it.message }
+                    silentSince = System.currentTimeMillis()
+                    nextCheckSec = 15
+                    spokeOnce = true
+                }
+                continue
+            }
             partial = said
             phase = CallPhase.THINKING
+            interruptedNote?.let { me.rerere.rikkahub.hoshio.voice.VoiceCallState.interruptedNote.value = it }
+            interruptedNote = null
             val reply = runCatching { HoshioChat.sendAndWait(conversation.id, said) }.getOrDefault("")
             runCatching { speak(reply) }.onFailure { errorText = it.message }
+            silentSince = System.currentTimeMillis()
+            nextCheckSec = 15
         }
     }
 
