@@ -135,6 +135,9 @@ private fun MarkdownPreview() {
  *
  * @param streaming 内容还在生成时为 true，末尾没写完的语法（如 `**加粗`、`$\frac{`）会被补全或隐藏
  */
+/** 星汐: 連結、行內程式碼、清單符號的顏色；Unspecified = 用主題色 */
+val LocalMarkdownAccent = androidx.compose.runtime.compositionLocalOf { androidx.compose.ui.graphics.Color.Unspecified }
+
 @Composable
 fun MarkdownBlock(
     content: String,
@@ -149,14 +152,21 @@ fun MarkdownBlock(
     val density = LocalDensity.current
     val quoteColor = MaterialTheme.colorScheme.tertiary
     val defaultTheme = MaterialMarkdownDefaults.theme(style)
-    val theme = remember(defaultTheme, fontSize, density, enableQuoteHighlight, quoteColor) {
-        defaultTheme.copy(
+    // 星汐: 泡泡可以指定連結／行內程式碼的顏色，避免和泡泡底色太像
+    val accent = LocalMarkdownAccent.current
+    val theme = remember(defaultTheme, fontSize, density, enableQuoteHighlight, quoteColor, accent) {
+        val base = if (accent == androidx.compose.ui.graphics.Color.Unspecified) defaultTheme else defaultTheme.copy(
+            link = defaultTheme.link.copy(color = accent),
+            inlineCode = base.inlineCode.copy(color = accent),
+            markerColor = accent,
+        )
+        base.copy(
             inlineCode = defaultTheme.inlineCode.copy(
                 fontFamily = JetbrainsMono,
                 fontFeatureSettings = "'calt' 0, 'liga' 0, 'clig' 0",
             ),
             // 段落间距跟随字号，调整字体大小时保持比例
-            blockSpacing = if (fontSize.isSp) with(density) { fontSize.toDp() } else defaultTheme.blockSpacing,
+            blockSpacing = if (fontSize.isSp) with(density) { fontSize.toDp() } else base.blockSpacing,
             quotedText = SpanStyle(color = quoteColor).takeIf { enableQuoteHighlight },
         )
     }

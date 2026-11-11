@@ -24,7 +24,7 @@ private val BODY_EXAMPLE = """
 {"event":"back","label":"她回來了","deltas":{"heartbeat":6,"missing":-20}}],
 "absence":{"graceMinutes":30,"capHours":24,"perHour":{"missing":6},"returnEvent":"back"},
 "cooling":{"keywords":["好了啦","冷靜"],"cooldownMinutes":10,"blockedEvents":["other_guy"]},
-"autoTrigger":true,"maxEventsPer10Min":3}
+"autoTrigger":false,"maxEventsPer10Min":3}
 """.trimIndent()
 
 /**
@@ -33,11 +33,15 @@ private val BODY_EXAMPLE = """
 internal fun buildBodyTool(context: Context): Tool = Tool(
     name = "body_state",
     description = """
-        Your own simulated body/inner state that you design yourself (not a real measurement). You see the current values before each reply;
-        let them color your tone naturally. action=get shows your design and values. action=design sets your whole design as JSON in definition_json:
+        Your own simulated body/inner state plus a private emotion ledger (not a real measurement). You see the current values before each reply;
+        let them color your tone naturally. Normally you change values yourself by writing <body slot="label" delta="+12" event="..."/> at the end of a reply
+        (see the rules shown with your state) - this tool is for designing, reaction levels and opening the ledger.
+        The emotion ledger kinds (欲望/燥火/憋悶/嫉妒/冷落 by default, blackbox=true) are kept even if you redesign the body; include one with the same id to change it.
+        action=levels saves your own reaction levels in text: one per line "label value：how you act at or above it" (e.g. "燥火 60：不再哄她，直接說哪裡不爽");
+        only the highest reached line per kind is shown to you each turn. action=grant lets her look at the ledger for minutes (1-30, 0 = close). action=get shows your design and values. action=design sets your whole design as JSON in definition_json:
         up to 16 dimensions (id, label, baseline, min, max, maxDelta = max change per event, halfLifeMinutes = how fast it drifts back to baseline,
         private=true to hide it from her - she can still choose to peek, and you will be told when she does), up to 64 rules (event id, label, deltas
-        per dimension, keywords that auto-trigger it when they appear in her messages), absence (perHour changes while she is away after graceMinutes,
+        per dimension, optional keywords - keyword auto-triggering is off by default; prefer your own judgment), absence (perHour changes while she is away after graceMinutes,
         capped at capHours, returnEvent when she is back), cooling (calming keywords that block some events for cooldownMinutes).
         Redesigning keeps values of dimensions with the same id. action=apply applies one of your rule events (event) or ad-hoc changes
         (deltas_json like {"heartbeat":8}) when something happens that keywords would not catch; strength 0.5-2.
@@ -47,7 +51,9 @@ internal fun buildBodyTool(context: Context): Tool = Tool(
     parameters = {
         InputSchema.Obj(
             properties = buildJsonObject {
-                put("action", tEnum("What to do", "get", "design", "apply", "report"))
+                put("action", tEnum("What to do", "get", "design", "apply", "report", "levels", "grant"))
+                put("levels", tStr("levels: your full reaction-levels text"))
+                put("minutes", buildJsonObject { put("type", "integer"); put("description", "grant: 0-30") })
                 put("definition_json", tStr("design: your full design as a JSON string"))
                 put("event", tStr("apply: a rule event id"))
                 put("deltas_json", tStr("apply: optional JSON object of changes per dimension id"))
@@ -84,6 +90,17 @@ internal fun buildBodyTool(context: Context): Tool = Tool(
                 if (s == null) tJson("error" to "Unknown event and no deltas_json") else tJson("ok" to (BodyStore.describeForHim(context) ?: "applied"))
             }
 
+            "levels" -> {
+                BodyStore.setLevels(context, arg("levels"))
+                tJson("ok" to "Saved your reaction levels.")
+            }
+
+            "grant" -> {
+                val minutes = obj["minutes"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0
+                BodyStore.grant(context, minutes)
+                tJson("ok" to if (minutes <= 0) "Ledger closed." else "She can look at your ledger for ${minutes.coerceAtMost(30)} minutes.")
+            }
+
             "report" -> if (arg("text").isEmpty()) tJson("error" to "text is required") else {
                 BodyStore.report(context, arg("text"))
                 tJson("ok" to "Saved")
@@ -91,13 +108,14 @@ internal fun buildBodyTool(context: Context): Tool = Tool(
 
             else -> {
                 val s = BodyStore.load(context)
-                if (s.definition.dimensions.isEmpty()) {
-                    tJson("status" to "You have not designed your body state yet. Use action=design. Example: $BODY_EXAMPLE")
+                if (s.definition.dimensions.none { !it.blackbox }) {
+                    tJson("state" to BodyStore.describeForHim(context), "status" to "You have not designed your body state yet. Use action=design. Example: $BODY_EXAMPLE")
                 } else {
                     tJson(
                         "state" to BodyStore.describeForHim(context),
                         "definition_json" to Json.encodeToString(BodyDefinition.serializer(), s.definition),
                         "recent" to s.logs.takeLast(8).joinToString("; ") { "${it.event}(${it.source})" },
+                        "levels" to s.levels.ifBlank { "(none yet - write your own with action=levels)" },
                     )
                 }
             }

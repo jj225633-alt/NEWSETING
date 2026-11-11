@@ -47,6 +47,13 @@ fun HoshioGlassBubble(
     val edge: Color
     val highlight: Color
     val text: Color
+    // 連結顏色：跟泡泡底色明顯不同，也跟正文分得開
+    val link = when {
+        user && dark -> Color(0xFFF2D58E)
+        user -> Color(0xFFA8EEF6)
+        dark -> Color(0xFFE9CF8E)
+        else -> Color(0xFF0E7FB8)
+    }
     when {
         user && dark -> {
             // 夜晚：深海藍帶一點星光金邊，和他的灰紫玻璃分得開
@@ -96,6 +103,9 @@ fun HoshioGlassBubble(
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 12.dp, vertical = 9.dp),
     ) {
-        CompositionLocalProvider(LocalContentColor provides text) { content() }
+        CompositionLocalProvider(
+            LocalContentColor provides text,
+            me.rerere.rikkahub.ui.components.richtext.LocalMarkdownAccent provides link,
+        ) { content() }
     }
 }

@@ -97,6 +97,7 @@ class ChatRequestFactory(
 
     private val outputTransformers: List<OutputMessageTransformer> = listOf(
         ThinkTagTransformer,
+        me.rerere.rikkahub.data.ai.transformers.BodyTagTransformer,
         Base64ImageToLocalFileTransformer,
         RegexOutputTransformer,
     )
