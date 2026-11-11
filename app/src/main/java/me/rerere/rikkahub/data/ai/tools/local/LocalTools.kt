@@ -52,7 +52,7 @@ class LocalTools(
 
     val musicTools by lazy { buildMusicTools(context) }
 
-    val lifeTools by lazy { buildLifeTools(context) + buildSettingsHelperTool(context) + buildAiPowerTools(context) }
+    val lifeTools by lazy { buildLifeTools(context) + buildSettingsHelperTool(context) + buildAiPowerTools(context) + buildBodyTool(context) }
 
     val appLockTools by lazy { buildAppLockTools(context) }
 

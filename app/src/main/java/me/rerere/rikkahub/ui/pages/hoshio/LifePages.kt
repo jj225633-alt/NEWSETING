@@ -79,6 +79,7 @@ fun HoshioLifePage() {
                     }
                 }
             }
+            item { BodySection() }
             item { Text("醒來紀錄", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) }
             if (records.isEmpty()) {
                 item { Text("還沒有紀錄。主動關心、自由時間、約好的時間把他叫醒時，這裡會記下他做了什麼。", style = MaterialTheme.typography.bodyMedium) }
