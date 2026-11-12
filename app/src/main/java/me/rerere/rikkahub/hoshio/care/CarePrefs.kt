@@ -234,7 +234,7 @@ class CarePrefs(context: Context) {
 
         /** 自由时间：凌晨 0 点到这个时间不打扰 */
         const val FREE_TIME_QUIET_END_HOUR = 8
-        const val FREE_TIME_MAX_PER_DAY = 6
+        const val FREE_TIME_MAX_PER_DAY = 8
 
         const val SCREEN_MODE_IGNORED = "ignored"
         const val SCREEN_MODE_INTERVAL = "interval"
