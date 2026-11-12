@@ -94,7 +94,7 @@ fun SnapView(item: PovSnapItem, showSave: Boolean = true) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = if (line.him) Arrangement.End else Arrangement.Start) {
                     Column(Modifier.widthIn(max = 250.dp)) {
                         // 截圖裡左右對調：他（AI）在右、她在左；顏色仍是各自的
-                        HoshioGlassBubble(user = !line.him, opacity = 1f) {
+                        HoshioGlassBubble(user = !line.him, opacity = 1f, tailRight = line.him) {
                             Text(line.text, style = MaterialTheme.typography.bodyMedium)
                         }
                     }

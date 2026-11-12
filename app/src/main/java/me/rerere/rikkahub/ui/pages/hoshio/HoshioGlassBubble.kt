@@ -34,14 +34,16 @@ fun HoshioGlassBubble(
     opacity: Float,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    /** 小尖角在右下（預設：她的在右、他的在左；截圖裡左右對調時跟著換） */
+    tailRight: Boolean = user,
     content: @Composable () -> Unit,
 ) {
     val dark = LocalDarkMode.current
     val scale = opacity.coerceIn(0.15f, 1f)
     val shape = RoundedCornerShape(
         topStart = 22.dp, topEnd = 22.dp,
-        bottomEnd = if (user) 8.dp else 22.dp,
-        bottomStart = if (user) 22.dp else 8.dp,
+        bottomEnd = if (tailRight) 8.dp else 22.dp,
+        bottomStart = if (tailRight) 22.dp else 8.dp,
     )
     val fill: List<Color>
     val edge: Color
