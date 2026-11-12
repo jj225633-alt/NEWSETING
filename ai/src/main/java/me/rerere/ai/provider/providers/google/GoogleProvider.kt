@@ -183,6 +183,8 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
             return@withContext interactionsAPI.generateText(providerSetting, messages, params)
         }
 
+        // 星汐: 有些模型（例如 Flash Lite）不接受這個思考等級，自動改成不指定再試一次
+        val params = noThinkingFallback(params)
         val requestBody = buildCompletionRequestBody(messages, params)
 
         val url = buildUrl(
@@ -209,7 +211,12 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
 
         val response = client.newCall(request).await()
         if (!response.isSuccessful) {
-            throw Exception("Failed to get response: ${response.code} ${response.body?.string()}")
+            val err = response.body?.string()
+            if (rejectsThinkingLevel(err) && params.reasoningLevel != ReasoningLevel.AUTO) {
+                thinkingLevelRejected += params.model.modelId
+                return@withContext generateText(providerSetting, messages, params.copy(reasoningLevel = ReasoningLevel.AUTO))
+            }
+            throw Exception("Failed to get response: ${response.code} $err")
         }
 
         val bodyStr = response.body?.string() ?: ""
@@ -233,7 +240,28 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
     ): Flow<StreamChunk> = if (providerSetting.usesInteractionsApi()) {
         interactionsAPI.streamText(providerSetting, messages, params)
     } else {
-        streamGenerateContent(providerSetting, messages, params)
+        val p = noThinkingFallback(params)
+        flow {
+            var emitted = false
+            try {
+                streamGenerateContent(providerSetting, messages, p).collect { emitted = true; emit(it) }
+            } catch (e: Throwable) {
+                if (emitted || p.reasoningLevel == ReasoningLevel.AUTO || !rejectsThinkingLevel(e.message)) throw e
+                thinkingLevelRejected += p.model.modelId
+                streamGenerateContent(providerSetting, messages, p.copy(reasoningLevel = ReasoningLevel.AUTO)).collect { emit(it) }
+            }
+        }
+    }
+
+    /** 星汐: 被拒絕過思考等級的模型，之後就不再送 */
+    private val thinkingLevelRejected = java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String, Boolean>())
+
+    private fun noThinkingFallback(params: TextGenerationParams) =
+        if (params.model.modelId in thinkingLevelRejected && params.reasoningLevel != ReasoningLevel.AUTO) params.copy(reasoningLevel = ReasoningLevel.AUTO) else params
+
+    private fun rejectsThinkingLevel(msg: String?): Boolean {
+        val m = msg?.lowercase() ?: return false
+        return ("thinking" in m && ("unsupported" in m || "not supported" in m)) || ("thinking_level" in m || "thinkinglevel" in m) && "invalid" in m
     }
 
     private fun streamGenerateContent(
