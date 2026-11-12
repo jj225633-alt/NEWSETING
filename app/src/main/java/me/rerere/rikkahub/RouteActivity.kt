@@ -516,6 +516,9 @@ class RouteActivity : ComponentActivity() {
                             entry<Screen.PlayHub> {
                                 me.rerere.rikkahub.ui.pages.hoshio.PlayHubPage()
                             }
+                            entry<Screen.ChatCalendar> {
+                                me.rerere.rikkahub.ui.pages.hoshio.ChatCalendarPage()
+                            }
                             entry<Screen.MemoriesHub> {
                                 me.rerere.rikkahub.ui.pages.hoshio.MemoriesHubPage()
                             }
@@ -906,6 +909,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object PovSnaps : Screen
+
+    @Serializable
+    data object ChatCalendar : Screen
 
     @Serializable
     data object Treasure : Screen
