@@ -337,25 +337,12 @@ fun HomePage() {
                         }
                     }
                 }
-                // 在一起的日子
+                // 星汐: 對話日曆（取代原本的「在一起的日子」熱力圖）
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     HoshioGlass(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text("在一起的日子", fontSize = 16.sp, fontFamily = FontFamily.Serif, color = ink)
-                                Box(Modifier.weight(1f))
-                                Text("最近 $HEATMAP_WEEKS 週", fontSize = 11.sp, color = muted)
-                            }
-                            HomeHeatmap(heat.perDay, today, accent, ink, Modifier.fillMaxWidth().padding(top = 12.dp))
-                            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text("少", fontSize = 10.sp, color = muted)
-                                listOf(0f, .3f, .55f, .8f, 1f).forEach { level ->
-                                    androidx.compose.foundation.Canvas(Modifier.padding(start = 4.dp).size(10.dp)) {
-                                        drawRoundRect(heatColor(level, accent, ink), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()))
-                                    }
-                                }
-                                Text("  多", fontSize = 10.sp, color = muted)
-                            }
+                        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                            Text("對話日曆", fontSize = 16.sp, fontFamily = FontFamily.Serif, color = ink, modifier = Modifier.padding(start = 4.dp))
+                            ChatCalendarContent()
                         }
                     }
                 }

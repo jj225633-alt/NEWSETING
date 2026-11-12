@@ -73,12 +73,29 @@ private const val CHAT_GAP_MS = 30 * 60_000L
  */
 @Composable
 fun ChatCalendarPage() {
+    PlayScaffold("對話日曆") { innerPadding ->
+        Column(
+            Modifier.fillMaxSize().padding(innerPadding).padding(16.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), shape = MaterialTheme.shapes.extraLarge) {
+                ChatCalendarContent(Modifier.padding(16.dp))
+            }
+            Text("顏色越深，那天聊得越多。點日期看細節。聊天時間是把間隔 30 分鐘內的訊息算成連續在聊。",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** 日曆本體（月份切換、格子、總計、點選那天的細節），首頁和日曆頁共用 */
+@Composable
+fun ChatCalendarContent(modifier: Modifier = Modifier) {
     val repo = koinInject<ConversationRepository>()
     val settingsStore = koinInject<SettingsStore>()
     val usageDao = koinInject<UsageRecordDAO>()
     var month by remember { mutableStateOf(YearMonth.now()) }
     var stats by remember { mutableStateOf<Map<LocalDate, ChatDayStat>?>(null) }
-    var selected by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
+    var selected by remember { mutableStateOf<LocalDate?>(null) }
     var names by remember { mutableStateOf("你" to "他") }
 
     LaunchedEffect(month) {
@@ -93,47 +110,34 @@ fun ChatCalendarPage() {
         }
     }
 
-    PlayScaffold("對話日曆") { innerPadding ->
-        Column(
-            Modifier.fillMaxSize().padding(innerPadding).padding(16.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), shape = MaterialTheme.shapes.extraLarge) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { month = month.minusMonths(1); selected = null }) { Text("‹", fontSize = 26.sp) }
-                        Text("${month.year} 年 ${month.monthValue} 月", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                        IconButton(enabled = month < YearMonth.now(), onClick = { month = month.plusMonths(1); selected = null }) { Text("›", fontSize = 26.sp) }
-                    }
-                    Row(Modifier.fillMaxWidth()) {
-                        "日一二三四五六".forEach {
-                            Text(it.toString(), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    val s = stats
-                    if (s == null) {
-                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                    } else {
-                        MonthGrid(month, s, selected) { selected = it }
-                        val active = s.values.filter { it.herCount + it.hisCount > 0 }
-                        val totalMin = active.sumOf { it.minutes }
-                        Text(
-                            "活躍 ${active.size} 天　一起聊了 ${totalMin / 60} 小時 ${totalMin % 60} 分　${names.second} 主動找你 ${active.sumOf { it.proactive }} 次",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        val tokens = s.values.sumOf { it.tokens }
-                        if (tokens > 0) Text("這個月用了 ${formatTokens(tokens)} tokens（全部請求，含標題、翻譯等）", style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { month = month.minusMonths(1); selected = null }) { Text("‹", fontSize = 26.sp) }
+            Text("${month.year} 年 ${month.monthValue} 月", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            IconButton(enabled = month < YearMonth.now(), onClick = { month = month.plusMonths(1); selected = null }) { Text("›", fontSize = 26.sp) }
+        }
+        Row(Modifier.fillMaxWidth()) {
+            "日一二三四五六".forEach {
+                Text(it.toString(), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
-            val day = selected?.let { d -> stats?.get(d) ?: ChatDayStat(d) }
-            if (day != null && stats != null) DayDetail(day, names)
-            Text("顏色越深，那天聊得越久。點日期看細節。聊天時間是把間隔 30 分鐘內的訊息算成連續在聊。",
-                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        val s = stats
+        if (s == null) {
+            Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        } else {
+            MonthGrid(month, s, selected) { selected = if (selected == it) null else it }
+            selected?.let { d -> DayDetail(s[d] ?: ChatDayStat(d), names) }
+            val active = s.values.filter { it.herCount + it.hisCount > 0 }
+            val totalMin = active.sumOf { it.minutes }
+            Text(
+                "活躍 ${active.size} 天　一起聊了 ${totalMin / 60} 小時 ${totalMin % 60} 分　${names.second} 主動找你 ${active.sumOf { it.proactive }} 次",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            val tokens = s.values.sumOf { it.tokens }
+            if (tokens > 0) Text("這個月用了 ${formatTokens(tokens)} tokens（全部請求，含標題、翻譯等）", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -143,7 +147,8 @@ private fun MonthGrid(month: YearMonth, stats: Map<LocalDate, ChatDayStat>, sele
     val first = month.atDay(1)
     val lead = first.dayOfWeek.value % 7 // 週日開頭
     val cells = (0 until lead).map { null } + (1..month.lengthOfMonth()).map { month.atDay(it) }
-    val maxMinutes = stats.values.maxOfOrNull { it.minutes }?.coerceAtLeast(30) ?: 30
+    // 依那天的訊息數量決定深淺
+    val maxCount = stats.values.maxOfOrNull { it.herCount + it.hisCount }?.coerceAtLeast(10) ?: 10
     val empty = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         cells.chunked(7).forEach { week ->
@@ -154,7 +159,7 @@ private fun MonthGrid(month: YearMonth, stats: Map<LocalDate, ChatDayStat>, sele
                         if (date != null) {
                             val st = stats[date]
                             val active = st != null && st.herCount + st.hisCount > 0
-                            val t = if (active) (0.25f + 0.75f * (st!!.minutes.toFloat() / maxMinutes)).coerceIn(0.25f, 1f) else 0f
+                            val t = if (active) (0.25f + 0.75f * ((st!!.herCount + st.hisCount).toFloat() / maxCount)).coerceIn(0.25f, 1f) else 0f
                             val bg = if (active) lerp(GOLD.copy(alpha = .35f), GOLD_DEEP, t) else empty
                             Box(
                                 Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).background(bg)
