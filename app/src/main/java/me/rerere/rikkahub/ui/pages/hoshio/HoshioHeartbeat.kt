@@ -40,7 +40,7 @@ import me.rerere.rikkahub.ui.theme.LocalDarkMode
  * 星汐主題白天是海水藍，晚上是星星的金屬金（帶一道流動的光澤）；下面顯示已經等了幾秒，方便判斷是不是卡住。
  */
 @Composable
-fun HoshioHeartbeat(modifier: Modifier = Modifier, status: String? = null) {
+fun HoshioHeartbeat(modifier: Modifier = Modifier, status: String? = null, startedAt: Long? = null) {
     val dark = LocalDarkMode.current
     val hoshio = LocalHoshioChatGlass.current
     val base: Color
@@ -59,8 +59,8 @@ fun HoshioHeartbeat(modifier: Modifier = Modifier, status: String? = null) {
     // 心臟跟著心電圖的尖峰跳一下
     val beat = (1f - kotlin.math.abs(sweep - .3f) * 6f).coerceIn(0f, 1f)
     var seconds by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) {
-        val start = System.currentTimeMillis()
+    LaunchedEffect(startedAt) {
+        val start = startedAt ?: System.currentTimeMillis()
         while (true) {
             seconds = (System.currentTimeMillis() - start) / 1000
             delay(1000)
@@ -132,4 +132,11 @@ fun HoshioHeartbeat(modifier: Modifier = Modifier, status: String? = null) {
             color = if (hoshio) base else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/** 星汐: 記住每個對話開始等回覆的時間，離開聊天頁再回來時秒數接著算，不會歸零 */
+object HoshioWaitClock {
+    private val starts = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    fun start(id: String): Long = starts.getOrPut(id) { System.currentTimeMillis() }
+    fun clear(id: String) { starts.remove(id) }
 }

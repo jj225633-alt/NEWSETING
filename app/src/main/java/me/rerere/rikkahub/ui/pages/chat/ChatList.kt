@@ -105,6 +105,13 @@ fun ChatList(
     onConversationSystemPromptChange: ((String?) -> Unit)? = null,
 ) {
     val previewProgress = rememberPreviewSwipeProgress(previewMode)
+    // 星汐: 回覆真的結束後才清掉等待計時（稍等一下，避免剛打開頁面時狀態還沒載入就誤清）
+    LaunchedEffect(loading, conversation.id) {
+        if (!loading) {
+            kotlinx.coroutines.delay(1500)
+            me.rerere.rikkahub.ui.pages.hoshio.HoshioWaitClock.clear(conversation.id.toString())
+        }
+    }
     val scope = rememberCoroutineScope()
     val currentPreviewMode by rememberUpdatedState(previewMode)
     val currentOnPreviewModeChange by rememberUpdatedState(onPreviewModeChange)
@@ -414,7 +421,10 @@ private fun ChatListNormal(
                 item(LoadingIndicatorKey) {
                     // 星汐: 心跳動畫（白天藍、晚上星星金），下面顯示等了多久
                     Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                        me.rerere.rikkahub.ui.pages.hoshio.HoshioHeartbeat(status = processingStatus)
+                        me.rerere.rikkahub.ui.pages.hoshio.HoshioHeartbeat(
+                            status = processingStatus,
+                            startedAt = remember(conversation.id) { me.rerere.rikkahub.ui.pages.hoshio.HoshioWaitClock.start(conversation.id.toString()) },
+                        )
                     }
                 }
             }
