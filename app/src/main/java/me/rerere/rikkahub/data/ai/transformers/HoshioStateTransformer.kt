@@ -38,7 +38,9 @@ object HoshioStateTransformer : InputMessageTransformer {
         val snapRule = "\n" + me.rerere.rikkahub.hoshio.snap.PovSnap.RULE + "\n" + me.rerere.rikkahub.hoshio.snap.ChatModes.RULE +
             me.rerere.rikkahub.hoshio.snap.ChatModes.manual(ctx.context).let { m ->
                 if (m == me.rerere.rikkahub.hoshio.snap.ChatModes.AUTO) "" else " (She has chosen ${me.rerere.rikkahub.hoshio.snap.ChatModes.LABELS[m]} mode herself for now: write in that style; no marker needed.)"
-            }
+            } +
+            "\nThinking: do your internal thinking/reasoning in Traditional Chinese (繁體中文). Never write thinking markers such as [-thought-] or <think> inside the reply itself." +
+            "\nTime: each of her messages carries a 〔她傳這則的時間…〕 note; the one on her latest message is now. Use it for any time you mention instead of guessing."
         val state = UIMessage.user("<your_state>${MoodStore.describe(ctx.context)}$pet$body$voice$snapRule</your_state>").copy(isSynthetic = true)
         return messages.subList(0, index) + state + messages.subList(index, messages.size)
     }

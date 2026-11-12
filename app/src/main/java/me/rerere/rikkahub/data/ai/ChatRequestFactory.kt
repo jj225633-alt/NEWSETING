@@ -85,6 +85,7 @@ class ChatRequestFactory(
     private val inputTransformers: List<InputMessageTransformer> = listOf(
         me.rerere.rikkahub.data.ai.transformers.MediaDecayTransformer,
         TimeReminderTransformer,
+        me.rerere.rikkahub.data.ai.transformers.MessageTimeTransformer,
         HoshioStateTransformer,
         HumanThoughtTransformer,
         me.rerere.rikkahub.data.ai.transformers.VoiceCallTransformer,
@@ -98,6 +99,7 @@ class ChatRequestFactory(
 
     private val outputTransformers: List<OutputMessageTransformer> = listOf(
         ThinkTagTransformer,
+        me.rerere.rikkahub.data.ai.transformers.ThoughtMarkerTransformer,
         me.rerere.rikkahub.data.ai.transformers.BodyTagTransformer,
         Base64ImageToLocalFileTransformer,
         RegexOutputTransformer,
