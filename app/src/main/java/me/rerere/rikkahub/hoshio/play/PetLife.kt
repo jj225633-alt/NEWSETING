@@ -368,7 +368,8 @@ object PetLife {
             s.copy(events = s.events.map { if (it.id == ev.id) it.copy(chosen = choiceKey, chosenBy = by, result = result) else it }, keepsakes = keep)
         }
         bumpMood(context, 8)
-        addLog(context, by, "${ev.title.drop(2).trim()}：${choice.label}")
+        // 星汐: 選完出現的那段文字也記下來，他查看寵物時才看得到發生了什麼
+        addLog(context, by, "${ev.title.drop(2).trim()}：${choice.label} → $result")
         return result
     }
 
@@ -501,6 +502,10 @@ object PetLife {
         missingLevel(context)?.let { parts += "it misses her ($it)" }
         currentTrip(s)?.let { parts += "traveling in ${it.place}, back around ${Instant.ofEpochMilli(it.returnAt).atZone(ZoneId.systemDefault()).toLocalTime().withSecond(0).withNano(0)}" }
         pendingEvent(s)?.let { parts += "special event waiting: ${it.title} ${it.text}" }
+        s.events.filter { it.chosen != null && it.result != null && System.currentTimeMillis() - it.at < 48 * 3_600_000L }.sortedByDescending { it.at }.take(2).forEach { e ->
+            val label = e.choices.firstOrNull { it.key == e.chosen }?.label ?: e.chosen
+            parts += "recent event \"${e.title} ${e.text}\": ${if (e.chosenBy == PetStore.BY_HIM) "you" else "her"} chose \"$label\" → ${e.result}"
+        }
         s.trips.firstOrNull { it.postcard != null }?.let { parts += "latest postcard from ${it.place}" }
         s.notes.firstOrNull()?.let { parts += "latest notebook line by ${if (it.by == PetStore.BY_HIM) "you" else "her"}: \"${it.text.take(40)}\"" }
         return parts.joinToString("; ")
