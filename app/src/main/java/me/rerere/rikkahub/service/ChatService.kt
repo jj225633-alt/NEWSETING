@@ -406,6 +406,42 @@ class ChatService(
         }
     }
 
+    // ---- 星汐: 等我說完再回 ----
+    private val batchJobs = java.util.concurrent.ConcurrentHashMap<Uuid, Job>()
+
+    /** 先把訊息放進對話但不回；等 N 秒沒有新訊息才讓他一次回覆 */
+    fun sendMessageBatched(conversationId: Uuid, content: List<UIMessagePart>) {
+        if (content.isEmptyInputMessage()) return
+        sendMessage(conversationId, content, answer = false)
+        val seconds = me.rerere.rikkahub.hoshio.chat.BatchSend.seconds(context)
+        batchJobs.remove(conversationId)?.cancel()
+        me.rerere.rikkahub.hoshio.chat.BatchSend.mark(conversationId.toString(), System.currentTimeMillis() + seconds * 1000L)
+        batchJobs[conversationId] = appScope.launch {
+            kotlinx.coroutines.delay(seconds * 1000L)
+            try {
+                val session = sessionManager.get(conversationId) ?: return@launch
+                // 等訊息真的寫進對話、之前那一輪結束
+                var waited = 0
+                while (waited < 1200 && (session.getJob() != null || session.inbox.state.value.messages.isNotEmpty())) {
+                    kotlinx.coroutines.delay(500)
+                    waited++
+                }
+                if (session.getJob() != null) return@launch
+                val last = session.state.value.currentMessages.lastOrNull() ?: return@launch
+                if (last.role == MessageRole.USER) regenerateAtMessage(conversationId, last.id)
+            } finally {
+                me.rerere.rikkahub.hoshio.chat.BatchSend.clear(conversationId.toString())
+                batchJobs.remove(conversationId)
+            }
+        }
+    }
+
+    /** 取消還在等的批次（按停止時） */
+    fun cancelBatch(conversationId: Uuid) {
+        batchJobs.remove(conversationId)?.cancel()
+        me.rerere.rikkahub.hoshio.chat.BatchSend.clear(conversationId.toString())
+    }
+
     /** Enqueue immediately; the result belongs to this item even after edits or later turns. */
     fun enqueueVoiceMessage(conversationId: Uuid, text: String): Deferred<String?> {
         val session = sessionManager.getOrCreate(conversationId)
@@ -1325,6 +1361,7 @@ class ChatService(
 
     // 停止当前会话生成任务（不清理会话缓存）
     suspend fun stopGeneration(conversationId: Uuid) {
+        cancelBatch(conversationId)
         val session = sessionManager.get(conversationId) ?: return
         val jobs = synchronized(session) {
             session.inbox.pause()

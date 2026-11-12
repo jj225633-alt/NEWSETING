@@ -309,6 +309,9 @@ private fun ChatPageContent(
     onDismissError: (Uuid) -> Unit,
     onClearAllErrors: () -> Unit,
 ) {
+    // 星汐: 等我說完再回的等待中
+    val batchPending by me.rerere.rikkahub.hoshio.chat.BatchSend.pending.collectAsState()
+    val batchWaiting = conversation.id.toString() in batchPending
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val context = LocalContext.current
@@ -499,8 +502,8 @@ private fun ChatPageContent(
                 state = chatListState,
                 previewListState = previewListState,
                 selectionState = selectionState,
-                loading = loadingJob != null,
-                processingStatus = processingStatus,
+                loading = loadingJob != null || batchWaiting,
+                processingStatus = if (loadingJob == null && batchWaiting) "等你說完…" else processingStatus,
                 previewMode = previewMode,
                 onPreviewModeChange = { previewMode = it },
                 settings = setting,
@@ -880,9 +883,20 @@ private fun ChatPageMenu(
                                 me.rerere.rikkahub.hoshio.snap.ChatModes.setManual(ctx, key)
                                 expanded = false
                             },
-                            shape = MenuDefaults.itemShape(index = i, count = options.size).shape,
+                            shape = MenuDefaults.itemShape(index = i, count = options.size + 1).shape,
                         )
                     }
+                    // 星汐: 等我說完再回
+                    val batchOn by me.rerere.rikkahub.hoshio.chat.BatchSend.enabledFlow.collectAsState()
+                    androidx.compose.runtime.LaunchedEffect(Unit) { me.rerere.rikkahub.hoshio.chat.BatchSend.enabled(ctx) }
+                    DropdownMenuItem(
+                        text = { Text((if (batchOn == true) "✓ " else "　") + "等我說完再回（${me.rerere.rikkahub.hoshio.chat.BatchSend.seconds(ctx)} 秒）") },
+                        onClick = {
+                            me.rerere.rikkahub.hoshio.chat.BatchSend.setEnabled(ctx, batchOn != true)
+                            expanded = false
+                        },
+                        shape = MenuDefaults.itemShape(index = options.size, count = options.size + 1).shape,
+                    )
                 }
             }
             Spacer(Modifier.height(MenuDefaults.GroupSpacing))

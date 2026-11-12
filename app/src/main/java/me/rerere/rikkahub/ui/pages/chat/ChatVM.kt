@@ -238,7 +238,12 @@ class ChatVM(
     fun handleMessageSend(content: List<UIMessagePart>,answer: Boolean = true) {
         if (content.isEmptyInputMessage()) return
 
-        chatService.sendMessage(_conversationId, content, answer)
+        // 星汐: 等我說完再回
+        if (answer && me.rerere.rikkahub.hoshio.chat.BatchSend.enabled(context)) {
+            chatService.sendMessageBatched(_conversationId, content)
+        } else {
+            chatService.sendMessage(_conversationId, content, answer)
+        }
     }
 
     fun handleMessageEdit(parts: List<UIMessagePart>, messageId: Uuid) {
