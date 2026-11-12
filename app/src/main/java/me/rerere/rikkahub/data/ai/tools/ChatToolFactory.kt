@@ -73,6 +73,19 @@ class ChatToolFactory(
                 )
             }
             addAll(workspaceTools)
+            // 星汐: 副本對話才有的工具
+            if (me.rerere.rikkahub.hoshio.dungeon.DungeonStore.byConversation(context, conversationId.toString()) != null) {
+                add(
+                    me.rerere.rikkahub.data.ai.tools.local.buildDungeonTool(
+                        context = context,
+                        conversationId = conversationId.toString(),
+                        memoryRepository = memoryRepository,
+                        memoryId = if (assistant.enableMemory) assistant.memoryId else null,
+                        herName = settings.displaySetting.userNickname.ifBlank { "她" },
+                        hisName = assistant.name.ifBlank { "他" },
+                    )
+                )
+            }
             if (assistant.enabledSkills.isNotEmpty()) {
                 addAll(
                     createSkillTools(

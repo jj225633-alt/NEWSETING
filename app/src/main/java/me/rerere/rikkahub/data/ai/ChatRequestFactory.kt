@@ -86,6 +86,7 @@ class ChatRequestFactory(
         me.rerere.rikkahub.data.ai.transformers.MediaDecayTransformer,
         TimeReminderTransformer,
         me.rerere.rikkahub.data.ai.transformers.MessageTimeTransformer,
+        me.rerere.rikkahub.data.ai.transformers.DungeonTransformer,
         HoshioStateTransformer,
         HumanThoughtTransformer,
         me.rerere.rikkahub.data.ai.transformers.VoiceCallTransformer,
@@ -160,14 +161,14 @@ class ChatRequestFactory(
 
             override suspend fun previewStep(message: UIMessage, newPartsFrom: Int) =
                 message.transformNewParts(newPartsFrom) {
-                    it.visualTransforms(outputTransformers, context, turn.model, turn.assistant, turn.settings)
+                    it.visualTransforms(outputTransformers, context, turn.model, turn.assistant, turn.settings, turn.conversationId)
                 }
 
             override suspend fun finishStep(message: UIMessage, newPartsFrom: Int) =
                 message.transformNewParts(newPartsFrom) {
-                    it.transforms(outputTransformers, context, turn.model, turn.assistant, turn.settings)
-                        .visualTransforms(outputTransformers, context, turn.model, turn.assistant, turn.settings)
-                        .onGenerationFinish(outputTransformers, context, turn.model, turn.assistant, turn.settings)
+                    it.transforms(outputTransformers, context, turn.model, turn.assistant, turn.settings, conversationId = turn.conversationId)
+                        .visualTransforms(outputTransformers, context, turn.model, turn.assistant, turn.settings, turn.conversationId)
+                        .onGenerationFinish(outputTransformers, context, turn.model, turn.assistant, turn.settings, turn.conversationId)
                 }
 
             override suspend fun pendingParts() = takePendingParts()
@@ -250,6 +251,7 @@ class ChatRequestFactory(
             settings = turn.settings,
             processingStatus = processingStatus,
             workspaceCwd = turn.workspaceCwd,
+            conversationId = turn.conversationId,
         ).expandNotices()
         val params = TextGenerationParams(
             model = turn.model,

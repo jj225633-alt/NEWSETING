@@ -31,7 +31,7 @@ object BodyTagTransformer : OutputMessageTransformer {
                     // 星汐: 說話的樣子（第一行的 [switch-mode:xxx]）
                     val moded = runCatching { me.rerere.rikkahub.hoshio.snap.ChatModes.extract(ctx.context, m.id.toString(), p.text) }.getOrDefault(p.text)
                     val (clean, tags) = if (moded.contains('<')) BodyTags.parse(moded) else moded to emptyList()
-                    if (tags.isNotEmpty()) runCatching { BodyStore.applyTags(ctx.context, "${m.id}:$i:${p.text.hashCode()}", tags) }
+                    if (tags.isNotEmpty() && !ctx.isDungeon()) runCatching { BodyStore.applyTags(ctx.context, "${m.id}:$i:${p.text.hashCode()}", tags) }
                     // 星汐: 他的截圖標記換成卡片記號
                     val snapped = runCatching { me.rerere.rikkahub.hoshio.snap.PovSnap.extract(ctx.context, clean) }.getOrDefault(clean)
                     if (snapped != p.text) {

@@ -516,6 +516,9 @@ class RouteActivity : ComponentActivity() {
                             entry<Screen.PlayHub> {
                                 me.rerere.rikkahub.ui.pages.hoshio.PlayHubPage()
                             }
+                            entry<Screen.DungeonList> {
+                                me.rerere.rikkahub.ui.pages.hoshio.DungeonListPage()
+                            }
                             entry<Screen.ChatCalendar> {
                                 me.rerere.rikkahub.ui.pages.hoshio.ChatCalendarPage()
                             }
@@ -912,6 +915,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object ChatCalendar : Screen
+
+    @Serializable
+    data object DungeonList : Screen
 
     @Serializable
     data object Treasure : Screen

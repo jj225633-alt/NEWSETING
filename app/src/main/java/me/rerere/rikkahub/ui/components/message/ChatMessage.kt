@@ -450,8 +450,19 @@ private fun MessagePartsBlock(
                                 ) {
                                     segments.forEachIndexed { i, (isThought, text) ->
                                         key(i) {
+                                            val dungeonState = me.rerere.rikkahub.ui.pages.hoshio.LocalDungeon.current
                                             if (isThought) {
                                                 HumanThoughtCard(content = text, key = "${block.index}:$i:${text.hashCode()}")
+                                            } else if (dungeonState != null && text.trimStart().startsWith(me.rerere.rikkahub.hoshio.dungeon.WHISPER_PREFIX)) {
+                                                // 星汐: 副本裡她的悄悄說
+                                                Box(Modifier.padding(start = 24.dp)) {
+                                                    me.rerere.rikkahub.ui.pages.hoshio.WhisperCard(
+                                                        "${settings.displaySetting.userNickname.ifBlank { "你" }} 悄悄說",
+                                                        text.trimStart().removePrefix(me.rerere.rikkahub.hoshio.dungeon.WHISPER_PREFIX).trim(),
+                                                        false,
+                                                        me.rerere.rikkahub.ui.pages.hoshio.dungeonPalette(dungeonState.theme).accent,
+                                                    )
+                                                }
                                             } else {
                                                 ChatMessageBubble(
                                                     role = role,
@@ -496,7 +507,11 @@ private fun MessagePartsBlock(
                                             else -> splitReplyParagraphs(visualText)
                                         }
                                     }
-                                    if (mode == me.rerere.rikkahub.hoshio.snap.ChatModes.SCENE) {
+                                    val dungeon = me.rerere.rikkahub.ui.pages.hoshio.LocalDungeon.current
+                                    if (dungeon != null) {
+                                        // 星汐: 副本：旁白、系統框、悄悄說
+                                        me.rerere.rikkahub.ui.pages.hoshio.DungeonProse(visualText, streamingText, assistant?.name?.ifBlank { null } ?: "他")
+                                    } else if (mode == me.rerere.rikkahub.hoshio.snap.ChatModes.SCENE) {
                                         // 場景：像看小說，沒有泡泡
                                         me.rerere.rikkahub.ui.pages.hoshio.SceneProse(visualText, streamingText)
                                     } else

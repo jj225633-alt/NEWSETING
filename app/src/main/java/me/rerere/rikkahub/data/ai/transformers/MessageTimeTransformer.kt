@@ -19,6 +19,7 @@ object MessageTimeTransformer : InputMessageTransformer {
     private val fmt = DateTimeFormatter.ofPattern("yyyy/MM/dd（E）HH:mm", Locale.TRADITIONAL_CHINESE)
 
     override suspend fun transform(ctx: TransformerContext, messages: List<UIMessage>): List<UIMessage> {
+        if (ctx.isDungeon()) return messages
         val tz = TimeZone.currentSystemDefault()
         val lastHuman = messages.indexOfLast { it.role == MessageRole.USER && !it.isSynthetic }
         return messages.mapIndexed { i, m ->

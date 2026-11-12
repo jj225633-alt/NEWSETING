@@ -13,6 +13,7 @@ import kotlinx.datetime.toInstant
 object HoshioStateTransformer : InputMessageTransformer {
     override suspend fun transform(ctx: TransformerContext, messages: List<UIMessage>): List<UIMessage> {
         if (LocalToolOption.Life !in ctx.assistant.localTools) return messages
+        if (ctx.isDungeon()) return messages
         val index = messages.indexOfLast { it.role == MessageRole.USER && !it.isSynthetic }
         if (index < 0) return messages
         val pet = if (LocalToolOption.Play in ctx.assistant.localTools) {

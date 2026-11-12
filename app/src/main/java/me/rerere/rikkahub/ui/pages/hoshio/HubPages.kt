@@ -82,6 +82,7 @@ fun PlayHubPage() = HubGrid(
     title = "一起玩",
     intro = "一起看、一起猜、一起下棋、一起養。",
     links = listOf(
+        HubLink("副本遊樂場", "無限流、跑團：他當主持人也是你的搭檔，系統擲骰", HugeIcons.Route01, Screen.DungeonList),
         HubLink("一起聽", "你在 YT 聽的歌、我們的歌單、歌詞和批註本", HugeIcons.MusicNote03, Screen.ListenTogether),
         HubLink("一起看螢幕", "他陪你看，邊看邊說話", HugeIcons.Eye, Screen.WatchTogether),
         HubLink("下棋", "圈圈叉叉、五子棋", HugeIcons.Play, Screen.BoardGame),

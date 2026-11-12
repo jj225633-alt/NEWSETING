@@ -312,6 +312,18 @@ private fun ChatPageContent(
     // 星汐: 等我說完再回的等待中
     val batchPending by me.rerere.rikkahub.hoshio.chat.BatchSend.pending.collectAsState()
     val batchWaiting = conversation.id.toString() in batchPending
+    // 星汐: 副本遊樂場
+    val dungeonCtx = androidx.compose.ui.platform.LocalContext.current
+    val dungeons by me.rerere.rikkahub.hoshio.dungeon.DungeonStore.all.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(Unit) { me.rerere.rikkahub.hoshio.dungeon.DungeonStore.load(dungeonCtx) }
+    val dungeon = dungeons?.firstOrNull { it.conversationId == conversation.id.toString() }
+    val dungeonWhisper by me.rerere.rikkahub.ui.pages.hoshio.DungeonUi.whisper.collectAsState()
+    fun withWhisper(parts: List<UIMessagePart>): List<UIMessagePart> {
+        if (dungeon == null || !dungeonWhisper) return parts
+        val i = parts.indexOfFirst { it is UIMessagePart.Text }
+        if (i < 0) return parts
+        return parts.mapIndexed { j, p -> if (j == i) (p as UIMessagePart.Text).copy(text = me.rerere.rikkahub.hoshio.dungeon.WHISPER_PREFIX + p.text) else p }
+    }
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val context = LocalContext.current
@@ -384,6 +396,7 @@ private fun ChatPageContent(
         }
         Scaffold(
             topBar = {
+                Column {
                 TopBar(
                     settings = setting,
                     assistant = assistant,
@@ -412,6 +425,14 @@ private fun ChatPageContent(
                         vm.updateTitle(it)
                     }
                 )
+                if (dungeon != null) {
+                    me.rerere.rikkahub.ui.pages.hoshio.DungeonHud(
+                        dungeon,
+                        setting.displaySetting.userNickname.ifBlank { "你" },
+                        assistant.name.ifBlank { "他" },
+                    )
+                }
+                }
             },
             bottomBar = {
                 val messageQueue by vm.messageQueue.collectAsStateWithLifecycle()
@@ -464,7 +485,7 @@ private fun ChatPageContent(
                                 messageId = inputState.editingMessage!!,
                             )
                         } else {
-                            vm.handleMessageSend(inputState.getContents())
+                            vm.handleMessageSend(withWhisper(inputState.getContents()))
                             scope.launch {
                                 delay(100.milliseconds)
                                 chatListState.requestScrollToItem(conversation.currentMessages.size + 5)
@@ -496,6 +517,7 @@ private fun ChatPageContent(
             },
             containerColor = Color.Transparent,
         ) { innerPadding ->
+            androidx.compose.runtime.CompositionLocalProvider(me.rerere.rikkahub.ui.pages.hoshio.LocalDungeon provides dungeon) {
             ChatList(
                 innerPadding = innerPadding,
                 conversation = conversation,
@@ -563,6 +585,7 @@ private fun ChatPageContent(
                     vm.updateConversationSystemPrompt(newPrompt)
                 },
             )
+            }
         }
 
         RikkaConfirmDialog(
