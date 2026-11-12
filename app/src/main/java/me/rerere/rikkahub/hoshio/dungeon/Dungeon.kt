@@ -54,6 +54,10 @@ data class DungeonFile(val title: String, val content: String)
 @Serializable
 data class DungeonRoll(val who: String, val skill: String, val target: Int, val roll: Int, val result: String, val at: Long = System.currentTimeMillis())
 
+/** KP 封存的劇本：他看不到，抽到或查到才揭曉 */
+@Serializable
+data class DungeonSealed(val text: String, val where: String = "", val revealed: Boolean = false, val revealedAt: Long = 0)
+
 @Serializable
 data class DungeonCheckpoint(val name: String, val at: Long, val state: String)
 
@@ -88,6 +92,16 @@ data class DungeonState(
     val rolls: List<DungeonRoll> = emptyList(),
     val checkpoints: List<DungeonCheckpoint> = emptyList(),
     val rewinds: Int = 3,
+    /** 封存的線索（查到才揭曉） */
+    val clues: List<DungeonSealed> = emptyList(),
+    /** 封存的劇情節點（依序抽，他事先不知道下一個是什麼） */
+    val beats: List<DungeonSealed> = emptyList(),
+    /** 真相：副本結束才揭曉 */
+    val truth: String = "",
+    /** 哪一條世界規則是假的（從 0 起算，-1 = 沒有） */
+    val falseRule: Int = -1,
+    /** 用掉的那次擲骰（同一次成功只能查一次線索） */
+    val clueRollAt: Long = 0,
     /** active | cleared | failed | bad_end */
     val status: String = "active",
     val ending: String = "",
@@ -220,6 +234,10 @@ object DungeonStore {
         if (s.rules.isNotEmpty()) appendLine("World rules:\n" + s.rules.joinToString("\n") { "- $it" })
         if (s.files.isNotEmpty()) appendLine("Files: " + s.files.joinToString("; ") { it.title })
         s.log.takeLast(6).forEach { appendLine("Log r${it.round} ${it.time}: ${it.text}") }
+        val found = s.clues.filter { it.revealed }
+        if (found.isNotEmpty()) appendLine("Clues found so far:\n" + found.joinToString("\n") { "- ${it.text}" })
+        s.beats.filter { it.revealed }.takeLast(2).forEach { appendLine("Story beat already drawn: ${it.text}") }
+        if (s.clues.isNotEmpty() || s.beats.isNotEmpty()) appendLine("Sealed by the KP (you do NOT know them): ${s.clues.count { !it.revealed }} clues, ${s.beats.count { !it.revealed }} story beats, the truth" + if (s.falseRule >= 0) ", which rule is false" else "")
         appendLine("Rewinds left: ${s.rewinds}; checkpoints: ${s.checkpoints.joinToString(", ") { it.name }.ifBlank { "none" }}")
     }
 }

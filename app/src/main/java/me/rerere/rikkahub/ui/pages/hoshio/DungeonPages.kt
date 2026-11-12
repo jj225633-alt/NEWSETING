@@ -369,6 +369,18 @@ fun DungeonStatusSheet(state: DungeonState, herName: String, hisName: String, on
                     }
                 }
             }
+            if (state.clues.isNotEmpty() || state.beats.isNotEmpty()) item {
+                Section("✉ 封存的劇本", pal) {
+                    Text("線索已找到 ${state.clues.count { it.revealed }} / ${state.clues.size}・劇情節點已發生 ${state.beats.count { it.revealed }} / ${state.beats.size}",
+                        style = MaterialTheme.typography.bodyMedium)
+                    Text("劇本由另一個 KP 封存，他也是查到、抽到才知道。", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (state.status != "active" && state.truth.isNotBlank()) {
+                        Text("【真相】", color = pal.accent, style = MaterialTheme.typography.labelLarge)
+                        Text(state.truth, style = MaterialTheme.typography.bodyMedium)
+                        state.rules.getOrNull(state.falseRule)?.let { Text("假的那條規則：$it", style = MaterialTheme.typography.bodySmall, color = pal.accent) }
+                    }
+                }
+            }
             item {
                 Text("存檔點：${state.checkpoints.joinToString("、") { it.name }.ifBlank { "無" }}　剩餘重溯 ${state.rewinds} 次",
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

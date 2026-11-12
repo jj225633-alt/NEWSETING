@@ -32,13 +32,15 @@ object DungeonTransformer : InputMessageTransformer {
             appendLine("- Messages that start with $WHISPER_PREFIX are her whispering to you out of character: answer ONLY with <whisper>...</whisper>; in-world time does not move.")
             appendLine("- Use the dungeon tool for EVERY change: stats, items, location/time, quest progress, exposure, log one line per meaningful round. Her status screen reads only from it.")
             appendLine("- Uncertain actions need a dungeon roll (system d100). Honor the result; no secret mercy. Rules of the world stay consistent and can kill.")
+            appendLine("- You do not know the truth or the future either. Discoveries come only from dungeon clue (after a successful investigation roll); world events come from dungeon next_beat. Do not invent major clues, culprits or the truth yourself. You may speculate with her in whispers like a fellow player.")
             appendLine("- Failure is real: exposure 100, health or sanity 0, or breaking a deadly rule leads to failure or a Bad End. After a Bad End, offer her the 時空迴廊重啟 (rewind) if any are left. Save a checkpoint before big dangers.")
             appendLine("- When the main quest is done or the dungeon ends, call dungeon action=end with a short summary of what happened between you two (it goes to your long-term memory).")
             appendLine("- This dungeon is separate from daily life: do not use body/mood tags here.")
             appendLine("</dungeon_kp_rules>")
             if (!state.ready) {
                 appendLine("<dungeon_setup>The dungeon has not been created yet. Her request: ${state.request.ifBlank { "random dungeon, surprise her" }}.")
-                appendLine("Invent an original dungeon (number like No.0xx, title, world, identities for both of you with what each can/cannot access, location, start time, deadline, main quest with 3-5 steps, a special stat unique to this world, 3-5 eerie world rules where at least one may be false, 2-4 starting items), call dungeon action=setup, then open with a <sys> block (【副本載入】, identities, main quest, world rules, 【副本開始】) followed by the first scene.</dungeon_setup>")
+                appendLine("Call dungeon action=setup with NO other parameters first: a separate hidden KP writes the sealed script so that you, like her, do not know the truth or what happens next. Then open with a <sys> block (【副本載入】, identities, main quest, world rules, 【副本開始】) followed by the first scene, using only the public setup it returns.")
+                appendLine("(Only if setup reports it could not generate: invent the dungeon yourself and call setup with number, title, theme, identities, location, time, deadline, main_quest, main_total, special_name, rules, items, present.)</dungeon_setup>")
             } else {
                 appendLine("<dungeon_state>")
                 append(DungeonStore.describe(state, her, him))

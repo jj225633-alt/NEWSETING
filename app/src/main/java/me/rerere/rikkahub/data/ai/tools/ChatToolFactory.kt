@@ -10,6 +10,7 @@ import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.data.ai.mcp.McpManager
 import me.rerere.rikkahub.data.ai.tools.local.LocalTools
 import me.rerere.rikkahub.data.datastore.Settings
+import me.rerere.rikkahub.data.datastore.findProvider
 import me.rerere.rikkahub.data.files.FileFolders
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.repository.ConversationRepository
@@ -83,6 +84,16 @@ class ChatToolFactory(
                         memoryId = if (assistant.enableMemory) assistant.memoryId else null,
                         herName = settings.displaySetting.userNickname.ifBlank { "她" },
                         hisName = assistant.name.ifBlank { "他" },
+                        // 封存劇本的 KP：另一次請求，他看不到內容
+                        generate = gen@{ prompt ->
+                            val provider = model.findProvider(settings.providers) ?: return@gen null
+                            val pm = org.koin.java.KoinJavaComponent.get<me.rerere.ai.provider.ProviderManager>(me.rerere.ai.provider.ProviderManager::class.java)
+                            pm.getProviderByType(provider).generateText(
+                                providerSetting = provider,
+                                messages = listOf(me.rerere.ai.ui.UIMessage.user(prompt)),
+                                params = me.rerere.rikkahub.data.ai.backgroundTextGenerationParams(model, Uuid.random()),
+                            ).message.parts.filterIsInstance<UIMessagePart.Text>().joinToString("") { it.text }
+                        },
                     )
                 )
             }
