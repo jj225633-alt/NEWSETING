@@ -94,7 +94,16 @@ private fun AssetWebView(
     }
     AndroidView(modifier = modifier, factory = { ctx ->
         val loader = WebViewAssetLoader.Builder().addPathHandler("/assets/$assetDir/") { path ->
-            if (path != file) null else runCatching { WebResourceResponse("text/html", "UTF-8", ctx.assets.open("$assetDir/$file")) }.getOrNull()
+            // 星汐: 同資料夾裡打包的檔案（例如地圖用的 leaflet）也從 App 裡讀，不靠外部 CDN
+            val mime = when {
+                path == file || path.endsWith(".html") -> "text/html"
+                path.endsWith(".js") -> "application/javascript"
+                path.endsWith(".css") -> "text/css"
+                path.endsWith(".png") -> "image/png"
+                else -> null
+            }
+            if (mime == null || path.contains("..") || path.contains('/')) null
+            else runCatching { WebResourceResponse(mime, "UTF-8", ctx.assets.open("$assetDir/$path")) }.getOrNull()
         }.build()
         WebView(ctx).apply {
             setBackgroundColor(android.graphics.Color.TRANSPARENT)
@@ -116,7 +125,7 @@ private fun AssetWebView(
             webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                     val url = request.url.toString()
-                    if (request.method == "GET" && url == home) loader.shouldInterceptRequest(request.url)?.let { return it }
+                    if (request.method == "GET" && url.startsWith("$ASSET_ORIGIN/assets/$assetDir/")) loader.shouldInterceptRequest(request.url)?.let { return it }
                     if (request.method == "GET" && allowNetwork(url)) return null
                     return blocked()
                 }

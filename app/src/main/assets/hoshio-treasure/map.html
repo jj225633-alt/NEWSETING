@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="leaflet.css">
 <style>
   html, body, #map { margin: 0; height: 100%; background: transparent; }
   body { font-family: system-ui, sans-serif; }
@@ -17,8 +17,9 @@
 </head>
 <body>
 <div id="map"></div>
-<div id="offline">地圖需要網路才能顯示。<br>藏寶清單在下方，仍然可以使用。</div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="offline">地圖載入失敗。<br>藏寶清單在下方，仍然可以使用。</div>
+<div id="tilehint" style="display:none;position:absolute;left:0;right:0;top:8px;text-align:center;font-size:12px;color:#999;z-index:1000;pointer-events:none">地圖底圖載入不了：檢查網路，或 VPN／廣告阻擋是否擋了 basemaps.cartocdn.com</div>
+<script src="leaflet.js"></script>
 <script>
 (function () {
   "use strict";
@@ -38,6 +39,9 @@
         subdomains: "abcd", maxZoom: 19,
         attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
       }).addTo(map);
+      let loaded = 0, failed = 0;
+      tiles.on("tileload", () => { loaded++; document.getElementById("tilehint").style.display = "none"; });
+      tiles.on("tileerror", () => { failed++; if (!loaded && failed >= 3) document.getElementById("tilehint").style.display = "block"; });
       tileDark = dark;
     }
   }
