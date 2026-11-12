@@ -100,6 +100,21 @@ class ChatVM(
 
         // 记住对话ID, 方便下次启动恢复
         context.writeStringPreference("lastConversationId", _conversationId.toString())
+
+        // 星汐: 沒送出的草稿——離開聊天頁再回來還在
+        val drafts = context.getSharedPreferences("hoshio_drafts", android.content.Context.MODE_PRIVATE)
+        drafts.getString(_conversationId.toString(), null)?.takeIf { it.isNotEmpty() }?.let { draft ->
+            if (inputState.textContent.text.isEmpty()) inputState.setMessageText(draft)
+        }
+        viewModelScope.launch {
+            androidx.compose.runtime.snapshotFlow { inputState.textContent.text.toString() to inputState.isEditing() }
+                .collect { (text, editing) ->
+                    if (editing) return@collect
+                    drafts.edit().apply {
+                        if (text.isBlank()) remove(_conversationId.toString()) else putString(_conversationId.toString(), text)
+                    }.apply()
+                }
+        }
     }
 
     override fun onCleared() {
