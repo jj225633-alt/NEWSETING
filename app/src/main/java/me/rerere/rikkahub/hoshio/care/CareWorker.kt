@@ -22,6 +22,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -72,6 +73,9 @@ private const val WAKE_CHOICE_HINT =
         "(diary, private room, reading...) without messaging her. Whatever you choose is recorded in your wake log. " +
         "If you like, also refresh the one-line note at the top of her sidebar with side_note.)"
 
+/** 同一個 App 裡所有主動關心檢查共用的鎖 */
+private val CARE_LOCK = kotlinx.coroutines.sync.Mutex()
+
 /** 一次要让 AI 知道的手机事件 */
 private data class CareEvent(val key: String, val title: String, val text: String)
 
@@ -119,6 +123,12 @@ class CareWorker(
         runCatching { me.rerere.rikkahub.hoshio.widget.HoshioWidget.refresh(applicationContext) }
         runCatching { me.rerere.rikkahub.hoshio.handoff.Handoff.maybeAuto(applicationContext) }
             .onFailure { Log.w(TAG, "handoff failed", it) }
+        // 星汐: 15 分鐘的定期檢查、常駐模式的檢查、喚醒鬧鐘可能同時跑；一次只讓一個檢查和送出，
+        // 不然兩個同時看到「該自由時間了」，會送兩次、記兩筆一樣的醒來紀錄
+        return CARE_LOCK.withLock { detectAndDispatch(prefs) }
+    }
+
+    private suspend fun detectAndDispatch(prefs: CarePrefs): Result {
         val isTest = inputData.getBoolean(KEY_TEST, false)
         val events = if (isTest) {
             listOf(
