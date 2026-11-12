@@ -605,6 +605,8 @@ class CareWorker(
     }
 
     private suspend fun dispatch(prefs: CarePrefs, event: CareEvent) {
+        // 星汐: 作息紀錄記「醒來的時間」，不是等他想完、回完之後的時間（思考型模型可能要好幾分鐘）
+        val wokeAt = System.currentTimeMillis()
         val settings = settingsStore.awaitLoaded()
         val assistantId = prefs.assistantId ?: settings.assistantId
         val assistantName = settings.assistants.firstOrNull { it.id == assistantId }?.name?.ifBlank { null } ?: "時澈"
@@ -620,7 +622,7 @@ class CareWorker(
         if (prefs.privateDecision && WakeDecision.shouldDecide(event.key)) {
             val decision = WakeDecision.decide(applicationContext, conversation, event.title, event.text)
             if (decision != null && !decision.talk) {
-                WakeLogStore.add(applicationContext, WakeRecord(trigger = event.title, action = "decided_silent", note = decision.thought))
+                WakeLogStore.add(applicationContext, WakeRecord(at = wokeAt, trigger = event.title, action = "decided_silent", note = decision.thought))
                 val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd HH:mm"))
                 prefs.lastResult = "${event.title}：他想了想，決定先不打擾你（$time）"
                 return
@@ -667,7 +669,7 @@ class CareWorker(
                         .let { (it as? kotlinx.serialization.json.JsonObject)?.get("note") }
                         ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
                 }.getOrNull().orEmpty()
-                WakeLogStore.add(applicationContext, WakeRecord(trigger = event.title, action = "silent", note = note))
+                WakeLogStore.add(applicationContext, WakeRecord(at = wokeAt, trigger = event.title, action = "silent", note = note))
                 prefs.lastResult = "${event.title}：他醒來看了一下，選擇不打擾你（$time）"
             }
 
@@ -675,6 +677,7 @@ class CareWorker(
                 WakeLogStore.add(
                     applicationContext,
                     WakeRecord(
+                        at = wokeAt,
                         trigger = event.title,
                         action = "talked",
                         note = (if (usedTools.isNotEmpty()) "用了 ${usedTools.joinToString("、")}・" else "") + reply.take(80),
@@ -688,7 +691,7 @@ class CareWorker(
             usedTools.isNotEmpty() -> {
                 WakeLogStore.add(
                     applicationContext,
-                    WakeRecord(trigger = event.title, action = "tools", note = "用了 ${usedTools.joinToString("、")}，沒有傳訊息"),
+                    WakeRecord(at = wokeAt, trigger = event.title, action = "tools", note = "用了 ${usedTools.joinToString("、")}，沒有傳訊息"),
                 )
                 prefs.lastResult = "${event.title}：他做了些事，沒有傳訊息（$time）"
             }
@@ -696,7 +699,7 @@ class CareWorker(
             else -> {
                 WakeLogStore.add(
                     applicationContext,
-                    WakeRecord(trigger = event.title, action = "failed", note = if (finished) "沒有回覆" else "等待回覆逾時"),
+                    WakeRecord(at = wokeAt, trigger = event.title, action = "failed", note = if (finished) "沒有回覆" else "等待回覆逾時"),
                 )
                 prefs.lastResult = if (finished) "${event.title}：AI 沒有回覆內容" else "${event.title}：等待 AI 回覆逾時"
                 me.rerere.rikkahub.hoshio.Diagnostics.record(applicationContext, "主動關心", prefs.lastResult.orEmpty())
