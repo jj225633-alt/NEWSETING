@@ -125,16 +125,18 @@ internal fun buildSettingsHelperTool(context: Context): Tool = Tool(
         Help her set up this app. action=get lists the proactive-care settings and their values; action=set changes one (key + value) -
         only when she asks or clearly agrees, and tell her what you changed. action=open_permission opens the Android settings page for a
         permission check item (use hoshio_self_check first to see which are missing; item = the check title). action=save_place saves her
-        current location as a place (name, e.g. 家 / 公司) for arrive/leave greetings. Keys: 
+        current location as a place (name, e.g. 家 / 公司; radius_m 50-5000, default 200 - use bigger for big campuses, smaller for an apartment) for arrive/leave greetings.
+        action=set_place_radius changes the radius of an existing saved place (name + radius_m) without moving it. Keys: 
     """.trimIndent().replace("\n", " ") + SETTINGS.joinToString("; ") { "${it.key}: ${it.description}" },
     parameters = {
         InputSchema.Obj(
             properties = buildJsonObject {
-                put("action", tEnum("What to do", "get", "set", "open_permission", "save_place"))
+                put("action", tEnum("What to do", "get", "set", "open_permission", "save_place", "set_place_radius"))
                 put("key", tStr("set: which setting"))
                 put("value", tStr("set: new value"))
                 put("item", tStr("open_permission: the self-check item title"))
-                put("name", tStr("save_place: place name"))
+                put("name", tStr("save_place / set_place_radius: place name"))
+                put("radius_m", tStr("save_place / set_place_radius: radius in meters (50-5000)"))
             },
             required = listOf("action"),
         )
@@ -178,21 +180,38 @@ internal fun buildSettingsHelperTool(context: Context): Tool = Tool(
                 if (location == null) {
                     tJson("error" to "Could not get her location (location permission off or no fix). Ask her to check location permission.")
                 } else {
+                    val old = prefs.places.firstOrNull { it.name == name }
+                    val radius = arg("radius_m").filter { it.isDigit() }.toIntOrNull()?.coerceIn(50, 5000)
+                        ?: old?.radiusMeters ?: CarePrefs.DEFAULT_PLACE_RADIUS
                     prefs.places = prefs.places.filterNot { it.name == name } +
-                        CarePlace(id = Uuid.random().toString(), name = name, latitude = location.latitude, longitude = location.longitude)
+                        CarePlace(id = Uuid.random().toString(), name = name, latitude = location.latitude, longitude = location.longitude, radiusMeters = radius)
                     if (prefs.assistantId == null) prefs.assistantId = HOSHIO_ASSISTANT_ID
                     CareWorker.sync(context)
                     tJson(
-                        "ok" to "Saved $name (accuracy about ${location.accuracy.toInt()} m).",
+                        "ok" to "Saved $name, radius $radius m (location accuracy about ${location.accuracy.toInt()} m).",
                         "places_enabled" to prefs.placesEnabled,
                         "hint" to if (!prefs.placesEnabled) "Arrive/leave greetings are off; ask her if you should turn on key 'places'." else null,
                     )
                 }
             }
 
+            "set_place_radius" -> {
+                val name = arg("name")
+                val radius = arg("radius_m").filter { it.isDigit() }.toIntOrNull()?.coerceIn(50, 5000)
+                val place = prefs.places.firstOrNull { it.name == name } ?: prefs.places.firstOrNull { it.name.contains(name) && name.isNotEmpty() }
+                when {
+                    radius == null -> tJson("error" to "radius_m must be a number between 50 and 5000.")
+                    place == null -> tJson("error" to "No saved place named '$name'. Saved: " + prefs.places.joinToString(", ") { it.name }.ifEmpty { "none" })
+                    else -> {
+                        prefs.places = prefs.places.map { if (it.id == place.id) it.copy(radiusMeters = radius) else it }
+                        tJson("ok" to "${place.name} radius changed from ${place.radiusMeters} m to $radius m.")
+                    }
+                }
+            }
+
             else -> tJson(
                 "settings" to SETTINGS.joinToString("; ") { "${it.key}=${it.get(prefs, context)}" },
-                "places" to prefs.places.joinToString(", ") { it.name }.ifEmpty { "none" },
+                "places" to prefs.places.joinToString(", ") { "${it.name} (${it.radiusMeters} m)" }.ifEmpty { "none" },
             )
         }
     }
