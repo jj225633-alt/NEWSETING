@@ -50,11 +50,11 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/** 白天用海水藍、晚上用星星金 */
+/** 白天用主題的主色（藍綠），晚上用星星金 */
 private val GOLD: Color
-    @Composable get() = if (me.rerere.rikkahub.ui.theme.LocalDarkMode.current) Color(0xFFC9AE78) else Color(0xFF7FC4DA)
+    @Composable get() = if (me.rerere.rikkahub.ui.theme.LocalDarkMode.current) Color(0xFFC9AE78) else MaterialTheme.colorScheme.primary.copy(alpha = .55f)
 private val GOLD_DEEP: Color
-    @Composable get() = if (me.rerere.rikkahub.ui.theme.LocalDarkMode.current) Color(0xFFA88A4E) else Color(0xFF2E8FB0)
+    @Composable get() = if (me.rerere.rikkahub.ui.theme.LocalDarkMode.current) Color(0xFFA88A4E) else MaterialTheme.colorScheme.primary
 
 /** 一天的對話統計 */
 private data class ChatDayStat(
