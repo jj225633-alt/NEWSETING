@@ -50,8 +50,11 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val GOLD = Color(0xFFC9AE78)
-private val GOLD_DEEP = Color(0xFFA88A4E)
+/** 白天用海水藍、晚上用星星金 */
+private val GOLD: Color
+    @Composable get() = if (me.rerere.rikkahub.ui.theme.LocalDarkMode.current) Color(0xFFC9AE78) else Color(0xFF7FC4DA)
+private val GOLD_DEEP: Color
+    @Composable get() = if (me.rerere.rikkahub.ui.theme.LocalDarkMode.current) Color(0xFFA88A4E) else Color(0xFF2E8FB0)
 
 /** 一天的對話統計 */
 private data class ChatDayStat(
@@ -110,6 +113,8 @@ fun ChatCalendarContent(modifier: Modifier = Modifier) {
         }
     }
 
+    // 首頁的毛玻璃卡片沒有設定文字顏色，這裡明確給，暗色模式才不會變成深色字
+    androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { month = month.minusMonths(1); selected = null }) { Text("‹", fontSize = 26.sp) }
@@ -139,6 +144,7 @@ fun ChatCalendarContent(modifier: Modifier = Modifier) {
             if (tokens > 0) Text("這個月用了 ${formatTokens(tokens)} tokens（全部請求，含標題、翻譯等）", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
     }
 }
 
@@ -186,7 +192,7 @@ private fun MonthGrid(month: YearMonth, stats: Map<LocalDate, ChatDayStat>, sele
 private fun DayDetail(d: ChatDayStat, names: Pair<String, String>) {
     val hm = DateTimeFormatter.ofPattern("HH:mm")
     val zone = ZoneId.systemDefault()
-    Card(colors = CardDefaults.cardColors(containerColor = GOLD.copy(alpha = .16f)), shape = MaterialTheme.shapes.extraLarge) {
+    Card(colors = CardDefaults.cardColors(containerColor = GOLD.copy(alpha = .16f), contentColor = MaterialTheme.colorScheme.onSurface), shape = MaterialTheme.shapes.extraLarge) {
         Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(d.date.toString(), style = MaterialTheme.typography.titleSmall, color = GOLD_DEEP, fontWeight = FontWeight.SemiBold)
             if (d.herCount + d.hisCount == 0) {
