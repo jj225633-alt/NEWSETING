@@ -130,6 +130,7 @@ fun ProviderConnectionTester(
                             launch {
                                 runCatching {
                                     nonStreamingState = UiState.Loading
+                                    testTimeout {
                                     val result = provider.generateText(
                                         providerSetting = internalProvider,
                                         messages = listOf(
@@ -147,11 +148,13 @@ fun ProviderConnectionTester(
                                         .filterIsInstance<UIMessagePart.Text>()
                                         .joinToString("") { it.text }
                                     nonStreamingState = UiState.Success(text)
+                                    }
                                 }.onFailure { nonStreamingState = UiState.Error(it) }
                             }
                             launch {
                                 runCatching {
                                     streamingState = UiState.Loading
+                                    testTimeout {
                                     val flow = provider.streamText(
                                         providerSetting = internalProvider,
                                         messages = listOf(
@@ -171,11 +174,13 @@ fun ProviderConnectionTester(
                                         }
                                     }
                                     streamingState = UiState.Success("")
+                                    }
                                 }.onFailure { streamingState = UiState.Error(it) }
                             }
                             launch {
                                 runCatching {
                                     toolsState = UiState.Loading
+                                    testTimeout {
                                     val testTool = Tool(
                                         name = "get_current_time",
                                         description = "Get the current date and time.",
@@ -215,6 +220,7 @@ fun ProviderConnectionTester(
                                         )
                                     }
                                     toolsState = UiState.Success(resultText)
+                                    }
                                 }.onFailure { toolsState = UiState.Error(it) }
                             }
                         }
@@ -253,7 +259,17 @@ private fun TestResultItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            is UiState.Loading -> LinearWavyProgressIndicator(modifier = Modifier.weight(1f))
+            is UiState.Loading -> Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                // 星汐: 顯示等了幾秒，思考型模型回一句 hello 也可能想很久
+                var seconds by remember { mutableStateOf(0) }
+                androidx.compose.runtime.LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1000); seconds++ } }
+                if (seconds >= 3) Text(
+                    text = "${seconds} 秒" + if (seconds >= 20) "・模型可能還在思考，或中轉站在排隊" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             is UiState.Success -> Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -320,4 +336,11 @@ private fun TestResultItem(
             }
         }
     }
+}
+
+/** 星汐: 測試最多等 3 分鐘，超過就告訴她，不要一直轉圈 */
+private suspend fun <T> testTimeout(block: suspend () -> T): T = try {
+    kotlinx.coroutines.withTimeout(180_000) { block() }
+} catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+    throw IllegalStateException("等了 3 分鐘都沒有回應。可能是模型思考太久，或中轉站不支援同時送出三個請求、正在排隊。如果實際聊天正常，可以不用理會。")
 }
