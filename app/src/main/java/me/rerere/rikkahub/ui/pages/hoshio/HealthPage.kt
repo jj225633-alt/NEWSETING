@@ -53,6 +53,7 @@ fun HealthPage() {
     var granted by remember { mutableStateOf<Set<String>>(emptySet()) }
     var summary by remember { mutableStateOf("讀取中…") }
     var refreshKey by remember { mutableIntStateOf(0) }
+    var showRaw by remember { mutableStateOf(false) }
     var watchWake by remember { mutableStateOf(prefs.watchWakeEnabled) }
     var heartAlert by remember { mutableStateOf(prefs.heartAlertEnabled) }
     var heartBpm by remember { mutableIntStateOf(prefs.heartAlertBpm) }
@@ -80,6 +81,14 @@ fun HealthPage() {
             Modifier.fillMaxSize().padding(innerPadding).padding(16.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            // 星汐: 給她看的儀表板
+            if (sdkStatus == HealthConnectClient.SDK_AVAILABLE && readGranted > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("我的身體記錄", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { refreshKey++ }) { Text("重新整理") }
+                }
+                HealthDashboard(refreshKey)
+            }
             Text(
                 "Pixel Watch 的資料會經由 Fitbit App 同步到 Health Connect，星汐再從那裡讀。" +
                     "要先在 Fitbit App 開啟「Health Connect 同步」。資料只在手機上讀，不會寫入或修改。",
@@ -174,11 +183,13 @@ fun HealthPage() {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), shape = MaterialTheme.shapes.extraLarge) {
                 Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("今天的資料", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { refreshKey++ }) { Text("重新整理") }
+                        Text("他看到的原始資料", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { showRaw = !showRaw }) { Text(if (showRaw) "收起" else "展開") }
                     }
-                    Text(summary, style = MaterialTheme.typography.bodySmall)
-                    Text("（這是給他看的原始資料。沒資料時，打開 Fitbit App 讓它同步一下）", style = MaterialTheme.typography.labelSmall)
+                    if (showRaw) {
+                        Text(summary, style = MaterialTheme.typography.bodySmall)
+                        Text("（這是送給他的版本。沒資料時，打開 Fitbit App 讓它同步一下）", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
 

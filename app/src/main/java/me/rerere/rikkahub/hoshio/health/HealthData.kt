@@ -56,6 +56,19 @@ class HealthPrefs(context: Context) {
         set(value) = prefs.edit { putLong("heart_alert_last", value) }
 }
 
+/** 星汐: 一天的健康資料（沒資料的欄位是 null，不當成 0） */
+data class HealthDay(
+    val date: LocalDate,
+    val sleep: SleepSummary? = null,
+    val steps: Long? = null,
+    val restingHr: Long? = null,
+    val avgHr: Long? = null,
+    val minHr: Long? = null,
+    val maxHr: Long? = null,
+    val calories: Int? = null,
+    val exercises: List<String> = emptyList(),
+)
+
 /** 一段睡眠 */
 data class SleepSummary(
     val start: Instant,
@@ -220,6 +233,37 @@ object HealthData {
             ).ifEmpty { listOf("no data") }.joinToString(", ")
         }
         return (lines + listOfNotNull(skinTemperature(context, 7))).joinToString("\n")
+    }
+
+    /** 星汐: 某一天的資料（給她看的儀表板用）。睡眠取「在這天早上醒來」的那一段 */
+    suspend fun day(context: Context, date: LocalDate, withDetails: Boolean = true): HealthDay {
+        val client = client(context) ?: return HealthDay(date)
+        val zone = ZoneId.systemDefault()
+        val from = date.atStartOfDay(zone).toInstant()
+        val to = minOf(date.plusDays(1).atStartOfDay(zone).toInstant(), Instant.now())
+        if (!to.isAfter(from)) return HealthDay(date)
+        val sleep = read<SleepSessionRecord>(client, from.minus(Duration.ofHours(18)), to)
+            .map { it.summary() }
+            .filter { it.end.atZone(zone).toLocalDate() == date }
+            .maxByOrNull { it.totalMinutes }
+        val steps = steps(context, from, to)
+        if (!withDetails) return HealthDay(date, sleep = sleep, steps = steps)
+        val hr = heartRates(context, from, to).map { it.second }
+        val resting = read<RestingHeartRateRecord>(client, from, to).maxByOrNull { it.time }?.beatsPerMinute
+        val kcal = runCatching {
+            client.aggregate(AggregateRequest(setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL), TimeRangeFilter.between(from, to)))[TotalCaloriesBurnedRecord.ENERGY_TOTAL]
+        }.getOrNull()?.inKilocalories?.toInt()
+        return HealthDay(
+            date = date,
+            sleep = sleep,
+            steps = steps,
+            restingHr = resting,
+            avgHr = hr.takeIf { it.isNotEmpty() }?.average()?.toLong(),
+            minHr = hr.minOrNull(),
+            maxHr = hr.maxOrNull(),
+            calories = kcal?.takeIf { it > 0 },
+            exercises = exercises(context, from, to),
+        )
     }
 
     /** 今天的摘要（给他看） */
