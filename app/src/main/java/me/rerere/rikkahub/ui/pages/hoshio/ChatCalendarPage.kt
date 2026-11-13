@@ -166,7 +166,8 @@ private fun MonthGrid(month: YearMonth, stats: Map<LocalDate, ChatDayStat>, sele
                             val st = stats[date]
                             val active = st != null && st.herCount + st.hisCount > 0
                             val t = if (active) (0.25f + 0.75f * ((st!!.herCount + st.hisCount).toFloat() / maxCount)).coerceIn(0.25f, 1f) else 0f
-                            val bg = if (active) lerp(GOLD.copy(alpha = .35f), GOLD_DEEP, t) else empty
+                            // 最淺的也要夠深，字色才能統一
+                            val bg = if (active) lerp(GOLD, GOLD_DEEP, t) else empty
                             Box(
                                 Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).background(bg)
                                     .then(if (date == selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
@@ -176,7 +177,8 @@ private fun MonthGrid(month: YearMonth, stats: Map<LocalDate, ChatDayStat>, sele
                                 Text(
                                     date.dayOfMonth.toString(),
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = if (active && t > .6f) Color.White else MaterialTheme.colorScheme.onSurface,
+                                    // 有聊天的格子字色統一：白天白字、晚上深色字（金色底配深字比較清楚）
+                                    color = if (!active) MaterialTheme.colorScheme.onSurface else if (me.rerere.rikkahub.ui.theme.LocalDarkMode.current) Color(0xFF231C10) else Color.White,
                                     fontWeight = if (date == LocalDate.now()) FontWeight.Bold else FontWeight.Normal,
                                 )
                             }
