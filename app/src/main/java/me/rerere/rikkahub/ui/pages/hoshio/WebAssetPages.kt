@@ -3,6 +3,7 @@
 // 幸运转盘：Ruota della Fortuna, MIT, Copper (29-Cu); see assets/hoshio-ruota/LICENSE
 package me.rerere.rikkahub.ui.pages.hoshio
 
+import me.rerere.rikkahub.hoshio.Diagnostics as HoshioDiagnostics
 import android.annotation.SuppressLint
 import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
@@ -200,7 +201,7 @@ fun TreasurePage() {
         kotlinx.coroutines.delay(8000)
         if (!mapReady) {
             mapStatus = "地圖頁面沒有回應（WebView 沒有載入）。可以到 Play 商店更新「Android System WebView」再試。"
-            me.rerere.rikkahub.hoshio.Diagnostics.record(context, "藏寶地圖", mapStatus.orEmpty())
+            HoshioDiagnostics.record(context, "藏寶地圖", mapStatus.orEmpty())
         }
     }
 
@@ -274,7 +275,7 @@ fun TreasurePage() {
                         it == "tiles-fail" -> mapStatus = "地圖底圖下載失敗：檢查網路，或 VPN／廣告阻擋是否擋了 basemaps.cartocdn.com"
                         it.startsWith("err:") -> {
                             mapStatus = "地圖出錯：" + it.removePrefix("err:").take(120)
-                            me.rerere.rikkahub.hoshio.Diagnostics.record(context, "藏寶地圖", mapStatus.orEmpty())
+                            HoshioDiagnostics.record(context, "藏寶地圖", mapStatus.orEmpty())
                         }
                     }
                 }
