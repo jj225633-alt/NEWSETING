@@ -55,9 +55,11 @@ object Handoff {
     private val lock = kotlinx.coroutines.sync.Mutex()
 
     /** 这段对话最新一则回覆用掉的上下文（输入＋输出 token） */
+    // 用「最後一次請求」的用量（lastUsage），不要用 usage：多步工具呼叫時 usage 是各步加總，會比真正的上下文大好幾倍
     fun contextTokens(conversation: Conversation): Int =
-        conversation.currentMessages.lastOrNull { it.role == MessageRole.ASSISTANT && it.usage != null }
-            ?.usage?.let { it.promptTokens + it.completionTokens } ?: 0
+        conversation.currentMessages.lastOrNull { it.role == MessageRole.ASSISTANT && (it.lastUsage != null || it.usage != null) }
+            ?.let { it.lastUsage ?: it.usage }
+            ?.let { it.promptTokens + it.completionTokens } ?: 0
 
     /** 背景检查：超过门槛、而且 10 分钟没有新讯息才交接（不打断正在聊的时候） */
     suspend fun maybeAuto(context: Context) {
