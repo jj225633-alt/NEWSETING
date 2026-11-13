@@ -21,7 +21,10 @@ object ChatModes {
     val LABELS = linkedMapOf(CHAT to "日常", TALK to "長聊", SCENE to "場景")
 
     private const val PREFS = "hoshio_chat_modes"
-    private val TAG = Regex("""^\s*\[switch-mode:(chat|talk|scene)]\s*\n?""", RegexOption.IGNORE_CASE)
+    /** 標記本身；前面只剩幾個標點（例如模型多吐了一個「】」）也一起拿掉 */
+    private val TAG = Regex("""^[\s\p{P}]{0,4}\[switch-mode:(chat|talk|scene)]\s*\n?""", RegexOption.IGNORE_CASE)
+    /** 不在開頭的標記（模型偶爾放錯位置）：一律拿掉，不讓它顯示出來 */
+    private val ANY_TAG = Regex("""\[switch-mode:(chat|talk|scene)]""", RegexOption.IGNORE_CASE)
     private val PARTIAL = Regex("""^\s*\[(?:s|sw|swi|swit|switc|switch|switch-|switch-m|switch-mo|switch-mod|switch-mode|switch-mode:)[a-z]*]?\s*$""", RegexOption.IGNORE_CASE)
 
     private val _manual = MutableStateFlow(AUTO)
@@ -60,7 +63,7 @@ object ChatModes {
     fun extract(context: Context, messageId: String, text: String): String {
         ensure(context)
         val m = TAG.find(text)
-        val tagged = m?.groupValues?.get(1)?.lowercase()
+        val tagged = (m ?: ANY_TAG.find(text))?.groupValues?.get(1)?.lowercase()
         val p = prefs(context)
         if (tagged != null) p.edit { putString("auto_current", tagged) }
         if (p.getString("m_$messageId", null) == null) {
@@ -71,20 +74,21 @@ object ChatModes {
             }
             _version.value++
         }
-        return if (m != null) text.removeRange(m.range) else text
+        return (if (m != null) text.removeRange(m.range) else text).replace(ANY_TAG, "")
     }
 
     /** 生成中：先把標記藏起來 */
     fun hide(text: String): String {
         val first = text.substringBefore('\n')
         return when {
-            TAG.containsMatchIn(text) -> text.replaceFirst(TAG, "")
+            TAG.containsMatchIn(text) -> text.replaceFirst(TAG, "").replace(ANY_TAG, "")
+            ANY_TAG.containsMatchIn(text) -> text.replace(ANY_TAG, "")
             !text.contains('\n') && PARTIAL.matches(first) -> ""
             else -> text
         }
     }
 
-    fun tagOf(text: String): String? = TAG.find(text)?.groupValues?.get(1)?.lowercase()
+    fun tagOf(text: String): String? = (TAG.find(text) ?: ANY_TAG.find(text))?.groupValues?.get(1)?.lowercase()
 
     const val RULE = "You talk with her in one window with three ways of showing a reply: chat (everyday chat - only the words you say out loud, no actions or scenery; " +
         "use normal punctuation, the app splits bubbles), talk (only spoken words, keep punctuation and paragraphs, not split; length is whatever the content needs), " +

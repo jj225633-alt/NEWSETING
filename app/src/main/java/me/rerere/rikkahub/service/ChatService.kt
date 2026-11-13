@@ -470,6 +470,18 @@ class ChatService(
         dispatchInbox(conversationId)
     }
 
+    /**
+     * 星汐: 開一個還不存在的新對話，用一則通知開第一輪（例如對話交接）。
+     * 直接 postNotice 到不存在的對話會被丟掉（怕是剛被刪掉的對話），所以這裡先建立再放通知。
+     */
+    suspend fun startConversationWithNotice(conversationId: Uuid, key: String, notice: UIMessagePart.Notice) {
+        sessionManager.withSession(conversationId) { session ->
+            ensureInitialized(session)
+            session.inbox.post(key, notice)
+            dispatchInbox(conversationId)
+        }
+    }
+
     /** 会话空闲时从收件箱开始下一轮：先发用户输入，只剩通知时单独开一轮 */
     private fun dispatchInbox(conversationId: Uuid): Job? {
         val session = sessionManager.get(conversationId) ?: return null

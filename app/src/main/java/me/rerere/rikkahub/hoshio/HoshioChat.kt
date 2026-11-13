@@ -81,7 +81,7 @@ object HoshioChat : KoinComponent {
     suspend fun askInNewConversation(title: String, text: String, timeoutMinutes: Long = 5): Reply {
         val settings = settingsStore.awaitLoaded()
         val name = settings.assistants.firstOrNull { it.id == settings.assistantId }?.name?.ifBlank { null } ?: "時澈"
-        return askIn(kotlin.uuid.Uuid.random(), 0, name, title, text, timeoutMinutes)
+        return askIn(kotlin.uuid.Uuid.random(), 0, name, title, text, timeoutMinutes, create = true)
     }
 
     private suspend fun askIn(
@@ -91,12 +91,12 @@ object HoshioChat : KoinComponent {
         title: String,
         text: String,
         timeoutMinutes: Long,
+        create: Boolean = false,
     ): Reply {
-        chatService.postNotice(
-            conversationId = conversationId,
-            key = "hoshio_ask:${System.currentTimeMillis()}",
-            notice = UIMessagePart.Notice(title = title, text = text),
-        )
+        val notice = UIMessagePart.Notice(title = title, text = text)
+        val key = "hoshio_ask:${System.currentTimeMillis()}"
+        if (create) chatService.startConversationWithNotice(conversationId, key, notice)
+        else chatService.postNotice(conversationId = conversationId, key = key, notice = notice)
         val jobs = chatService.getGenerationJobStateFlow(conversationId)
         withTimeoutOrNull(TimeUnit.MINUTES.toMillis(timeoutMinutes)) {
             withTimeoutOrNull(30_000) { jobs.filterNotNull().first() }

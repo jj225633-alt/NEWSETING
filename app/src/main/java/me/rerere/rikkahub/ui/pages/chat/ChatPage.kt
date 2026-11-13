@@ -425,6 +425,23 @@ private fun ChatPageContent(
                         vm.updateTitle(it)
                     }
                 )
+                // 星汐: 這段對話已經交接到新對話
+                val handoffTo = remember(conversation.id) {
+                    me.rerere.rikkahub.hoshio.handoff.HandoffPrefs(dungeonCtx).let { p ->
+                        if (p.handedOffFrom == conversation.id.toString()) p.handedOffTo else null
+                    }
+                }
+                if (handoffTo != null) {
+                    androidx.compose.material3.Surface(
+                        onClick = { navigateToChatPage(navController, chatId = kotlin.uuid.Uuid.parse(handoffTo)) },
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .9f),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
+                    ) {
+                        Text("這段對話已經交接到新對話了，點這裡過去 →", style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
+                    }
+                }
                 if (dungeon != null) {
                     me.rerere.rikkahub.ui.pages.hoshio.DungeonHud(
                         dungeon,

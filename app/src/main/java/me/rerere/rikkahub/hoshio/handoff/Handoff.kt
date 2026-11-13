@@ -1,5 +1,6 @@
 package me.rerere.rikkahub.hoshio.handoff
 
+import me.rerere.rikkahub.ui.hooks.writeStringPreference
 import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
@@ -35,6 +36,11 @@ class HandoffPrefs(context: Context) {
         get() = prefs.getString("from", null)
         set(value) = prefs.edit { putString("from", value) }
 
+    /** 交接到的新對話（null = 還沒成功） */
+    var handedOffTo: String?
+        get() = prefs.getString("to", null)
+        set(value) = prefs.edit { putString("to", value) }
+
     var lastResult: String?
         get() = prefs.getString("last_result", null)
         set(value) = prefs.edit { putString("last_result", value) }
@@ -56,7 +62,8 @@ object Handoff {
         if (!prefs.autoEnabled) return
         if (me.rerere.rikkahub.hoshio.together.SleepMode.isOn(context)) return
         val (conversation, _) = HoshioChat.latestConversation() ?: return
-        if (prefs.handedOffFrom == conversation.id.toString()) return
+        // 交接過、而且新對話有開成功才跳過；上次卡住的話再試一次
+        if (prefs.handedOffFrom == conversation.id.toString() && prefs.handedOffTo != null) return
         if (contextTokens(conversation) < prefs.thresholdK * 1000) return
         val lastAt = conversation.currentMessages.lastOrNull()?.createdAt
             ?.toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
@@ -73,6 +80,7 @@ object Handoff {
         if (HoshioChat.isBusy(old)) return "他正在回話，等一下再試".also { prefs.lastResult = it }
         val tokens = contextTokens(old)
         prefs.handedOffFrom = old.id.toString()
+        prefs.handedOffTo = null
 
         val note = HoshioChat.ask(
             title = "對話交接",
@@ -96,7 +104,17 @@ object Handoff {
                 "(you may lightly mention you turned to a new page). Keep it short.",
             timeoutMinutes = 4,
         )
-        if (reply.text.isNotBlank()) notify(context, reply)
+        if (reply.text.isBlank()) {
+            return "新對話開好了，但他還沒回話（之後打開新對話就會看到）".also {
+                prefs.handedOffTo = reply.conversationId
+                context.writeStringPreference("lastConversationId", reply.conversationId)
+                prefs.lastResult = it
+            }
+        }
+        prefs.handedOffTo = reply.conversationId
+        // 下次打開星汐直接進新對話
+        context.writeStringPreference("lastConversationId", reply.conversationId)
+        notify(context, reply)
         return "已交接（舊對話約 ${tokens / 1000}K）".also { prefs.lastResult = "$it・${java.time.LocalDateTime.now().toString().take(16).replace('T', ' ')}" }
     }
 
