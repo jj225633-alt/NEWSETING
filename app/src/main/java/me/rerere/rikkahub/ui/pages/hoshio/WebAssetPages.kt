@@ -179,9 +179,9 @@ fun RuotaPage() {
 
 private object TreasureWebPolicy {
     private val leaflet = setOf("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css", "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js")
-    private val tiles = Regex("^https://[a-d]\\.basemaps\\.cartocdn\\.com/(light_all|dark_all)/\\d{1,2}/\\d+/\\d+(@2x)?\\.png$")
+    private val tiles = Regex("^https://tile\\.openstreetmap\\.org/\\d{1,2}/\\d+/\\d+\\.png$")
 
-    /** 只允许：固定版本的 Leaflet、CARTO 底图图砖 */
+    /** 只允许：固定版本的 Leaflet、OpenStreetMap 图砖 */
     fun network(url: String): Boolean = url in leaflet || tiles.matches(url) || url.startsWith("https://unpkg.com/leaflet@1.9.4/dist/images/")
 }
 
@@ -278,7 +278,7 @@ fun TreasurePage() {
                     when {
                         it == "ready" -> { mapReady = true; if (mapStatus == null) mapStatus = "地圖載入中…（底圖要網路）" }
                         it == "tiles-ok" -> mapStatus = ""
-                        it == "tiles-fail" -> mapStatus = "地圖底圖下載失敗：檢查網路，或 VPN／廣告阻擋是否擋了 basemaps.cartocdn.com"
+                        it == "tiles-fail" -> mapStatus = "地圖底圖下載失敗：檢查網路，或 VPN／廣告阻擋是否擋了 tile.openstreetmap.org"
                         it.startsWith("err:") -> {
                             mapStatus = "地圖出錯：" + it.removePrefix("err:").take(120)
                             HoshioDiagnostics.record(context, "藏寶地圖", mapStatus.orEmpty())
@@ -323,7 +323,7 @@ fun TreasurePage() {
                 }
                 item {
                     Text(
-                        "Based on hidden-letters-map by Saekisui - https://github.com/Saekisui/hidden-letters-map（AGPL-3.0）\n地圖 © OpenStreetMap contributors © CARTO",
+                        "Based on hidden-letters-map by Saekisui - https://github.com/Saekisui/hidden-letters-map（AGPL-3.0）\n地圖 © OpenStreetMap contributors",
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(top = 8.dp),
                     )
