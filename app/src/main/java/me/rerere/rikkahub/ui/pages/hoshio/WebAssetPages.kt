@@ -195,6 +195,14 @@ fun TreasurePage() {
     var message by remember { mutableStateOf<String?>(null) }
     var web by remember { mutableStateOf<WebView?>(null) }
     var mapReady by remember { mutableStateOf(false) }
+    var mapStatus by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(8000)
+        if (!mapReady) {
+            mapStatus = "地圖頁面沒有回應（WebView 沒有載入）。可以到 Play 商店更新「Android System WebView」再試。"
+            me.rerere.rikkahub.hoshio.Diagnostics.record(context, "藏寶地圖", mapStatus.orEmpty())
+        }
+    }
 
     LaunchedEffect(Unit) { state = withContext(Dispatchers.IO) { TreasureMapStore.load(context) } }
     DisposableEffect(Unit) {
@@ -258,13 +266,25 @@ fun TreasurePage() {
                     allowNetwork = TreasureWebPolicy::network,
                     onCreated = { web = it },
                     modifier = Modifier.fillMaxSize(),
-                ) { if (it == "ready") mapReady = true }
+                ) {
+                    // 星汐: 地圖回報的狀態，載不出來時讓她看得到原因
+                    when {
+                        it == "ready" -> { mapReady = true; if (mapStatus == null) mapStatus = "地圖載入中…（底圖要網路）" }
+                        it == "tiles-ok" -> mapStatus = ""
+                        it == "tiles-fail" -> mapStatus = "地圖底圖下載失敗：檢查網路，或 VPN／廣告阻擋是否擋了 basemaps.cartocdn.com"
+                        it.startsWith("err:") -> {
+                            mapStatus = "地圖出錯：" + it.removePrefix("err:").take(120)
+                            me.rerere.rikkahub.hoshio.Diagnostics.record(context, "藏寶地圖", mapStatus.orEmpty())
+                        }
+                    }
+                }
             }
             Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
                 Button(onClick = ::checkHere, enabled = !locating, modifier = Modifier.fillMaxWidth()) {
                     Text(if (locating) "定位中…" else "📍 我就在這附近")
                 }
                 message?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp)) }
+                mapStatus?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp)) }
             }
             LazyColumn(
                 Modifier.fillMaxWidth().weight(.55f),

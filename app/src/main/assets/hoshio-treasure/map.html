@@ -23,7 +23,9 @@
 <script>
 (function () {
   "use strict";
-  if (!window.L) { document.getElementById("offline").style.display = "flex"; window.hoshioRender = function () {}; return; }
+  const send = (m) => { try { window.HoshioTreasure && window.HoshioTreasure.postMessage(m); } catch (e) {} };
+  window.addEventListener("error", (e) => send("err:" + (e.message || "error")));
+  if (!window.L) { send("err:leaflet not loaded"); document.getElementById("offline").style.display = "flex"; window.hoshioRender = function () {}; return; }
   let map = null, tiles = null, layer = null, tileDark = null, fitted = false;
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const icons = (l) => (l.contents || []).map((c) => (c === "letter" ? "✉️" : "🏅")).join(" ");
@@ -40,8 +42,8 @@
         attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
       }).addTo(map);
       let loaded = 0, failed = 0;
-      tiles.on("tileload", () => { loaded++; document.getElementById("tilehint").style.display = "none"; });
-      tiles.on("tileerror", () => { failed++; if (!loaded && failed >= 3) document.getElementById("tilehint").style.display = "block"; });
+      tiles.on("tileload", () => { if (!loaded) send("tiles-ok"); loaded++; document.getElementById("tilehint").style.display = "none"; });
+      tiles.on("tileerror", () => { failed++; if (!loaded && failed >= 3) { document.getElementById("tilehint").style.display = "block"; if (failed === 3) send("tiles-fail"); } });
       tileDark = dark;
     }
   }
@@ -73,7 +75,9 @@
     if (data.focusMe && data.me) map.setView([data.me.lat, data.me.lon], 15);
     else if (!fitted && bounds.length) { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 }); fitted = true; }
   };
-  if (window.HoshioTreasure) window.HoshioTreasure.postMessage("ready");
+  // 不等 App 傳資料，先把地圖畫出來（深淺色跟著系統）
+  try { ensure(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches); } catch (e) { send("err:" + e.message); }
+  send("ready");
 })();
 </script>
 </body>
