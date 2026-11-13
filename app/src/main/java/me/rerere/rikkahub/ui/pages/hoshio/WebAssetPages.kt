@@ -258,7 +258,8 @@ fun TreasurePage() {
     PlayScaffold("藏寶地圖") { innerPadding ->
         Column(Modifier.fillMaxSize().padding(innerPadding)) {
             Box(
-                Modifier.fillMaxWidth().weight(.45f).padding(horizontal = 12.dp).clip(MaterialTheme.shapes.extraLarge),
+                // 星汐: 不對 WebView 外面做 clip（有些手機會讓 WebView 整個畫不出來），圓角改在網頁裡做
+                Modifier.fillMaxWidth().weight(.45f).padding(horizontal = 12.dp),
             ) {
                 AssetWebView(
                     assetDir = "hoshio-treasure",

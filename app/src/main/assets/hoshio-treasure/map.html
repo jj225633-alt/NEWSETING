@@ -6,7 +6,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <link rel="stylesheet" href="leaflet.css">
 <style>
-  html, body, #map { margin: 0; height: 100%; background: transparent; }
+  html, body { margin: 0; height: 100%; background: transparent; }
+  #map { height: 100%; border-radius: 28px; overflow: hidden; background: #dfe7ea; }
+  @media (prefers-color-scheme: dark) { #map { background: #1c2228; } }
   body { font-family: system-ui, sans-serif; }
   #offline { display: none; position: absolute; inset: 0; align-items: center; justify-content: center;
     text-align: center; padding: 24px; color: #888; font-size: 14px; }
