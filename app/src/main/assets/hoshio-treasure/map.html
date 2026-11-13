@@ -75,9 +75,12 @@
     });
     if (data.me) {
       L.circle([data.me.lat, data.me.lon], { radius: Math.max(15, data.me.acc || 0), color: "#4a90e2", weight: 1, fillOpacity: 0.15 }).addTo(layer);
-      L.circleMarker([data.me.lat, data.me.lon], { radius: 6, color: "#fff", weight: 2, fillColor: "#4a90e2", fillOpacity: 1 }).addTo(layer);
+      L.circleMarker([data.me.lat, data.me.lon], { radius: 9, color: "#fff", weight: 3, fillColor: "#1E7BE6", fillOpacity: 1 }).addTo(layer);
       bounds.push([data.me.lat, data.me.lon]);
     }
+    // 第一次拿到她的位置、而且還沒有寶藏可以框時，先移到她附近
+    if (data.me && !window.__metSelf && !fitted && bounds.length === 1) { map.setView([data.me.lat, data.me.lon], 15); fitted = true; }
+    if (data.me) window.__metSelf = true;
     if (data.focusMe && data.me) map.setView([data.me.lat, data.me.lon], 15);
     else if (!fitted && bounds.length) { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 }); fitted = true; }
   };

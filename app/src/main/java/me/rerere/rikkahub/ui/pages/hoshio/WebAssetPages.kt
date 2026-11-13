@@ -211,6 +211,11 @@ fun TreasurePage() {
     }
 
     LaunchedEffect(Unit) { state = withContext(Dispatchers.IO) { TreasureMapStore.load(context) } }
+    // 星汐: 一打開就先標出她的位置（藍點），不用先按按鈕；這裡只顯示，不算到訪
+    LaunchedEffect(Unit) {
+        val location = runCatching { context.currentLocationOrNull() }.getOrNull() ?: return@LaunchedEffect
+        if (me == null) me = Triple(location.latitude, location.longitude, if (location.hasAccuracy()) location.accuracy else 100f)
+    }
     DisposableEffect(Unit) {
         val listener: () -> Unit = { web?.post { state = TreasureMapStore.load(context) } }
         TreasureMapStore.addListener(listener)
