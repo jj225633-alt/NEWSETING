@@ -60,7 +60,8 @@
     const bounds = [];
     (data.letters || []).forEach((l) => {
       if (l.status === "sealed") {
-        const c = L.circle([l.area.lat, l.area.lon], { radius: l.area.r, color: accent, weight: 1.5, dashArray: "4 6", fillColor: accent, fillOpacity: 0.12 });
+        // 藏寶圈：用跟地圖底色反差大的珊瑚橘，線粗一點、填色深一點
+        const c = L.circle([l.area.lat, l.area.lon], { radius: l.area.r, color: "#E2552F", weight: 3, dashArray: "8 6", fillColor: "#F07A3C", fillOpacity: 0.3 });
         const progress = l.visitsNeeded ? "<br>到訪 " + l.visits + " / " + l.visitsNeeded + " 天" : "";
         c.bindPopup("🔒 <b>" + esc(l.hint) + "</b><br>" + icons(l) + progress);
         c.addTo(layer);
