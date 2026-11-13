@@ -615,6 +615,16 @@ class CareWorker(
     }
 
     private suspend fun dispatch(prefs: CarePrefs, event: CareEvent) {
+        // 星汐: 第二道保險：同一種醒來 5 分鐘內只送一次（不管是哪個檢查送的）
+        if (!event.key.startsWith("test") && !event.key.startsWith("self_reminder_")) {
+            val sent = applicationContext.getSharedPreferences("hoshio_care_dispatch", Context.MODE_PRIVATE)
+            val last = sent.getLong(event.key, 0L)
+            if (System.currentTimeMillis() - last < 5 * 60_000L) {
+                Log.i(TAG, "skip duplicate ${event.key}")
+                return
+            }
+            sent.edit().putLong(event.key, System.currentTimeMillis()).commit()
+        }
         // 星汐: 作息紀錄記「醒來的時間」，不是等他想完、回完之後的時間（思考型模型可能要好幾分鐘）
         val wokeAt = System.currentTimeMillis()
         val settings = settingsStore.awaitLoaded()
