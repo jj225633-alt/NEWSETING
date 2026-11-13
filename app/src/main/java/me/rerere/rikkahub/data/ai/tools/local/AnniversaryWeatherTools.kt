@@ -41,7 +41,7 @@ internal fun buildAnniversaryTools(context: Context): List<Tool> = listOf(
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
-                    put("title", buildJsonObject { put("type", "string"); put("description", "e.g. 言言的生日") })
+                    put("title", buildJsonObject { put("type", "string"); put("description", "e.g. 她的生日") })
                     put("date", buildJsonObject { put("type", "string"); put("description", "yyyy-MM-dd (use the original year if known)") })
                     put("yearly", buildJsonObject { put("type", "boolean"); put("description", "Repeats every year (default true)") })
                     put("note", buildJsonObject { put("type", "string"); put("description", "Optional short note") })
