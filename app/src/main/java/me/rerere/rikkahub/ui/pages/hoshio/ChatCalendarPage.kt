@@ -177,8 +177,8 @@ private fun MonthGrid(month: YearMonth, stats: Map<LocalDate, ChatDayStat>, sele
                                 Text(
                                     date.dayOfMonth.toString(),
                                     style = MaterialTheme.typography.labelLarge,
-                                    // 有聊天的格子字色統一：白天白字、晚上深色字（金色底配深字比較清楚）
-                                    color = if (!active) MaterialTheme.colorScheme.onSurface else if (me.rerere.rikkahub.ui.theme.LocalDarkMode.current) Color(0xFF231C10) else Color.White,
+                                    // 有聊天的格子字色統一用白字
+                                    color = if (!active) MaterialTheme.colorScheme.onSurface else Color.White,
                                     fontWeight = if (date == LocalDate.now()) FontWeight.Bold else FontWeight.Normal,
                                 )
                             }
