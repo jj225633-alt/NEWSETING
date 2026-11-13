@@ -494,11 +494,11 @@ private fun MessagePartsBlock(
                                 if (snapText.isNotBlank()) {
                                 if (me.rerere.rikkahub.ui.pages.hoshio.splash.LocalHoshioChatGlass.current) {
                                     // 星汐: 像 orbis-tw 一樣，一段一個泡泡
-                                    val visualText = snapText.replaceRegexes(
+                                    val visualText = me.rerere.rikkahub.hoshio.snap.ChatModes.hide(snapText.replaceRegexes(
                                         assistant = assistant,
                                         scope = AssistantAffectScope.ASSISTANT,
                                         visual = true,
-                                    )
+                                    ))
                                     val mode = me.rerere.rikkahub.hoshio.snap.LocalMessageMode.current
                                     val segments = remember(visualText, mode) {
                                         when (mode) {
