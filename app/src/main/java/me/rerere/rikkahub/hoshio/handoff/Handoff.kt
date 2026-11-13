@@ -51,6 +51,9 @@ class HandoffPrefs(context: Context) {
  * 再开一个新对话，把笔记交给新对话里的他，自然地接着聊。
  */
 object Handoff {
+    /** 同一時間只交接一次（定期檢查、常駐檢查可能同時跑，之前因此開出兩個新對話） */
+    private val lock = kotlinx.coroutines.sync.Mutex()
+
     /** 这段对话最新一则回覆用掉的上下文（输入＋输出 token） */
     fun contextTokens(conversation: Conversation): Int =
         conversation.currentMessages.lastOrNull { it.role == MessageRole.ASSISTANT && it.usage != null }
@@ -58,6 +61,11 @@ object Handoff {
 
     /** 背景检查：超过门槛、而且 10 分钟没有新讯息才交接（不打断正在聊的时候） */
     suspend fun maybeAuto(context: Context) {
+        if (!lock.tryLock()) return
+        try { maybeAutoLocked(context) } finally { lock.unlock() }
+    }
+
+    private suspend fun maybeAutoLocked(context: Context) {
         val prefs = HandoffPrefs(context)
         if (!prefs.autoEnabled) return
         if (me.rerere.rikkahub.hoshio.together.SleepMode.isOn(context)) return
@@ -70,11 +78,16 @@ object Handoff {
             ?.toEpochMilliseconds() ?: 0L
         if (System.currentTimeMillis() - lastAt < 10 * 60_000) return
         if (HoshioChat.isBusy(conversation)) return
-        run(context)
+        runLocked(context)
     }
 
     /** 现在交接（手动或自动）。回传结果说明 */
     suspend fun run(context: Context): String {
+        if (!lock.tryLock()) return "正在交接中，請稍等".also { HandoffPrefs(context).lastResult = it }
+        return try { runLocked(context) } finally { lock.unlock() }
+    }
+
+    private suspend fun runLocked(context: Context): String {
         val prefs = HandoffPrefs(context)
         val (old, _) = HoshioChat.latestConversation() ?: return "還沒有對話".also { prefs.lastResult = it }
         if (HoshioChat.isBusy(old)) return "他正在回話，等一下再試".also { prefs.lastResult = it }

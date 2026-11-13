@@ -107,6 +107,11 @@ private fun AssetWebView(
             else runCatching { WebResourceResponse(mime, "UTF-8", ctx.assets.open("$assetDir/$path")) }.getOrNull()
         }.build()
         WebView(ctx).apply {
+            // 星汐: 一定要撐滿外框。沒設的話 WebView 會照內容高度縮，地圖頁（高度 100%）就變成 0 高、整片空白
+            layoutParams = android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            )
             setBackgroundColor(android.graphics.Color.TRANSPARENT)
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = domStorage
